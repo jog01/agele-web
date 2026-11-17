@@ -14,7 +14,11 @@ cp .env.example .env.local
 bun run dev          # http://localhost:3000/trade
 ```
 
-Without `NEXT_PUBLIC_PRIVY_APP_ID` the app runs in demo mode: fixture data, sign-in and trading disabled.
+Demo labels appear when `/health` reports mock data (or cannot confirm live data), or Privy is unconfigured. Confirmation requires live data and configured, ready, authenticated Privy.
+
+## Live data
+
+See [live data flow diagrams and the mock-mode UI screenshot](docs/live-data.md).
 
 ## API types
 
