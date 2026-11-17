@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DepositDialog } from "@/components/wallet/deposit-dialog";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -18,6 +19,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <AuthProvider>
         <TooltipProvider delayDuration={200}>
           {children}
+          <DepositDialog />
           <Toaster position="bottom-right" />
         </TooltipProvider>
       </AuthProvider>

@@ -1,14 +1,12 @@
 "use client";
 
-import { LogOut, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/components/auth/auth-context";
 import { DemoBadge } from "@/components/common/demo-badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AccountMenu } from "@/components/wallet/account-menu";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import { PRODUCT_NAME } from "@/lib/config";
-import { shortAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type NavSection = "trade" | "feed" | "leaderboard" | "portfolio";
@@ -21,7 +19,6 @@ export const NAV = [
 ] as const;
 
 export function TopBar({ section, onSearch }: { section?: NavSection; onSearch?: () => void }) {
-  const auth = useAuth();
   const { demoMode: DEMO_MODE } = useMarketDataMode();
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-sidebar px-3">
@@ -67,29 +64,7 @@ export function TopBar({ section, onSearch }: { section?: NavSection; onSearch?:
           <Search className="size-4" />
         </Button>
         {DEMO_MODE && <DemoBadge />}
-        {auth.authenticated ? (
-          <>
-            <span className="font-mono text-muted-foreground text-xs">
-              {auth.walletAddress ? shortAddress(auth.walletAddress) : auth.userLabel}
-            </span>
-            <Button variant="ghost" size="icon" aria-label="Sign out" onClick={() => auth.logout()}>
-              <LogOut className="size-4" />
-            </Button>
-          </>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button size="sm" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
-                  Sign in
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!auth.configured && (
-              <TooltipContent>Set NEXT_PUBLIC_PRIVY_APP_ID to enable sign-in.</TooltipContent>
-            )}
-          </Tooltip>
-        )}
+        <AccountMenu />
       </div>
     </header>
   );

@@ -4,6 +4,7 @@ import { Wallet } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { DASH } from "@/lib/format";
+import { openDeposit } from "@/stores/wallet";
 
 const METRICS = [
   { label: "Total equity", caption: "Cash + marked holdings" },
@@ -25,7 +26,9 @@ export function PortfolioView() {
           <Button variant="secondary" disabled>
             Withdraw
           </Button>
-          <Button disabled>Deposit</Button>
+          <Button disabled={!auth.wallet.address} onClick={openDeposit}>
+            Deposit
+          </Button>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -46,6 +49,7 @@ export function PortfolioView() {
             : "Sign-in is disabled in this demo build. Holdings, balances and PnL appear once Privy and the indexer are connected."}
         </p>
         {auth.configured && !auth.authenticated && <Button onClick={auth.login}>Sign in</Button>}
+        {auth.wallet.address && <Button onClick={openDeposit}>Deposit USDC</Button>}
       </div>
     </div>
   );
