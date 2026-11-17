@@ -121,6 +121,36 @@ it("uses the opaque next cursor, preserves trades after a failed page, and retri
   ]);
 });
 
+it("renders indexed positions and skips nullable entries from the API", async () => {
+  get
+    .mockResolvedValueOnce(
+      ok(
+        {
+          ...profile,
+          positions: [
+            null,
+            {
+              mint,
+              symbol: "SOL",
+              quantity: 1,
+              avgCostUsd: 100,
+              priceUsd: 80,
+              valueUsd: 80,
+              unrealizedPnlUsd: -20,
+              realizedPnlUsd: 0,
+            },
+          ],
+        },
+        "indexed",
+      ),
+    )
+    .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "indexed"));
+  renderProfile();
+  expect((await screen.findByRole("link", { name: "SOL" })).getAttribute("href")).toBe(`/trade/${mint}`);
+  expect(screen.getByRole("table", { name: "Open positions" }).textContent).toContain("-$20.00");
+  expect(await screen.findByText("No trades yet.")).toBeDefined();
+});
+
 it("distinguishes a missing trader from an outage", async () => {
   get
     .mockResolvedValueOnce({ response: new Response(null, { status: 503 }) })

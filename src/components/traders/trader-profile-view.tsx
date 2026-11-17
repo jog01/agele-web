@@ -82,13 +82,14 @@ function TraderPositions({
   positions,
   demo,
 }: {
-  positions: components["schemas"]["TokenPosition"][];
+  positions: components["schemas"]["TraderProfile"]["positions"];
   demo: boolean;
 }) {
+  const rows = positions.filter((position) => position !== null);
   return (
     <section className="overflow-hidden rounded-lg border bg-card">
       <h2 className="p-4 font-semibold sm:px-5">Open positions</h2>
-      {positions.length ? (
+      {rows.length ? (
         <Table aria-label="Open positions">
           <TableHeader>
             <TableRow>
@@ -98,7 +99,7 @@ function TraderPositions({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {positions.map((position) => (
+            {rows.map((position) => (
               <TableRow key={position.mint}>
                 <TableCell className="pl-4 sm:pl-5">
                   <Link href={`/trade/${encodeURIComponent(position.mint)}`} className={LINK}>
