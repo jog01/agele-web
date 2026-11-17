@@ -30,7 +30,12 @@ export function FeedView() {
   const [scope, setScope] = useState<FeedScope>("global");
   const feed = useFeed(scope);
   const follow = useFollow();
-  const { data: board } = useLeaderboard("7d");
+  const {
+    data: board,
+    isPending: boardPending,
+    isError: boardError,
+    refetch: refetchBoard,
+  } = useLeaderboard("7d");
 
   const posts = (feed.data?.pages.flatMap((page) => page.items) ?? []).map((item) => ({
     ...item,
@@ -42,17 +47,67 @@ export function FeedView() {
   }));
 
   return (
-    <div className="mx-auto grid max-w-[1280px] gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="space-y-3">
-        <div>
-          <h1 className="font-semibold text-2xl">Your network.</h1>
-          <p className="mt-1 text-muted-foreground">
-            Demo feed · Theses and trades from traders across supported markets.{" "}
-            {auth.configured
-              ? "Following feed unlocks after sign-in."
-              : "Sign-in is not configured in this build, so following is unavailable."}
+    <div className="mx-auto grid max-w-[1280px] gap-x-6 gap-y-3 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-[auto_1fr]">
+      <div className="lg:col-start-1">
+        <h1 className="font-semibold text-2xl">Your network.</h1>
+        <p className="mt-1 text-muted-foreground">
+          Demo feed · Theses and trades from traders across supported markets.{" "}
+          {auth.configured
+            ? "Following feed unlocks after sign-in."
+            : "Sign-in is not configured in this build, so following is unavailable."}
+        </p>
+      </div>
+      <aside className="space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:pt-16">
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="font-semibold text-[15px]">Worth a closer look</h2>
+          <p className="mt-1 text-muted-foreground text-xs">
+            {board?.dataSource === "demo" && "Demo fixtures · "}Discover traders by process, not hype.
           </p>
-        </div>
+          {boardPending && <p className="mt-3 text-muted-foreground text-sm">Loading traders…</p>}
+          {boardError && (
+            <p role="alert" className="mt-3 text-muted-foreground text-sm">
+              Traders unavailable.{" "}
+              <Button variant="outline" size="sm" onClick={() => refetchBoard()}>
+                Retry
+              </Button>
+            </p>
+          )}
+          <ul className="mt-3 space-y-3">
+            {board?.entries.slice(0, 4).map((e) => (
+              <li key={e.wallet} className="flex items-center gap-3">
+                <Initials handle={e.handle} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{e.handle}</div>
+                  <div className="text-muted-foreground text-xs">
+                    {e.trades} trades · {formatCompactUsd(e.volumeUsd)} volume
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!auth.authenticated || follow.isPending || e.wallet === auth.walletAddress}
+                  onClick={() => follow.mutate({ wallet: e.wallet, isFollowing: !e.isFollowing })}
+                >
+                  {e.isFollowing ? "Unfollow" : "Follow"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {!auth.authenticated && !boardError && (
+            <p className="mt-3 text-muted-foreground text-xs">
+              {auth.configured
+                ? "Sign in to follow traders."
+                : "Sign-in is not configured in this build, so following is disabled."}
+            </p>
+          )}
+          {follow.isError && (
+            <p role="alert" className="text-muted-foreground text-xs">
+              {follow.error.message}
+            </p>
+          )}
+        </section>
+      </aside>
+      <div className="space-y-3 lg:col-start-1">
         <ToggleGroup
           type="single"
           value={scope}
@@ -134,50 +189,12 @@ export function FeedView() {
                 {feed.isFetchingNextPage ? "Loading…" : "Load more"}
               </Button>
             )}
+            {!feed.isError && !feed.hasNextPage && posts.length > 0 && (
+              <p className="py-2 text-center text-muted-foreground text-sm">You're all caught up.</p>
+            )}
           </>
         )}
       </div>
-      <aside className="space-y-3 lg:pt-16">
-        <section className="rounded-lg border bg-card p-4">
-          <h2 className="font-semibold text-[15px]">Worth a closer look</h2>
-          <p className="mt-1 text-muted-foreground text-xs">
-            {board?.dataSource === "demo" && "Demo fixtures · "}Discover traders by process, not hype.
-          </p>
-          <ul className="mt-3 space-y-3">
-            {board?.entries.slice(0, 4).map((e) => (
-              <li key={e.wallet} className="flex items-center gap-3">
-                <Initials handle={e.handle} />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium">{e.handle}</div>
-                  <div className="text-muted-foreground text-xs">
-                    {e.trades} trades · {formatCompactUsd(e.volumeUsd)} volume
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!auth.authenticated || follow.isPending || e.wallet === auth.walletAddress}
-                  onClick={() => follow.mutate({ wallet: e.wallet, isFollowing: !e.isFollowing })}
-                >
-                  {e.isFollowing ? "Unfollow" : "Follow"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {!auth.authenticated && (
-            <p className="mt-3 text-muted-foreground text-xs">
-              {auth.configured
-                ? "Sign in to follow traders."
-                : "Sign-in is not configured in this build, so following is disabled."}
-            </p>
-          )}
-          {follow.isError && (
-            <p role="alert" className="text-muted-foreground text-xs">
-              {follow.error.message}
-            </p>
-          )}
-        </section>
-      </aside>
     </div>
   );
 }
