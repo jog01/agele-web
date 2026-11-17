@@ -108,6 +108,22 @@ describe("history markers", () => {
       ),
     ).toEqual([]);
   });
+  it("drops swaps in candle gaps instead of attaching them to an expired interval", () => {
+    const candles = [{ time: start }, { time: start + 180 }];
+    const swaps = [30, 59, 60, 90, 179, 180, 210, 239, 240].map((seconds) => ({
+      ...buy,
+      requestId: String(seconds),
+      createdAt: new Date((start + seconds) * 1000).toISOString(),
+    }));
+    expect(swapMarkers(swaps, "token", candles, "1m").map((marker) => [marker.id, marker.time])).toEqual([
+      ["30", start],
+      ["59", start],
+      ["180", start + 180],
+      ["210", start + 180],
+      ["239", start + 180],
+    ]);
+    expect(swapMarkers([swaps[3]], "token", candles, "5m")[0].time).toBe(start);
+  });
   it("flattens pages in newest-first server order and removes overlapping requests", () => {
     expect(
       historyItems([

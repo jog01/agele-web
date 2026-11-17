@@ -116,10 +116,12 @@ export function swapMarkers(
         if (snapshot[middle].time <= seconds) low = middle + 1;
         else high = middle;
       }
+      const candle = snapshot[low - 1];
+      if (seconds >= candle.time + intervalSeconds[interval]) return [];
       return [
         {
           id: item.requestId,
-          time: snapshot[low - 1].time as UTCTimestamp,
+          time: candle.time as UTCTimestamp,
           position: side === "buy" ? ("belowBar" as const) : ("aboveBar" as const),
           color: side === "buy" ? "#5de0aa" : "#ff8195",
           shape: side === "buy" ? ("arrowUp" as const) : ("arrowDown" as const),
