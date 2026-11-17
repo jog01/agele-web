@@ -10,10 +10,13 @@ export function TopTraders() {
     <section aria-label="Top traders" className="rounded-lg border bg-card p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-semibold text-[15px]">Top traders · 24h</h2>
-        <Link href="/leaderboard" className="text-primary text-xs hover:underline">
+        <Link href="/leaderboard?window=24h" className="text-primary text-xs hover:underline">
           View all
         </Link>
       </div>
+      {data?.dataSource === "demo" && (
+        <p className="-mt-1 mb-2 text-muted-foreground text-xs">Demo fixtures</p>
+      )}
       <ul className="space-y-2">
         {data?.entries.slice(0, 4).map((e) => (
           <li key={e.wallet} className="flex items-center gap-2">
