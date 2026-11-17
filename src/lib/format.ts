@@ -31,10 +31,10 @@ export function formatPrice(n: number | null | undefined) {
   if (abs >= 1) return usd.format(n);
   if (abs >= 0.0001) return `$${n.toPrecision(4).replace(/0+$/, "")}`;
   // Subscript-style notation: $0.0{4}231 = $0.0000231 (four zeros after the decimal point).
-  const zeros = Math.floor(-Math.log10(abs));
-  const digits = Math.round(abs * 10 ** (zeros + 4))
-    .toString()
-    .replace(/0+$/, "");
+  // toExponential rounds first, so 0.000099999 becomes 1.000e-4 rather than keeping an extra zero.
+  const [mantissa, exponent] = abs.toExponential(3).split("e");
+  const zeros = -Number(exponent) - 1;
+  const digits = mantissa.replace(".", "").replace(/0+$/, "");
   return `${n < 0 ? "-" : ""}$0.0{${zeros}}${digits}`;
 }
 

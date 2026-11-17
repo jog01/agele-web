@@ -6,6 +6,8 @@ describe("format", () => {
     expect(formatPrice(182.4)).toBe("$182.40");
     expect(formatPrice(0.94)).toBe("$0.94");
     expect(formatPrice(0.0000231)).toBe("$0.0{4}231");
+    expect(formatPrice(0.00001)).toBe("$0.0{4}1");
+    expect(formatPrice(0.000099999)).toBe("$0.0{3}1");
     expect(formatPrice(Number.NaN)).toBe(DASH);
   });
 
