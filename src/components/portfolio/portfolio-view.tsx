@@ -35,6 +35,12 @@ export function PortfolioView() {
           </Button>
         </div>
       </div>
+      {!auth.configured && !auth.authenticated && (
+        <p className="rounded-lg border bg-card p-4 text-muted-foreground">
+          Sign-in is disabled in this demo build. Holdings, balances and PnL appear once Privy and the indexer
+          are connected.
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {METRICS.map((m) => (
           <div key={m.label} className="rounded-lg border bg-card p-4">
@@ -59,19 +65,19 @@ export function PortfolioView() {
                   : "Your portfolio starts here"
             : "Your portfolio starts here"}
         </h2>
-        <p className="max-w-md text-muted-foreground">
-          {auth.authenticated
-            ? portfolio.isError
-              ? "Balances and PnL could not be loaded. Please try again later."
-              : portfolio.isPending
-                ? "Fetching your balances and supported positions."
-                : hasHoldings
-                  ? `${data.positions.length} supported positions. Balances and PnL reflect the latest portfolio snapshot.`
-                  : "Deposit USDC to your Solana wallet to start trading. Holdings and PnL appear after your first trade."
-            : auth.configured
-              ? "Sign in to create your embedded Solana wallet, then deposit USDC to start trading."
-              : "Sign-in is disabled in this demo build. Holdings, balances and PnL appear once Privy and the indexer are connected."}
-        </p>
+        {(auth.configured || auth.authenticated) && (
+          <p className="max-w-md text-muted-foreground">
+            {auth.authenticated
+              ? portfolio.isError
+                ? "Balances and PnL could not be loaded. Please try again later."
+                : portfolio.isPending
+                  ? "Fetching your balances and supported positions."
+                  : hasHoldings
+                    ? `${data.positions.length} supported positions. Balances and PnL reflect the latest portfolio snapshot.`
+                    : "Deposit USDC to your Solana wallet to start trading. Holdings and PnL appear after your first trade."
+              : "Sign in to create your embedded Solana wallet, then deposit USDC to start trading."}
+          </p>
+        )}
         {auth.configured && !auth.authenticated && <Button onClick={auth.login}>Sign in</Button>}
         {auth.wallet.address && <Button onClick={openDeposit}>Deposit USDC</Button>}
       </div>
