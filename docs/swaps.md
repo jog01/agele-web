@@ -17,7 +17,7 @@ sequenceDiagram
   T-->>U: Review server quote; network fee Sponsored
   U->>T: Confirm (signed out → prompt sign-in)
   T->>A: POST /v1/swaps (Bearer token)
-  A-->>T: requestId, unsigned base64 transaction, expiresAt
+  A-->>T: requestId, unsigned base64 transaction, expiresAt (Unix milliseconds)
   opt Already expired before signing
     T->>A: POST /v1/swaps again
     A-->>T: Fresh requestId and transaction
@@ -25,7 +25,7 @@ sequenceDiagram
   T->>P: signTransaction(Uint8Array, wallet, chain)
   P-->>T: signedTransaction (Uint8Array)
   T->>A: POST /v1/swaps/{requestId}/submit (base64 signedTransaction)
-  A-->>T: signature, confirmed / failed / submitted
+  A-->>T: confirmed / failed / submitted, signature?, result amounts?, code?, error?
   loop Only while submitted; up to 40 polls, 1.5s apart
     T->>A: GET /v1/swaps/{requestId} (Bearer token)
     A-->>T: status, signature?, error?
@@ -49,13 +49,13 @@ Buy routes USDC → token; sell routes token → USDC. The USDC mint and Solscan
 flowchart TD
   Idle[idle] --> Quote[Debounced public quote]
   Quote --> Review[Review server quote]
-  Quote -- 503 trading_disabled --> Disabled[Demo only · submission disabled; Confirm disabled]
-  Quote -- 422 swap_rejected --> Rejected[Show trading-limits message]
+  Quote -- request error --> QuoteError[Show API error; no authenticated Confirm]
   Review --> Auth{Signed in?}
   Auth -- no --> Login[Prompt sign-in]
   Login --> Review
   Auth -- yes --> Creating[creating]
   Creating -- 503 trading_disabled --> Disabled
+  Disabled[Demo only · submission disabled; Confirm disabled]
   Creating -- 422 swap_rejected --> Failed[failed]
   Creating -- 422 sponsor_rejected --> Failed
   Creating -- 409 no linked wallet --> Failed
@@ -83,15 +83,28 @@ Every execution creates a new request and obtains a new signature; signed transa
 
 | API status / code | User message / behavior |
 | ----------------- | ----------------------- |
-| `503 trading_disabled` on quote or create | **Demo only · submission disabled**; Confirm disabled; no signing. |
+| `503 trading_disabled` on create | **Demo only · submission disabled**; Confirm disabled; no signing. The client also handles this code on quote/submit. |
 | `422 swap_rejected` | Swap rejected: token, slippage or price impact exceeds trading limits. |
 | `422 sponsor_rejected` | Sponsorship rejected. Please try again later. |
-| `409` (no linked wallet) | No linked wallet. Create or link your embedded Solana wallet first. |
+| `409 wallet_not_linked` | No linked wallet. Create or link your embedded Solana wallet first. |
+| `400 validation_error` | Server message (“Invalid request”). |
+| `404 not_found` | Server message (“Swap not found”). |
+| `429 rate_limited` | Server message (“Swap quote limit exceeded”). |
+| `502 upstream_error` | Server message (“Jupiter request failed”). |
+| `503 rate_limit_unavailable` | Server message (“Swap quoting temporarily unavailable”); not a demo/trading-disabled label. |
 | Other API errors | Server error message, falling back to “Request failed”. |
 | Failed transaction | Returned transaction error, falling back to “Swap failed”. |
 | Expired transaction | Quote expired. Review a fresh quote and try again. |
 
-`DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and platform fee use the server quote when available. Client estimates appear only while the quote loads. Network fees are labelled **Sponsored**. A signed-out Confirm prompts sign-in; without a Privy app ID, sign-in is unavailable.
+`DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and platform fee use the server quote when available. Client estimates appear only while the quote loads. Network fees are labelled **Sponsored** only with a server quote and without a trading-disabled response; otherwise they show a dash. A signed-out Confirm prompts sign-in; without a Privy app ID, sign-in is unavailable.
+
+## Backend contract (PR #9)
+
+Types are regenerated from [backend PR #9](https://github.com/jog01/agele/pull/9)'s `openapi.json`. Quote/build responses do **not** echo `inputMint` or `outputMint`. `priceImpactPct` is a number in percentage points (`3` means `3%`), not a ratio or string. `expiresAt` is a number in Unix milliseconds, compared directly with `Date.now()`. Submit results have an optional signature, optional base-unit `inputAmountResult` / `outputAmountResult`, optional numeric `code`, and optional `error`. GET status retains `inAmount` / `outAmount`.
+
+Requests require positive base-unit amount strings (up to 78 digits), base58 mint strings of 32–44 characters, and optional integer slippage from 0–10,000 bps. Quote OpenAPI additionally permits nullable slippage; the frontend always sends `50`. Submit accepts a nonempty signed-transaction string up to 4,096 characters. All four documented routes list `400`, `401`, `404`, `409`, `422`, `429`, `502` and `503` errors, although some apply only to specific operations.
+
+The current backend quote is preview-only: it calls Jupiter without checking sponsorship, the mint allowlist, or trading caps. Disabled sponsorship is checked during create/submit. A quote can therefore succeed before create returns `503 trading_disabled`. A sponsor kill switch currently returns `422 sponsor_rejected` (reason `kill_switch`), not `503`. Swap rejection also covers transaction/payer integrity mismatches, not only slippage, impact or mint caps. If execution outcome is unknown, submit returns `{ status: "submitted" }` without a signature; the client polls and, on timeout, shows the request ID rather than inventing an explorer link.
 
 ## Screens
 
@@ -111,7 +124,7 @@ These screenshots use a throwaway local HTTP mock API and the real frontend with
 
 ## Configuration and checks
 
-Use `NEXT_PUBLIC_API_URL` for the Agele API and configure Privy and Solana as described in [Sign-in, embedded wallet and deposit](auth-wallet.md). The swap paths in `lib/api/schema.d.ts` are hand-added against the agreed backend contract; regenerate after the backend merge.
+Use `NEXT_PUBLIC_API_URL` for the Agele API and configure Privy and Solana as described in [Sign-in, embedded wallet and deposit](auth-wallet.md). `lib/api/schema.d.ts` is fully generated from PR #9's OpenAPI; non-swap additions (`PriceTick` and `Health.marketData`) are already on backend main. Regenerate after the backend merge.
 
 ```bash
 bun run check

@@ -1,21 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
 import { fromBaseUnits, toBaseUnits } from "./amounts";
 import { ApiError } from "./api/client";
-import type { SwapIssued, SwapStatus, SwapSubmission } from "./api/schema";
-import { executeSwap, swapErrorMessage } from "./swaps";
+import {
+  executeSwap,
+  type SwapIssued,
+  type SwapStatus,
+  type SwapSubmission,
+  swapErrorMessage,
+} from "./swaps";
 
 const input = { inputMint: "usdc", outputMint: "token", amount: "1000000", slippageBps: 50 };
 const order: SwapIssued = {
-  ...input,
+  slippageBps: 50,
   inAmount: input.amount,
   outAmount: "2000",
   otherAmountThreshold: "1900",
-  priceImpactPct: "0.1",
+  priceImpactPct: 0.1,
   feeBps: 20,
   router: "jupiter",
   requestId: "one",
   transaction: "unsigned",
-  expiresAt: "2030-01-01T00:00:00Z",
+  expiresAt: Date.parse("2030-01-01T00:00:00Z"),
 };
 function dependencies() {
   return {
@@ -55,7 +60,12 @@ describe("swap errors", () => {
     [503, "trading_disabled", "Demo only"],
     [422, "swap_rejected", "Swap rejected"],
     [422, "sponsor_rejected", "Sponsorship rejected"],
-    [409, "no_linked_wallet", "No linked wallet"],
+    [409, "wallet_not_linked", "No linked wallet"],
+    [400, "validation_error", "Server message"],
+    [404, "not_found", "Server message"],
+    [429, "rate_limited", "Server message"],
+    [502, "upstream_error", "Server message"],
+    [503, "rate_limit_unavailable", "Server message"],
     [500, "unknown", "Server message"],
   ])("maps %s %s", (status, code, expected) => {
     expect(swapErrorMessage(new ApiError("Server message", status, code))).toContain(expected);
@@ -95,7 +105,7 @@ describe("swap orchestration", () => {
   it("recreates an expired order and signs only the fresh transaction", async () => {
     const deps = dependencies();
     deps.create
-      .mockResolvedValueOnce({ ...order, expiresAt: "2020-01-01" })
+      .mockResolvedValueOnce({ ...order, expiresAt: Date.parse("2020-01-01") })
       .mockResolvedValueOnce({ ...order, requestId: "two", transaction: "fresh" });
     await executeSwap(input, deps);
     expect(deps.create).toHaveBeenCalledTimes(2);
@@ -104,7 +114,7 @@ describe("swap orchestration", () => {
   });
   it("stops if replacement is also expired", async () => {
     const deps = dependencies();
-    deps.create.mockResolvedValue({ ...order, expiresAt: "2020-01-01" });
+    deps.create.mockResolvedValue({ ...order, expiresAt: Date.parse("2020-01-01") });
     expect(await executeSwap(input, deps)).toMatchObject({ status: "expired" });
     expect(deps.sign).not.toHaveBeenCalled();
   });
@@ -114,5 +124,48 @@ describe("swap orchestration", () => {
     deps.status.mockResolvedValue({ requestId: "one", status: "submitted" });
     expect(await executeSwap(input, deps)).toMatchObject({ status: "submitted", signature: "sig" });
     expect(deps.status).toHaveBeenCalledTimes(40);
+  });
+  it("polls when execution outcome and signature are initially unknown", async () => {
+    const deps = dependencies();
+    deps.submit.mockResolvedValue({ status: "submitted" });
+    expect(await executeSwap(input, deps)).toMatchObject({ status: "confirmed", signature: "sig" });
+  });
+  it("returns a pending request without inventing a signature", async () => {
+    const deps = dependencies();
+    deps.submit.mockResolvedValue({ status: "submitted" });
+    deps.status.mockResolvedValue({ requestId: "one", status: "submitted" });
+    expect(await executeSwap(input, deps)).toMatchObject({ status: "submitted", signature: undefined });
+  });
+  it("preserves execution result amounts and numeric code", async () => {
+    const deps = dependencies();
+    deps.submit.mockResolvedValue({
+      status: "confirmed",
+      signature: "sig",
+      inputAmountResult: "1000000",
+      outputAmountResult: "2001",
+      code: 0,
+    });
+    expect(await executeSwap(input, deps)).toMatchObject({
+      inputAmountResult: "1000000",
+      outputAmountResult: "2001",
+      code: 0,
+    });
+  });
+  it("does not submit when the millisecond expiry passes during signing", async () => {
+    const deps = dependencies();
+    let now = order.expiresAt - 1;
+    deps.now = () => now;
+    deps.sign.mockImplementation(async () => {
+      now = order.expiresAt;
+      return "signed";
+    });
+    expect(await executeSwap(input, deps)).toMatchObject({ status: "expired" });
+    expect(deps.submit).not.toHaveBeenCalled();
+  });
+  it("rejects invalid expiry without signing", async () => {
+    const deps = dependencies();
+    deps.create.mockResolvedValue({ ...order, expiresAt: Number.NaN });
+    await expect(executeSwap(input, deps)).rejects.toThrow("Invalid swap expiry");
+    expect(deps.sign).not.toHaveBeenCalled();
   });
 });

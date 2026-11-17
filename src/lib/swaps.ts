@@ -1,5 +1,12 @@
 import { ApiError, api, unwrap } from "@/lib/api/client";
-import type { SwapInput, SwapIssued, SwapStatus, SwapSubmission } from "@/lib/api/schema";
+import type { paths } from "@/lib/api/schema";
+
+export type SwapInput = paths["/v1/swaps"]["post"]["requestBody"]["content"]["application/json"];
+export type SwapIssued = paths["/v1/swaps"]["post"]["responses"][201]["content"]["application/json"];
+export type SwapSubmission =
+  paths["/v1/swaps/{requestId}/submit"]["post"]["responses"][200]["content"]["application/json"];
+export type SwapStatus =
+  paths["/v1/swaps/{requestId}"]["get"]["responses"][200]["content"]["application/json"];
 
 export type SwapPhase =
   | "idle"
@@ -51,17 +58,17 @@ export async function executeSwap(input: SwapInput, deps: Dependencies) {
   const wait = deps.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   deps.phase?.("creating");
   let order = await deps.create(input);
-  if (Date.parse(order.expiresAt) <= now()) {
+  if (order.expiresAt <= now()) {
     order = await deps.create(input);
-    if (Date.parse(order.expiresAt) <= now()) {
+    if (order.expiresAt <= now()) {
       deps.phase?.("expired");
       return { status: "expired" as const, requestId: order.requestId };
     }
   }
-  if (!Number.isFinite(Date.parse(order.expiresAt))) throw new Error("Invalid swap expiry");
+  if (!Number.isFinite(order.expiresAt)) throw new Error("Invalid swap expiry");
   deps.phase?.("signing");
   const signed = await deps.sign(order.transaction);
-  if (Date.parse(order.expiresAt) <= now()) {
+  if (order.expiresAt <= now()) {
     deps.phase?.("expired");
     return { status: "expired" as const, requestId: order.requestId };
   }

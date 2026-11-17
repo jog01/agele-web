@@ -6,9 +6,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { fromBaseUnits, toBaseUnits } from "@/lib/amounts";
 import { ApiError, type Token } from "@/lib/api/client";
-import type { SwapInput } from "@/lib/api/schema";
 import { solanaCluster } from "@/lib/solana/cluster";
-import { executeSwap, type SwapPhase, swapApi, swapErrorMessage } from "@/lib/swaps";
+import { executeSwap, type SwapInput, type SwapPhase, swapApi, swapErrorMessage } from "@/lib/swaps";
 
 export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: string, price: number | null) {
   const auth = useAuth();
