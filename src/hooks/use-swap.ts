@@ -1,16 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { fromBaseUnits, toBaseUnits } from "@/lib/amounts";
 import { ApiError, type Token } from "@/lib/api/client";
+import { pendingSwaps } from "@/lib/pending-swaps";
 import { solanaCluster } from "@/lib/solana/cluster";
 import {
   checkSwap,
   executeSwap,
-  type PendingSwap,
   type SwapInput,
   type SwapIssued,
   type SwapPhase,
@@ -24,13 +24,17 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   const [message, setMessage] = useState("");
   const [disabledByApi, setDisabledByApi] = useState(false);
   const [requote, setRequote] = useState<{ key: string; order: SwapIssued }>();
-  const locked = useRef(false);
-  const pendingRef = useRef<PendingSwap | undefined>(undefined);
-  const [pending, setPending] = useState<PendingSwap>();
-  const track = (next: PendingSwap | undefined) => {
-    pendingRef.current = next;
-    setPending(next);
-  };
+  const owner =
+    auth.authenticated && auth.walletAddress
+      ? `agele:pending-swap:${solanaCluster().caip2}:${auth.walletAddress}`
+      : undefined;
+  const tracking = useSyncExternalStore(
+    pendingSwaps.subscribe,
+    () => pendingSwaps.snapshot(owner),
+    pendingSwaps.serverSnapshot,
+  );
+  const { pending, busy } = tracking;
+  const autoResumed = useRef<string | undefined>(undefined);
   let input: SwapInput | undefined;
   let validation = "";
   try {
@@ -55,7 +59,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   }, [key]);
   const quoteQuery = useQuery({
     queryKey: ["swap-quote", key],
-    enabled: !!input && key === debounced && !locked.current && !pending,
+    enabled: !!input && key === debounced && !busy && !pending,
     queryFn: ({ signal }) => swapApi.quote(input!, signal),
     retry: false,
     staleTime: 10_000,
@@ -64,7 +68,6 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   const quote = reviewedOrder ?? quoteQuery.data;
   const tradingDisabled =
     disabledByApi || (quoteQuery.error instanceof ApiError && quoteQuery.error.code === "trading_disabled");
-  const busy = ["creating", "signing", "submitting", "confirming"].includes(phase);
   const unavailable = !auth.configured
     ? "Trading is unavailable in demo. Configure sign-in to trade."
     : !auth.ready
@@ -77,17 +80,18 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   const outputDecimals = side === "buy" ? (token?.decimals ?? 0) : 6;
   const receive = quote ? fromBaseUnits(quote.outAmount, outputDecimals) : undefined;
   const minReceive = quote ? fromBaseUnits(quote.otherAmountThreshold, outputDecimals) : undefined;
-  const confirm = async () => {
+  const confirm = useCallback(async () => {
     if (!auth.authenticated) {
       if (auth.configured && auth.ready) auth.login();
       return;
     }
-    if ((!auth.configured || !auth.ready || !auth.signSwap) && !pendingRef.current) return;
-    if (locked.current || (!pendingRef.current && (!input || !quote || tradingDisabled))) return;
-    locked.current = true;
+    if (!owner) return;
+    const resume = pendingSwaps.snapshot(owner).pending;
+    if ((!auth.configured || !auth.ready || !auth.signSwap) && !resume) return;
+    if ((!resume && (!input || !quote || tradingDisabled)) || !pendingSwaps.begin(owner)) return;
+    const track = (next: Parameters<typeof pendingSwaps.track>[1]) => pendingSwaps.track(owner, next);
     setMessage("");
     try {
-      const resume = pendingRef.current;
       if (!resume && !auth.signSwap) throw new Error("Embedded Solana wallet is not ready");
       const result = resume
         ? await checkSwap(resume, { ...swapApi, phase: setPhase })
@@ -120,7 +124,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
         setMessage(result.error ?? "Swap failed");
       } else setMessage("Quote expired. Review a fresh quote and try again.");
     } catch (error) {
-      if (pendingRef.current) {
+      if (pendingSwaps.snapshot(owner).pending) {
         setPhase("pending-unknown");
       } else {
         setRequote(undefined);
@@ -129,9 +133,14 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
         if (error instanceof ApiError && error.code === "trading_disabled") setDisabledByApi(true);
       }
     } finally {
-      locked.current = false;
+      pendingSwaps.end(owner);
     }
-  };
+  }, [auth, owner, input, quote, tradingDisabled, reviewedOrder, key]);
+  useEffect(() => {
+    if (!owner || !auth.ready || !pending || autoResumed.current === owner) return;
+    autoResumed.current = owner;
+    void confirm();
+  }, [owner, auth.ready, pending, confirm]);
   return {
     inputAmount: input ? fromBaseUnits(input.amount, side === "buy" ? 6 : token!.decimals) : undefined,
     quote,
@@ -154,22 +163,27 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     busy,
     confirmDisabled:
       busy ||
+      !!tracking.storageError ||
       (!pending &&
         (tradingDisabled ||
           !auth.configured ||
           !auth.ready ||
+          (auth.authenticated && !owner) ||
           (auth.authenticated && !auth.signSwap) ||
           (auth.authenticated && (!quote || !!quoteQuery.error || key !== debounced)))),
-    status: pending
-      ? `Outcome unknown: checking swap ${pending.requestId}. Confirm again to check status; no new swap will be created.`
-      : tradingDisabled
-        ? "Demo only · submission disabled"
-        : busy
-          ? `${phase}…`
-          : message ||
-            validation ||
-            (quoteQuery.error ? swapErrorMessage(quoteQuery.error) : "") ||
-            unavailable,
+    status:
+      tracking.storageError ??
+      (pending
+        ? `Outcome unknown: checking swap ${pending.requestId}. Confirm again to check status; no new swap will be created.`
+        : tradingDisabled
+          ? "Demo only · submission disabled"
+          : busy
+            ? `${phase}…`
+            : message ||
+              validation ||
+              (quoteQuery.error ? swapErrorMessage(quoteQuery.error) : "") ||
+              unavailable ||
+              (auth.authenticated && !owner ? "Trading needs a wallet identity." : "")),
     fallback: !!input && !quoteQuery.error && !quote,
   };
 }

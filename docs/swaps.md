@@ -89,6 +89,8 @@ Before signing, the created order's minimum is compared to the reviewed minimum 
 
 Once submit is sent, the ticket retains its request ID before awaiting the response. Network errors, 5xx responses and unrecognized submit errors are uncertain, not failures: the client checks GET status automatically. Each polling pass is bounded to 40 GET requests (60 seconds of interval waits, plus request latency). A failed status request or polling limit enters `pending-unknown` and retains the request ID and any signature, with a Solscan link when available. **Check swap status** resumes GET on that same request even if the amount, side or quote changed; it never creates, signs or submits another swap. An `issued` status after uncertain submission is not proof of non-execution. Only a definite terminal status (`confirmed`, `failed`, `expired`) or a recognized pre-execution 4xx rejection clears tracking. No timeout, transport error or unknown response unlocks a new create.
 
+Pending tracking is written to `sessionStorage` before submit, scoped by Solana cluster and wallet address. Closing the mobile trade sheet, reopening it, or reloading the tab restores `pending-unknown` and automatically resumes GET status polling. A shared in-flight lock also survives ticket remounts, so an old ticket's outstanding submission cannot race a new create. Only request ID and optional signature are stored, never transactions or tokens. A terminal result clears the record; corrupt or inaccessible storage blocks new trading rather than silently forgetting a pending swap. Tracking is isolated between wallets and lasts for the browser tab's session.
+
 ## Errors and demo gating
 
 | API status / code | User message / behavior |

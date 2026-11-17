@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ApiError, type Token } from "@/lib/api/client";
+import { solanaCluster } from "@/lib/solana/cluster";
 import { type SwapIssued, swapApi } from "@/lib/swaps";
 import { useSwap } from "./use-swap";
 
@@ -10,6 +11,7 @@ const auth = vi.hoisted(() => ({
   configured: true,
   ready: true,
   authenticated: false,
+  walletAddress: "wallet-a",
   login: vi.fn(),
   signSwap: vi.fn(async () => "signed"),
 }));
@@ -32,9 +34,11 @@ const token: Token = {
 };
 beforeEach(() => {
   vi.useFakeTimers();
+  sessionStorage.clear();
   auth.authenticated = false;
   auth.configured = true;
   auth.ready = true;
+  auth.walletAddress = "wallet-a";
   auth.login.mockClear();
   auth.signSwap.mockClear();
 });
@@ -64,6 +68,108 @@ async function confirm(result: { current: ReturnType<typeof useSwap> }) {
     await execution;
   });
 }
+
+const storageKey = `agele:pending-swap:${solanaCluster().caip2}:wallet-a`;
+
+it("restores an unknown swap after unmount and resumes GET without a second create", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: issued, error: null });
+  const create = vi.spyOn(swapApi, "create").mockResolvedValue(issued);
+  const submit = vi.spyOn(swapApi, "submit").mockResolvedValue({ status: "submitted", signature: "sig" });
+  const status = vi.spyOn(swapApi, "status").mockRejectedValue(new Error("Offline"));
+  const first = renderHook(() => useSwap(token, "sell", "1", 150));
+  await confirm(first.result);
+  expect(JSON.parse(sessionStorage.getItem(storageKey)!)).toEqual({ requestId: "one", signature: "sig" });
+  first.unmount();
+  query.mockReturnValue({ data: undefined, error: null });
+  const second = renderHook(() => useSwap(token, "buy", "", 150));
+  expect(second.result.current.pending).toBe(true);
+  expect(second.result.current.explorerUrl).toContain("/tx/sig");
+  await act(() => vi.runAllTimersAsync());
+  expect(status).toHaveBeenCalledTimes(2);
+  expect(status).toHaveBeenLastCalledWith("one");
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(auth.signSwap).toHaveBeenCalledTimes(1);
+  status.mockResolvedValue({ requestId: "one", status: "confirmed", signature: "sig" });
+  await confirm(second.result);
+  expect(second.result.current.pending).toBe(false);
+  expect(sessionStorage.getItem(storageKey)).toBeNull();
+  expect(create).toHaveBeenCalledTimes(1);
+});
+
+it("restores a storage-only request without a signature and clears it only on a terminal status", async () => {
+  auth.authenticated = true;
+  sessionStorage.setItem(storageKey, JSON.stringify({ requestId: "from-previous-page" }));
+  query.mockReturnValue({ data: issued, error: null });
+  const create = vi.spyOn(swapApi, "create");
+  const status = vi.spyOn(swapApi, "status").mockRejectedValue(new Error("Offline"));
+  const { result } = renderHook(() => useSwap(token, "sell", "1", 150));
+  expect(result.current.pending).toBe(true);
+  await act(() => vi.runAllTimersAsync());
+  expect(sessionStorage.getItem(storageKey)).not.toBeNull();
+  status.mockResolvedValue({ requestId: "from-previous-page", status: "expired" });
+  await confirm(result);
+  expect(sessionStorage.getItem(storageKey)).toBeNull();
+  expect(create).not.toHaveBeenCalled();
+});
+
+it("does not restore another wallet's pending swap", async () => {
+  auth.authenticated = true;
+  auth.walletAddress = "wallet-b";
+  sessionStorage.setItem(storageKey, JSON.stringify({ requestId: "wallet-a-request" }));
+  query.mockReturnValue({ data: issued, error: null });
+  const status = vi.spyOn(swapApi, "status");
+  const { result } = renderHook(() => useSwap(token, "sell", "1", 150));
+  await act(() => vi.runAllTimersAsync());
+  expect(result.current.pending).toBe(false);
+  expect(status).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem(storageKey)).not.toBeNull();
+});
+
+it("blocks submit if its pending request cannot be persisted", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: issued, error: null });
+  vi.spyOn(swapApi, "create").mockResolvedValue(issued);
+  const submit = vi.spyOn(swapApi, "submit");
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new Error("Storage denied");
+  });
+  const { result } = renderHook(() => useSwap(token, "sell", "1", 150));
+  await confirm(result);
+  expect(submit).not.toHaveBeenCalled();
+});
+
+it("shares the in-flight submit lock with a remounted ticket", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: issued, error: null });
+  const create = vi.spyOn(swapApi, "create").mockResolvedValue(issued);
+  let finish!: (value: { status: "confirmed"; signature: string }) => void;
+  const submit = vi.spyOn(swapApi, "submit").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const first = renderHook(() => useSwap(token, "sell", "1", 150));
+  let execution!: Promise<void>;
+  await act(async () => {
+    execution = first.result.current.confirm();
+  });
+  first.unmount();
+  const second = renderHook(() => useSwap(token, "sell", "1", 150));
+  expect(second.result.current.pending).toBe(true);
+  expect(second.result.current.confirmDisabled).toBe(true);
+  await act(() => second.result.current.confirm());
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(submit).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish({ status: "confirmed", signature: "sig" });
+    await execution;
+  });
+  expect(second.result.current.pending).toBe(false);
+  expect(sessionStorage.getItem(storageKey)).toBeNull();
+});
 
 it("recovers a lost submit response by polling, without another create", async () => {
   auth.authenticated = true;
