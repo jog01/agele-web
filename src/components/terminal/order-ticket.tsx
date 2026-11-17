@@ -1,8 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { LockKeyhole, Settings2, Wallet } from "lucide-react";
+import { useId, useState } from "react";
+import { useAuth } from "@/components/auth/auth-context";
+import { ChangeText } from "@/components/common/change-text";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import type { Token } from "@/lib/api/client";
@@ -12,14 +24,15 @@ import { QuoteReviewDialog } from "./quote-review-dialog";
 
 export type Side = "buy" | "sell";
 
-const BUY_PRESETS = [25, 50, 100, 250];
+const BUY_PRESETS = [10, 100, 500, 1000];
 const SELL_PRESETS = [25, 50, 75, 100];
 export const SLIPPAGE_PCT = 0.5;
 
 /** Client-side estimate for display only; the server quote (Jupiter order) is authoritative. */
 export function estimate(side: Side, amount: number, price: number) {
-  if (!(amount > 0) || !(price > 0)) return null;
+  if (!Number.isFinite(amount) || !Number.isFinite(price) || !(amount > 0) || !(price > 0)) return null;
   const receive = side === "buy" ? amount / price : amount * price;
+  if (!Number.isFinite(receive)) return null;
   return { receive, minReceive: receive * (1 - SLIPPAGE_PCT / 100) };
 }
 
@@ -41,6 +54,8 @@ export function OrderTicket({
   price: number | null;
   initialSide?: Side;
 }) {
+  const auth = useAuth();
+  const amountId = useId();
   const [side, setSide] = useState<Side>(initialSide);
   const { demoMode: DEMO_MODE } = useMarketDataMode();
   const [raw, setRaw] = useState("");
@@ -52,6 +67,31 @@ export function OrderTicket({
 
   return (
     <section aria-label="Order ticket" className="rounded-lg border bg-card p-3">
+      <div className="mb-2 flex h-8 items-center justify-between">
+        <h2 className="font-semibold">
+          Trade <span className="text-muted-foreground">{symbol}</span>
+        </h2>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="size-10" aria-label="Trade settings">
+              <Settings2 className="size-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Trade settings</DialogTitle>
+              <DialogDescription>
+                Settings are read-only in this preview. The server quote is authoritative.
+              </DialogDescription>
+            </DialogHeader>
+            <Row label="Slippage tolerance" value={`${SLIPPAGE_PCT}%`} />
+            <p className="text-muted-foreground text-xs">
+              Every quote must be reviewed before wallet signing. No transaction can be submitted in demo
+              mode.
+            </p>
+          </DialogContent>
+        </Dialog>
+      </div>
       <ToggleGroup
         type="single"
         value={side}
@@ -65,13 +105,13 @@ export function OrderTicket({
       >
         <ToggleGroupItem
           value="buy"
-          className="data-[state=on]:bg-positive-subtle data-[state=on]:text-positive"
+          className="h-10 data-[state=on]:bg-positive-subtle data-[state=on]:text-positive"
         >
           Buy
         </ToggleGroupItem>
         <ToggleGroupItem
           value="sell"
-          className="data-[state=on]:bg-negative-subtle data-[state=on]:text-negative"
+          className="h-10 data-[state=on]:bg-negative-subtle data-[state=on]:text-negative"
         >
           Sell
         </ToggleGroupItem>
@@ -79,70 +119,118 @@ export function OrderTicket({
 
       <label
         className="mt-4 mb-1.5 flex items-center justify-between text-muted-foreground text-xs"
-        htmlFor="order-amount"
+        htmlFor={amountId}
       >
         {side === "buy" ? "You pay" : "You sell"}
         <span className="font-medium text-foreground">{unit}</span>
       </label>
-      <div className="rounded-md border border-input bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
-        <input
-          id="order-amount"
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="0.00"
-          value={raw}
-          onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setRaw(e.target.value)}
-          className="tabular w-full bg-transparent font-semibold text-[28px] leading-9 outline-none placeholder:text-muted-foreground/50"
-        />
-        <div className="text-muted-foreground text-xs">Available {DASH} · sign in to see balance</div>
-      </div>
-      <div className="mt-2 grid grid-cols-4 gap-1.5">
-        {(side === "buy" ? BUY_PRESETS : SELL_PRESETS).map((p) => (
-          <Button
-            key={p}
-            variant="secondary"
-            size="sm"
-            disabled={side === "sell"}
-            onClick={() => setRaw(String(p))}
-            className={cn(
-              "tabular",
-              side === "buy" && Number(raw) === p && "bg-accent text-accent-foreground",
-            )}
-          >
-            {side === "buy" ? `$${p}` : `${p}%`}
-          </Button>
-        ))}
-      </div>
-
-      <Separator className="my-3" />
-      <div className="text-[13px]">
-        <Row
-          label="Estimated receive"
-          value={est ? `${formatAmount(est.receive)} ${side === "buy" ? symbol : "USDC"}` : DASH}
-        />
-        <Row
-          label="Minimum receive"
-          value={est ? `${formatAmount(est.minReceive)} ${side === "buy" ? symbol : "USDC"}` : DASH}
-        />
-        <Row label="Slippage" value={`${SLIPPAGE_PCT}%`} />
-        <Row label="Price impact" value={DASH} />
-        <Row label="Platform fee" value={DASH} />
-        <Row label="Network fee" value="Quoted on review" />
-      </div>
-
-      <Button
-        className={cn(
-          "mt-3 h-10 w-full font-semibold",
-          side === "buy"
-            ? "bg-positive text-positive-foreground hover:bg-positive/90"
-            : "bg-negative text-negative-foreground hover:bg-negative/90",
-        )}
-        disabled={!est || !token}
-        onClick={() => setReviewOpen(true)}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (est && token && (auth.authenticated || DEMO_MODE)) setReviewOpen(true);
+        }}
       >
-        Review {side} {symbol}
-      </Button>
-      {DEMO_MODE && <p className="mt-2 text-center text-warning text-xs">Demo only · submission disabled</p>}
+        <div className="relative rounded-md border border-input/70 bg-background px-3 py-3 focus-within:ring-2 focus-within:ring-foreground/50">
+          {side === "buy" && (
+            <span
+              className="pointer-events-none absolute top-3.5 left-3 text-2xl text-muted-foreground"
+              aria-hidden
+            >
+              $
+            </span>
+          )}
+          <input
+            id={amountId}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0.00"
+            value={raw}
+            onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setRaw(e.target.value)}
+            aria-describedby={`${amountId}-balance`}
+            className={cn(
+              "tabular w-full bg-transparent font-medium text-[32px] leading-10 outline-none placeholder:text-muted-foreground/50",
+              side === "buy" && "pl-5",
+            )}
+          />
+          <div
+            id={`${amountId}-balance`}
+            className="mt-1 flex items-center gap-1.5 text-muted-foreground text-xs"
+          >
+            <Wallet className="size-3" aria-hidden />
+            Balance {DASH}
+            <span className="ml-auto">{auth.authenticated ? "Not available" : "Sign in to view"}</span>
+          </div>
+        </div>
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {(side === "buy" ? BUY_PRESETS : SELL_PRESETS).map((p) => (
+            <Button
+              key={p}
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={side === "sell"}
+              onClick={() => setRaw(String(p))}
+              className={cn(
+                "tabular h-10 px-1 text-xs",
+                side === "buy" && Number(raw) === p && "bg-accent text-accent-foreground",
+              )}
+            >
+              {side === "buy" ? `$${p}` : `${p}%`}
+            </Button>
+          ))}
+        </div>
+
+        <Separator className="my-3" />
+        <div className="text-[13px]">
+          <Row
+            label="Estimated receive"
+            value={est ? `${formatAmount(est.receive)} ${side === "buy" ? symbol : "USDC"}` : DASH}
+          />
+          <Row
+            label="Minimum receive"
+            value={est ? `${formatAmount(est.minReceive)} ${side === "buy" ? symbol : "USDC"}` : DASH}
+          />
+          <Row label="Slippage" value={`${SLIPPAGE_PCT}%`} />
+          <Row label="Price impact" value={DASH} />
+          <Row label="Platform fee" value={DASH} />
+          <Row label="Network fee" value="Quoted on review" />
+        </div>
+
+        <Button
+          type="submit"
+          className={cn(
+            "mt-3 h-11 w-full font-semibold",
+            side === "buy"
+              ? "bg-positive text-positive-foreground hover:bg-positive/90"
+              : "bg-negative text-negative-foreground hover:bg-negative/90",
+          )}
+          disabled={auth.authenticated ? !est || !token : !auth.configured || !auth.ready}
+          onClick={(e) => {
+            if (!auth.authenticated) {
+              e.preventDefault();
+              auth.login();
+            }
+          }}
+        >
+          {auth.authenticated ? `Review ${side} ${symbol}` : "Sign in to trade"}
+        </Button>
+        {DEMO_MODE && (
+          <>
+            <Button
+              type="submit"
+              variant="ghost"
+              className="mt-1 h-10 w-full text-xs"
+              disabled={!est || !token}
+            >
+              Preview {side} {symbol}
+            </Button>
+            <p className="mt-1 flex items-center justify-center gap-1.5 text-warning text-xs">
+              <LockKeyhole className="size-3" aria-hidden />
+              Demo only · submission disabled
+            </p>
+          </>
+        )}
+      </form>
 
       {token && est && price && (
         <QuoteReviewDialog
@@ -161,24 +249,77 @@ export function OrderTicket({
 }
 
 export function PositionCard({ symbol }: { symbol: string }) {
+  const auth = useAuth();
   return (
-    <section aria-label="Your position" className="rounded-lg border bg-card p-3">
-      <h2 className="font-semibold text-[15px]">Your position</h2>
-      <p className="mt-2 text-muted-foreground">
-        Sign in to see your {symbol} quantity, average cost and unrealized PnL.
-      </p>
+    <section aria-label="Your positions" className="rounded-lg border bg-card p-3">
+      <h2 className="mb-2 font-semibold">Your positions</h2>
+      <Tabs defaultValue="open">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="open">Open</TabsTrigger>
+          <TabsTrigger value="closed">Closed</TabsTrigger>
+        </TabsList>
+        {["open", "closed"].map((tab) => (
+          <TabsContent key={tab} value={tab}>
+            <div className="flex min-h-20 flex-col items-center justify-center gap-1 px-2 py-3 text-center text-xs">
+              <Wallet className="mb-1 size-4 text-muted-foreground" aria-hidden />
+              <span className="font-medium">
+                {auth.authenticated ? "Position data unavailable" : "Sign in to see your positions"}
+              </span>
+              <span className="text-muted-foreground">{symbol} quantity, cost and PnL appear here.</span>
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
     </section>
   );
 }
 
 export function MarketContext({ token }: { token: Token | undefined }) {
   return (
-    <section aria-label="Market context" className="rounded-lg border bg-card p-3">
-      <h2 className="mb-1 font-semibold text-[15px]">Market context</h2>
-      <Row label="Liquidity" value={formatCompactUsd(token?.liquidityUsd)} />
-      <Row label="Network" value="Solana" />
-      <p className="mt-2 text-muted-foreground text-xs">
-        Prices can move before confirmation. Review every transaction.
+    <section aria-label="About this market" className="rounded-lg border bg-card p-3 text-xs">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="font-semibold text-[13px]">About {token?.symbol ?? "this market"}</h2>
+        <span className="text-muted-foreground">Solana spot</span>
+      </div>
+      <p className="leading-relaxed text-muted-foreground">
+        {token?.name ?? "Token"} market overview. Descriptions and social links are not provided by this data
+        source.
+      </p>
+      <div className="mt-3 grid grid-cols-4 divide-x rounded-md border py-2 text-center">
+        {["5m", "1h", "4h", "24h"].map((range) => (
+          <div key={range}>
+            <div className="mb-1 text-muted-foreground">{range}</div>
+            {range === "24h" ? (
+              <ChangeText value={token?.priceChange24hPct} />
+            ) : (
+              <span title="Intraday change unavailable">{DASH}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3">
+        <Row label="Pool liquidity" value={formatCompactUsd(token?.liquidityUsd)} />
+        <Row label="Top 10 holders" value="Unavailable" />
+        <Row label="Order-book depth" value="Unavailable" />
+      </div>
+      <p className="mt-1 text-muted-foreground leading-relaxed">
+        AMM liquidity is not an order book. No depth ladder is available.
+      </p>
+      <div className="mt-3 space-y-3 border-t pt-3">
+        {["Buys / sells", "Buyers / sellers"].map((label) => (
+          <div key={label}>
+            <div className="mb-1.5 flex justify-between">
+              <span className="text-muted-foreground">{label}</span>
+              <span className="tabular">
+                {DASH} / {DASH}
+              </span>
+            </div>
+            <div className="h-1 rounded-full bg-secondary" aria-hidden />
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+        Intraday changes, concentration and flow ratios are unavailable. Prices can move before confirmation.
       </p>
     </section>
   );

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLiveTokenPrice } from "@/hooks/use-live-token-price";
 import { useToken } from "@/lib/api/queries";
+import { cn } from "@/lib/utils";
 import { ActivityPanel } from "./activity-panel";
 import { AssetSummary } from "./asset-summary";
 import { MarketExplorer } from "./market-explorer";
@@ -17,6 +18,7 @@ export function Terminal({ mint }: { mint: string }) {
   const livePrice = useLiveTokenPrice(mint, token);
   const price = livePrice ?? token?.priceUsd ?? null;
   const [sheetSide, setSheetSide] = useState<Side | null>(null);
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false);
 
   if (isError) {
     return (
@@ -27,10 +29,21 @@ export function Terminal({ mint }: { mint: string }) {
   }
 
   return (
-    <div className="grid min-h-0 grid-cols-1 gap-2 p-3 pb-20 md:h-full md:grid-cols-[minmax(0,1fr)_304px] xl:grid-cols-[264px_minmax(560px,1fr)_320px]">
-      <div className="hidden min-h-0 flex-col gap-2 xl:flex">
-        <MarketExplorer activeMint={mint} />
-        <TopTraders />
+    <div
+      className={cn(
+        "grid min-h-0 grid-cols-1 gap-2 p-2 pb-24 md:h-full md:grid-cols-[minmax(0,1fr)_304px] md:pb-2",
+        explorerCollapsed
+          ? "xl:grid-cols-[52px_minmax(0,1fr)_320px]"
+          : "xl:grid-cols-[260px_minmax(0,1fr)_320px]",
+      )}
+    >
+      <div className="hidden min-h-0 flex-col gap-2 overflow-auto xl:flex">
+        <MarketExplorer
+          activeMint={mint}
+          collapsed={explorerCollapsed}
+          onToggle={() => setExplorerCollapsed((v) => !v)}
+        />
+        {!explorerCollapsed && <TopTraders />}
       </div>
       <div className="flex min-h-0 flex-col gap-2 md:overflow-auto">
         <AssetSummary token={token} livePrice={livePrice} />
@@ -41,10 +54,10 @@ export function Terminal({ mint }: { mint: string }) {
       </div>
       <aside className="hidden min-h-0 flex-col gap-2 md:flex md:overflow-auto">
         <OrderTicket key={mint} token={token} price={price} />
-        <PositionCard symbol={token?.symbol ?? "token"} />
         <MarketContext token={token} />
+        <PositionCard symbol={token?.symbol ?? "token"} />
       </aside>
-      <div className="fixed inset-x-0 bottom-14 z-20 grid grid-cols-2 gap-2 border-t bg-sidebar p-3 md:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-20 grid grid-cols-2 gap-2 border-t bg-sidebar p-3 md:hidden">
         <Button
           className="h-11 bg-positive text-positive-foreground hover:bg-positive/90"
           onClick={() => setSheetSide("buy")}

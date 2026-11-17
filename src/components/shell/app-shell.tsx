@@ -25,14 +25,17 @@ export function AppShell({ section, children }: { section?: NavSection; children
       <TopBar section={section} onSearch={() => setSearchOpen(true)} />
       <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       <StatusStrip />
-      <nav aria-label="Primary" className="grid h-14 shrink-0 grid-cols-4 border-t bg-sidebar md:hidden">
+      <nav
+        aria-label="Primary"
+        className="grid h-[calc(56px+env(safe-area-inset-bottom))] shrink-0 grid-cols-4 border-t bg-sidebar pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
         {NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             aria-current={item.section === section ? "page" : undefined}
             className={cn(
-              "flex items-center justify-center text-muted-foreground",
+              "flex min-h-11 items-center justify-center text-xs text-muted-foreground transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
               item.section === section && "font-medium text-primary",
             )}
           >

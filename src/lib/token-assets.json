@@ -1,0 +1,58 @@
+[
+  {
+    "mint": "So11111111111111111111111111111111111111112",
+    "symbol": "SOL",
+    "name": "Wrapped SOL",
+    "source": "https://static.datapi.jup.ag/token-icons/79a96c7b893fd899512411dd07a8adf6f9e26dd135989f51d46ddb50f0b8bb6c.webp",
+    "file": "sol.webp"
+  },
+  {
+    "mint": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "symbol": "JUP",
+    "name": "Jupiter",
+    "source": "https://static.datapi.jup.ag/token-icons/12254fdd34fa9a0ad62075bd3872df61e28584f9519fe00c744b71b514d4c3d7.webp",
+    "file": "jup.webp"
+  },
+  {
+    "mint": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    "symbol": "BONK",
+    "name": "Bonk",
+    "source": "https://static.datapi.jup.ag/token-icons/7461f749f396872bdba0559323970190e22056d87f08792ce597c00f3c23a6d0.webp",
+    "file": "bonk.webp"
+  },
+  {
+    "mint": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+    "symbol": "WIF",
+    "name": "dogwifhat",
+    "source": "https://static.datapi.jup.ag/token-icons/485a5bf35f136e6a00400c38e1f9a40dd1289c98bbe52eed6da47378f065c4bc.webp",
+    "file": "wif.webp"
+  },
+  {
+    "mint": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+    "symbol": "TRUMP",
+    "name": "OFFICIAL TRUMP",
+    "source": "https://static.datapi.jup.ag/token-icons/e142362a7cf11f8765782343c1de0087c7c046c5a0b0a3ad2c301719858ff769.webp",
+    "file": "trump.webp"
+  },
+  {
+    "mint": "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv",
+    "symbol": "PENGU",
+    "name": "Pudgy Penguins",
+    "source": "https://static.datapi.jup.ag/token-icons/108a00de537962c1ee525997222af5639243507d92d4a7a116deb77226f7bf87.webp",
+    "file": "pengu.webp"
+  },
+  {
+    "mint": "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
+    "symbol": "PYTH",
+    "name": "Pyth Network",
+    "source": "https://static.datapi.jup.ag/token-icons/2e7287e5e03af0bdcbc4e442da5f687d3b5d28836b958a926302a5aff7d6accd.webp",
+    "file": "pyth.webp"
+  },
+  {
+    "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+    "symbol": "PUMP",
+    "name": "Pump",
+    "source": "https://static.datapi.jup.ag/token-icons/e426066c7221bda4e28418128a96a2bf9075656abcc82c2955326acda605feec.webp",
+    "file": "pump.webp"
+  }
+]

@@ -2,6 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { shortAddress } from "@/lib/format";
 
@@ -13,12 +14,16 @@ export function CopyAddress({ address, label = "Copy address" }: { address: stri
       <Button
         variant="ghost"
         size="icon"
-        className="size-6"
+        className="size-10 pointer-coarse:size-11"
         aria-label={label}
         onClick={async () => {
-          await navigator.clipboard.writeText(address);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1200);
+          try {
+            await navigator.clipboard.writeText(address);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          } catch {
+            toast.error("Could not copy the address. Select it and copy manually.");
+          }
         }}
       >
         {copied ? <Check className="size-3 text-positive" /> : <Copy className="size-3" />}

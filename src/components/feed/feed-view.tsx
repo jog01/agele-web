@@ -106,7 +106,7 @@ export function FeedView() {
                   href={`/trade/${p.token.mint}`}
                   className="mt-3 flex items-center gap-3 rounded-md bg-background p-3 hover:bg-surface-hover"
                 >
-                  <AssetAvatar symbol={p.token.symbol} />
+                  <AssetAvatar mint={p.token.mint} symbol={p.token.symbol} />
                   <span className="flex-1">
                     <span className="block font-medium">{p.token.symbol}</span>
                     <span className="block text-muted-foreground text-xs">
