@@ -1,7 +1,7 @@
 import { infiniteQueryOptions } from "@tanstack/react-query";
 import type { SeriesMarker, UTCTimestamp } from "lightweight-charts";
 import { fromBaseUnits } from "@/lib/amounts";
-import { ApiError, api, type Token, unwrap } from "@/lib/api/client";
+import { ApiError, api, type Candle, type Interval, type Token, unwrap } from "@/lib/api/client";
 import type { paths } from "@/lib/api/schema";
 import { type SocialAuth, socialHeaders, socialViewer } from "@/lib/api/social";
 import { shortAddress } from "@/lib/format";
@@ -83,16 +83,43 @@ export function swapAmount(
   return `${amount} base units (${shortAddress(mint)})`;
 }
 
-export function swapMarkers(items: SwapHistoryItem[], mint: string): SeriesMarker<UTCTimestamp>[] {
+const intervalSeconds: Record<Interval, number> = {
+  "1m": 60,
+  "5m": 300,
+  "15m": 900,
+  "1h": 3600,
+  "4h": 14400,
+  "1d": 86400,
+};
+
+export function swapMarkers(
+  items: SwapHistoryItem[],
+  mint: string,
+  snapshot: Pick<Candle, "time">[],
+  interval: Interval,
+): SeriesMarker<UTCTimestamp>[] {
+  if (!snapshot.length) return [];
   return historyItems([{ items, nextCursor: null }])
     .flatMap((item) => {
       const side = swapSide(item, mint);
       const seconds = Math.floor(Date.parse(item.createdAt) / 1000);
       if (item.status !== "confirmed" || !side || !Number.isFinite(seconds)) return [];
+      if (
+        seconds < snapshot[0].time ||
+        seconds >= snapshot[snapshot.length - 1].time + intervalSeconds[interval]
+      )
+        return [];
+      let low = 0;
+      let high = snapshot.length;
+      while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (snapshot[middle].time <= seconds) low = middle + 1;
+        else high = middle;
+      }
       return [
         {
           id: item.requestId,
-          time: seconds as UTCTimestamp,
+          time: snapshot[low - 1].time as UTCTimestamp,
           position: side === "buy" ? ("belowBar" as const) : ("aboveBar" as const),
           color: side === "buy" ? "#5de0aa" : "#ff8195",
           shape: side === "buy" ? ("arrowUp" as const) : ("arrowDown" as const),

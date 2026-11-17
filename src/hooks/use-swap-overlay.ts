@@ -7,7 +7,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import { type RefObject, useEffect, useRef, useState } from "react";
-import type { Candle } from "@/lib/api/client";
+import type { Candle, Interval } from "@/lib/api/client";
 import { swapMarkers } from "@/lib/swap-history";
 import { useSwapHistory } from "./use-swap-history";
 
@@ -18,6 +18,7 @@ export function useSwapOverlay(
   line: RefObject<ISeriesApi<"Line"> | null>,
   style: "candles" | "line",
   snapshot: Candle[],
+  interval: Interval,
 ) {
   const history = useSwapHistory();
   const [shown, setShown] = useState(false);
@@ -37,9 +38,9 @@ export function useSwapOverlay(
     const series = style === "candles" ? candles.current : line.current;
     if (!series) return;
     primitive.current?.setMarkers(
-      available && shown && !history.isError && snapshot.length ? swapMarkers(history.items, mint) : [],
+      available && shown && !history.isError ? swapMarkers(history.items, mint, snapshot, interval) : [],
     );
-  }, [available, shown, history.items, history.isError, mint, style, snapshot, candles, line]);
+  }, [available, shown, history.items, history.isError, mint, style, snapshot, candles, line, interval]);
   return {
     shown: available && shown,
     disabled: !available,

@@ -11,6 +11,8 @@ const buy: SwapHistoryItem = {
   outAmount: "1234567891",
   createdAt: "2026-01-01T00:00:00.500Z",
 };
+const start = Date.parse("2026-01-01T00:00:00Z") / 1000;
+const snapshot = [{ time: start }, { time: start + 3600 }];
 
 describe("history amounts", () => {
   it("uses USDC precision and exact metadata precision without float conversion", () => {
@@ -51,6 +53,8 @@ describe("history markers", () => {
         { ...buy, requestId: "other", outputMint: "other" },
       ],
       "token",
+      snapshot,
+      "1h",
     );
     expect(markers).toMatchObject([
       {
@@ -65,7 +69,7 @@ describe("history markers", () => {
     expect(historySide(sell, "unrelated-token")).toBe("sell");
   });
   it("handles empty, invalid dates, self-swaps and non-confirmed statuses safely", () => {
-    expect(swapMarkers([], "token")).toEqual([]);
+    expect(swapMarkers([], "token", snapshot, "1h")).toEqual([]);
     expect(
       swapMarkers(
         [
@@ -74,6 +78,33 @@ describe("history markers", () => {
           ...(["issued", "submitted", "failed", "expired"] as const).map((status) => ({ ...buy, status })),
         ],
         "token",
+        snapshot,
+        "1h",
+      ),
+    ).toEqual([]);
+  });
+  it("floors to the containing loaded candle and drops requests outside the snapshot", () => {
+    const candles = [{ time: start }, { time: start + 60 }];
+    const swaps = [-1, 0, 30, 59, 60, 119, 120, 10000].map((seconds) => ({
+      ...buy,
+      requestId: String(seconds),
+      createdAt: new Date((start + seconds) * 1000).toISOString(),
+    }));
+    expect(swapMarkers(swaps, "token", candles, "1m").map((marker) => [marker.id, marker.time])).toEqual([
+      ["0", start],
+      ["30", start],
+      ["59", start],
+      ["60", start + 60],
+      ["119", start + 60],
+    ]);
+    expect(swapMarkers(swaps, "token", [], "1m")).toEqual([]);
+    expect(swapMarkers([swaps[2]], "token", [{ time: start }], "1m")[0].time).toBe(start);
+    expect(
+      swapMarkers(
+        [{ ...buy, createdAt: new Date((start + 301) * 1000).toISOString() }],
+        "token",
+        [{ time: start }],
+        "5m",
       ),
     ).toEqual([]);
   });

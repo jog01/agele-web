@@ -200,7 +200,7 @@ export function PriceChart({
     }
   }, [candles, chartMode, snapshotKey, chartStyle, scaleMode, range, ma7, ma25]);
 
-  const swaps = useSwapOverlay(mint, demoMode, candleSeries, lineSeries, chartStyle, candles);
+  const swaps = useSwapOverlay(mint, demoMode, candleSeries, lineSeries, chartStyle, candles, interval);
 
   return (
     <section

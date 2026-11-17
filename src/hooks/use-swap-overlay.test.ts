@@ -36,7 +36,8 @@ afterEach(() => {
 it("attaches confirmed markers on toggle, switches chart style, and cleans up on logout", () => {
   history();
   const { result, rerender } = renderHook(
-    ({ style }: { style: "candles" | "line" }) => useSwapOverlay("token", false, candle, line, style, bars),
+    ({ style }: { style: "candles" | "line" }) =>
+      useSwapOverlay("token", false, candle, line, style, bars, "1m"),
     { initialProps: { style: "candles" } },
   );
   act(() => result.current.toggle());
@@ -55,11 +56,11 @@ it("attaches confirmed markers on toggle, switches chart style, and cleans up on
 
 it("keeps demo overlays disabled and clears markers on history errors", () => {
   history();
-  const demo = renderHook(() => useSwapOverlay("token", true, candle, line, "candles", bars));
+  const demo = renderHook(() => useSwapOverlay("token", true, candle, line, "candles", bars, "1m"));
   expect(demo.result.current.disabled).toBe(true);
   expect(demo.result.current.title).toContain("Sign in");
   history(true, true);
-  const failed = renderHook(() => useSwapOverlay("token", false, candle, line, "candles", bars));
+  const failed = renderHook(() => useSwapOverlay("token", false, candle, line, "candles", bars, "1m"));
   act(() => failed.result.current.toggle());
   expect(failed.result.current.label).toContain("unavailable");
   expect(mocks.setMarkers).toHaveBeenLastCalledWith([]);
@@ -68,7 +69,7 @@ it("keeps demo overlays disabled and clears markers on history errors", () => {
 it("reuses the primitive for candle, history and visibility updates, detaching only on unmount", () => {
   history();
   const { result, rerender, unmount } = renderHook(
-    ({ snapshot }) => useSwapOverlay("token", false, candle, line, "candles", snapshot),
+    ({ snapshot }) => useSwapOverlay("token", false, candle, line, "candles", snapshot, "1m"),
     { initialProps: { snapshot: bars } },
   );
   act(() => result.current.toggle());
