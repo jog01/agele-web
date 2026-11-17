@@ -1,6 +1,6 @@
 # agele-web
 
-Next.js 16 frontend for Agele, a social trading terminal for Solana spot markets. The backend (REST, WebSocket, jobs) lives in [jog01/agele](https://github.com/jog01/agele). Frontend diagrams (routes, component tree, data flow): [docs/architecture.md](docs/architecture.md). Sign-in, embedded wallet and deposit: [docs/auth-wallet.md](docs/auth-wallet.md).
+Next.js 16 frontend for Agele, a social trading terminal for Solana spot markets. The backend (REST, WebSocket, jobs) lives in [jog01/agele](https://github.com/jog01/agele). Frontend diagrams (routes, component tree, data flow): [docs/architecture.md](docs/architecture.md). Sign-in, embedded wallet and deposit: [docs/auth-wallet.md](docs/auth-wallet.md). Gasless swap quotes, signing and submission: [docs/swaps.md](docs/swaps.md).
 
 Stack: Next.js 16 (App Router, Turbopack, Cache Components), shadcn/ui, Tailwind v4, TradingView `lightweight-charts`, TanStack Query + `openapi-fetch`, Zustand, Privy, Biome, Vitest.
 
@@ -14,7 +14,7 @@ cp .env.example .env.local
 bun run dev          # http://localhost:3000/trade
 ```
 
-Demo labels appear when `/health` reports mock data (or cannot confirm live data), or Privy is unconfigured. Confirmation requires live data and configured, ready, authenticated Privy. Set `NEXT_PUBLIC_SOLANA_RPC_URL` to a domain-restricted RPC key (e.g. Helius) for wallet balances; the public mainnet RPC rejects browser token-account queries.
+Demo labels appear when `/health` reports mock data (or cannot confirm live data), or Privy is unconfigured. Swap submission requires sign-in; trading availability is gated by the API's `trading_disabled` response, not fixture-data mode. Without `NEXT_PUBLIC_PRIVY_APP_ID`, sign-in is unavailable. Set `NEXT_PUBLIC_SOLANA_RPC_URL` to a domain-restricted RPC key (e.g. Helius) for wallet balances; the public mainnet RPC rejects browser token-account queries.
 
 ## Live data
 
