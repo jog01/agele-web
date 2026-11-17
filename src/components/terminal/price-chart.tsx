@@ -141,8 +141,12 @@ export function PriceChart({
     });
     chart.current = c;
     return () => {
-      c.remove();
       chart.current = null;
+      candleSeries.current = null;
+      volumeSeries.current = null;
+      lineSeries.current = null;
+      averages.current = [];
+      c.remove();
     };
   }, []);
 
