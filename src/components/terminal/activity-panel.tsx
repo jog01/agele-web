@@ -54,7 +54,7 @@ function ActivityTable({ mint }: { mint: string }) {
   if (isError) return <p className="p-4 text-muted-foreground">Trades unavailable.</p>;
   return (
     <>
-      <div className="flex items-center gap-3 border-b p-2 text-xs">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b p-2 text-xs">
         <select
           aria-label="Trade type"
           className="bg-card"
@@ -65,8 +65,8 @@ function ActivityTable({ mint }: { mint: string }) {
           <option value="buy">Buys</option>
           <option value="sell">Sells</option>
         </select>
-        <label>
-          Min size (USD){" "}
+        <label className="inline-flex items-center gap-1">
+          Min size (USD)
           <input
             className="w-24 rounded border bg-background px-2 py-1"
             type="number"
@@ -221,27 +221,29 @@ export function ActivityPanel({ mint }: { mint: string }) {
   return (
     <section
       aria-label="Market activity"
-      className="flex min-h-[220px] flex-1 flex-col rounded-lg border bg-card"
+      className="flex min-h-[220px] min-w-0 flex-1 flex-col rounded-lg border bg-card"
     >
-      <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col gap-0">
-        <TabsList variant="line" className="h-10 w-full justify-start border-b px-2">
-          <TabsTrigger value="activity" className="flex-none">
-            Trades
-          </TabsTrigger>
-          <TabsTrigger value="holders" className="flex-none">
-            Holders
-          </TabsTrigger>
-          <TabsTrigger value="positions" className="flex-none">
-            Positions
-          </TabsTrigger>
-          <TabsTrigger value="traders" className="flex-none">
-            Traders
-          </TabsTrigger>
-          <TabsTrigger value="thesis" className="flex-none gap-1.5">
-            <MessageSquareText className="size-3.5" aria-hidden />
-            Thesis
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="activity" className="flex min-h-0 min-w-0 flex-1 flex-col gap-0">
+        <div className="min-w-0 shrink-0 overflow-x-auto border-b pb-1">
+          <TabsList variant="line" className="h-10 w-max min-w-full justify-start px-2">
+            <TabsTrigger value="activity" className="flex-none">
+              Trades
+            </TabsTrigger>
+            <TabsTrigger value="holders" className="flex-none">
+              Holders
+            </TabsTrigger>
+            <TabsTrigger value="positions" className="flex-none">
+              Positions
+            </TabsTrigger>
+            <TabsTrigger value="traders" className="flex-none">
+              Traders
+            </TabsTrigger>
+            <TabsTrigger value="thesis" className="flex-none gap-1.5">
+              <MessageSquareText className="size-3.5" aria-hidden />
+              Thesis
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="activity" className="min-h-0 flex-1 overflow-auto">
           <ActivityTable key={mint} mint={mint} />
         </TabsContent>

@@ -246,6 +246,18 @@ export function PriceChart({
           {chartMode === "price" ? "Price (USD)" : "Market cap (USD)"}
           {DEMO_MODE && " · demo"}
         </span>
+        {legend && (
+          <p
+            className="tabular flex w-full flex-wrap gap-x-3 gap-y-1 text-muted-foreground text-xs md:hidden"
+            aria-live="off"
+          >
+            <span className={legend.close >= legend.open ? "text-positive" : "text-negative"}>
+              C {format(legend.close)} ·{" "}
+              {formatPct(legend.open ? (legend.close / legend.open - 1) * 100 : null)}
+            </span>
+            <span>Vol {formatCompactUsd(legend.volume)}</span>
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-3 border-b px-3 py-1 text-xs text-muted-foreground">
         <ToggleGroup
