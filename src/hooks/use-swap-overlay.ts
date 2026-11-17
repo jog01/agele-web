@@ -1,7 +1,12 @@
 "use client";
 
-import { createSeriesMarkers, type ISeriesApi } from "lightweight-charts";
-import { type RefObject, useEffect, useState } from "react";
+import {
+  createSeriesMarkers,
+  type ISeriesApi,
+  type ISeriesMarkersPluginApi,
+  type UTCTimestamp,
+} from "lightweight-charts";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Candle } from "@/lib/api/client";
 import { swapMarkers } from "@/lib/swap-history";
 import { useSwapHistory } from "./use-swap-history";
@@ -16,16 +21,25 @@ export function useSwapOverlay(
 ) {
   const history = useSwapHistory();
   const [shown, setShown] = useState(false);
+  const primitive = useRef<ISeriesMarkersPluginApi<UTCTimestamp> | null>(null);
   const available = history.authenticated && !demoMode;
   useEffect(() => {
     const series = style === "candles" ? candles.current : line.current;
-    if (!series || !snapshot.length) return;
-    const markers = createSeriesMarkers(
-      series,
-      available && shown && !history.isError ? swapMarkers(history.items, mint) : [],
+    if (!series) return;
+    const markers = createSeriesMarkers<UTCTimestamp>(series, []);
+    primitive.current = markers;
+    return () => {
+      primitive.current = null;
+      markers.detach();
+    };
+  }, [candles, line, style]);
+  useEffect(() => {
+    const series = style === "candles" ? candles.current : line.current;
+    if (!series) return;
+    primitive.current?.setMarkers(
+      available && shown && !history.isError && snapshot.length ? swapMarkers(history.items, mint) : [],
     );
-    return () => markers.detach();
-  }, [available, shown, history.items, history.isError, mint, candles, line, style, snapshot]);
+  }, [available, shown, history.items, history.isError, mint, style, snapshot, candles, line]);
   return {
     shown: available && shown,
     disabled: !available,

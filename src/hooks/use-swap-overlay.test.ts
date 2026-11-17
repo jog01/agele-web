@@ -4,7 +4,12 @@ import type { ISeriesApi } from "lightweight-charts";
 import { afterEach, expect, it, vi } from "vitest";
 import { useSwapOverlay } from "./use-swap-overlay";
 
-const mocks = vi.hoisted(() => ({ history: vi.fn(), markers: vi.fn(), detach: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  history: vi.fn(),
+  markers: vi.fn(),
+  detach: vi.fn(),
+  setMarkers: vi.fn(),
+}));
 vi.mock("lightweight-charts", () => ({ createSeriesMarkers: mocks.markers }));
 vi.mock("./use-swap-history", () => ({ useSwapHistory: mocks.history }));
 const candle = { current: {} as ISeriesApi<"Candlestick"> };
@@ -21,7 +26,7 @@ const item = {
 };
 function history(authenticated = true, isError = false) {
   mocks.history.mockReturnValue({ authenticated, isError, isPending: false, items: [item] });
-  mocks.markers.mockReturnValue({ detach: mocks.detach });
+  mocks.markers.mockReturnValue({ detach: mocks.detach, setMarkers: mocks.setMarkers });
 }
 afterEach(() => {
   cleanup();
@@ -35,14 +40,17 @@ it("attaches confirmed markers on toggle, switches chart style, and cleans up on
     { initialProps: { style: "candles" } },
   );
   act(() => result.current.toggle());
-  expect(mocks.markers).toHaveBeenLastCalledWith(candle.current, [expect.objectContaining({ text: "Buy" })]);
+  expect(mocks.markers).toHaveBeenLastCalledWith(candle.current, []);
+  expect(mocks.setMarkers).toHaveBeenLastCalledWith([expect.objectContaining({ text: "Buy" })]);
   rerender({ style: "line" });
   expect(mocks.detach).toHaveBeenCalled();
-  expect(mocks.markers).toHaveBeenLastCalledWith(line.current, [expect.objectContaining({ text: "Buy" })]);
+  expect(mocks.markers).toHaveBeenLastCalledWith(line.current, []);
+  expect(mocks.setMarkers).toHaveBeenLastCalledWith([expect.objectContaining({ text: "Buy" })]);
   history(false);
   rerender({ style: "line" });
   expect(result.current.disabled).toBe(true);
-  expect(mocks.markers).toHaveBeenLastCalledWith(line.current, []);
+  expect(mocks.markers).toHaveBeenCalledTimes(2);
+  expect(mocks.setMarkers).toHaveBeenLastCalledWith([]);
 });
 
 it("keeps demo overlays disabled and clears markers on history errors", () => {
@@ -54,5 +62,24 @@ it("keeps demo overlays disabled and clears markers on history errors", () => {
   const failed = renderHook(() => useSwapOverlay("token", false, candle, line, "candles", bars));
   act(() => failed.result.current.toggle());
   expect(failed.result.current.label).toContain("unavailable");
-  expect(mocks.markers).toHaveBeenLastCalledWith(candle.current, []);
+  expect(mocks.setMarkers).toHaveBeenLastCalledWith([]);
+});
+
+it("reuses the primitive for candle, history and visibility updates, detaching only on unmount", () => {
+  history();
+  const { result, rerender, unmount } = renderHook(
+    ({ snapshot }) => useSwapOverlay("token", false, candle, line, "candles", snapshot),
+    { initialProps: { snapshot: bars } },
+  );
+  act(() => result.current.toggle());
+  for (let i = 0; i < 5; i++) {
+    history();
+    rerender({ snapshot: [{ ...bars[0], close: i }] });
+  }
+  expect(mocks.markers).toHaveBeenCalledTimes(1);
+  expect(mocks.detach).not.toHaveBeenCalled();
+  rerender({ snapshot: [] });
+  expect(mocks.setMarkers).toHaveBeenLastCalledWith([]);
+  unmount();
+  expect(mocks.detach).toHaveBeenCalledTimes(1);
 });
