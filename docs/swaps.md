@@ -122,7 +122,11 @@ The merged backend bounds Redis operations with deadlines. Sponsor-store failure
 | -------------- | ----------- |
 | ![422 swap rejected message](images/swap-rejected.png) | ![Sell review with numeric USD value](images/swap-sell-review.png) |
 
-These screenshots use a throwaway local HTTP mock API and the real frontend with `NEXT_PUBLIC_API_URL=http://localhost:4100`, signed out and without a Privy app ID. “Server quote” here means a response from that mock, not a live Jupiter quote. The mock supplies market endpoints plus the agreed swap contract and switches quote responses between success, `503 trading_disabled` and `422 swap_rejected`. No auth context was stubbed. Wallet signing, authenticated submission, confirmation toast and real on-chain execution were not exercised by these screenshots; orchestration is covered by Vitest tests.
+These screenshots show the redesigned ticket from main using a throwaway local HTTP mock API with `NEXT_PUBLIC_API_URL=http://localhost:4100`. “Server quote” here means a response from that mock, not a live Jupiter quote. A temporary screenshot-only signed-in auth-context fixture enables Review and Confirm without a Privy app ID, real identity or wallet; it was removed before checks and is not committed. Balances and positions remain unavailable.
+
+The mock supplies market endpoints and successful quotes, or `422 swap_rejected` on quote for the rejection screenshot. For both trading-disabled screenshots, quote succeeds and clicking Confirm sends `POST /v1/swaps`, which returns `503 trading_disabled` before signing. The existing quote amounts remain visible, Network fee changes to a dash, and Confirm becomes disabled. The ticket screenshot is captured after closing that review; the disabled review is then reopened. Sell review verifies a numeric **$1,500.00** Value for 10 SOL. Each PNG was visually inspected after capture.
+
+Real authentication, wallet signing, transaction submission, confirmation toast and on-chain execution were not exercised by these screenshots; orchestration is covered by Vitest tests.
 
 ## Configuration and checks
 
