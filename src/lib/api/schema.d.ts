@@ -39,6 +39,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/webhooks/helius": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": ({
+                        signature: string;
+                        timestamp: number;
+                        feePayer: string;
+                        fee: number;
+                        transactionError?: unknown;
+                        accountData: ({
+                            account: string;
+                            /** @default 0 */
+                            nativeBalanceChange?: number;
+                            /** @default [] */
+                            tokenBalanceChanges?: ({
+                                userAccount: string;
+                                mint: string;
+                                rawTokenAmount: {
+                                    tokenAmount: string;
+                                    decimals: number;
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                    } & {
+                        [key: string]: unknown;
+                    })[];
+                };
+            };
+            responses: {
+                /** @description Transactions processed; skipped includes duplicates and non-trades */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            indexed: number;
+                            skipped: number;
+                        };
+                    };
+                };
+                /** @description Invalid enhanced transactions */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid webhook secret */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Webhook or SOL pricing unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens/trending": {
         parameters: {
             query?: never;
@@ -278,6 +375,191 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Current portfolio */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Portfolio"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/portfolio/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    range?: "7d" | "30d" | "all";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Daily equity with final live point */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PortfolioHistory"];
+                    };
+                };
+                /** @description Invalid range */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/trades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User trades, newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            trades: components["schemas"]["UserTrade"][];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Invalid limit or cursor */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/leaderboard": {
         parameters: {
             query?: never;
@@ -297,7 +579,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Top traders by realized + unrealized PnL */
+                /** @description Top traders by realized + unrealized PnL. X-Data-Source is demo for mock rankings, indexed otherwise. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -570,10 +852,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PriceTick: {
+            mint: string;
+            priceUsd: number;
+            marketCapUsd: number;
+            /** @description Unix seconds */
+            time: number;
+        };
         Health: {
             /** @enum {string} */
             status: "ok";
             uptimeSec: number;
+            /** @enum {string} */
+            marketData: "mock" | "live";
+        };
+        Error: {
+            error: {
+                /** @example not_found */
+                code: string;
+                message: string;
+                details?: unknown;
+            };
         };
         Token: {
             mint: string;
@@ -587,14 +886,6 @@ export interface components {
             liquidityUsd: number;
             volume24hUsd: number;
             holders: number;
-        };
-        Error: {
-            error: {
-                /** @example not_found */
-                code: string;
-                message: string;
-                details?: unknown;
-            };
         };
         Candle: {
             /** @description Bucket start, unix seconds */
@@ -629,6 +920,41 @@ export interface components {
                 privyWalletId: string | null;
                 isPrimary: boolean;
             }[];
+        };
+        Portfolio: {
+            equityUsd: number;
+            usdcBalance: number;
+            unrealizedPnlUsd: number;
+            realizedPnlUsd: number;
+            positions: {
+                mint: string;
+                symbol: string;
+                quantity: number;
+                avgCostUsd: number;
+                priceUsd: number;
+                valueUsd: number;
+                unrealizedPnlUsd: number;
+                realizedPnlUsd: number;
+            }[];
+        };
+        PortfolioHistory: {
+            points: {
+                time: number;
+                valueUsd: number;
+            }[];
+        };
+        UserTrade: {
+            id: string;
+            signature: string;
+            mint: string;
+            symbol: string;
+            /** @enum {string} */
+            side: "buy" | "sell";
+            tokenAmount: number;
+            priceUsd: number;
+            valueUsd: number;
+            realizedPnlUsd: number | null;
+            time: number;
         };
         LeaderboardEntry: {
             rank: number;

@@ -55,8 +55,9 @@ const trade: FeedItem = {
   position: "none",
   createdAt: 99,
 };
-function board(isFollowing: boolean): LeaderboardPage {
+function board(isFollowing: boolean): LeaderboardPage & { dataSource: "demo" } {
   return {
+    dataSource: "demo",
     window: "7d",
     entries: [
       {
