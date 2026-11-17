@@ -1,17 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { LeaderboardWindow } from "@/lib/api/client";
-import { socialQueries } from "@/lib/api/queries";
+import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd, formatPct, formatUsd, shortAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function LeaderboardView() {
   const [window, setWindow] = useState<LeaderboardWindow>("7d");
-  const { data, isPending, isError } = useQuery(socialQueries.leaderboard(window));
+  const { data, isPending, isError } = useLeaderboard(window);
   return (
     <div className="mx-auto max-w-[1280px] space-y-4 px-6 py-6">
       <div className="flex flex-wrap items-end justify-between gap-4">

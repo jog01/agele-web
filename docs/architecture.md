@@ -50,6 +50,8 @@ flowchart TB
 
 ## Data flow
 
+See [live data flow](live-data.md) for price/leaderboard subscriptions, cache recovery, demo/trading gates, and a mock-mode screenshot.
+
 ```mermaid
 flowchart LR
   API[(Agele API<br/>REST /v1)] -- "openapi-fetch<br/>typed by schema.d.ts" --> Q[TanStack Query cache]
