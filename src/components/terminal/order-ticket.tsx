@@ -56,9 +56,9 @@ export function OrderTicket({
   initialSide?: Side;
 }) {
   const auth = useAuth();
-  const { demoMode: DEMO_MODE } = useMarketDataMode();
   const amountId = useId();
   const [side, setSide] = useState<Side>(initialSide);
+  const { demoMode: DEMO_MODE } = useMarketDataMode();
   const [raw, setRaw] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
   const symbol = token?.symbol ?? "";

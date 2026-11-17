@@ -98,13 +98,15 @@ Every execution creates a new request and obtains a new signature; signed transa
 
 `DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and platform fee use the server quote when available. Client estimates appear only while the quote loads. Network fees are labelled **Sponsored** only with a server quote and without a trading-disabled response; otherwise they show a dash. A signed-out Confirm prompts sign-in; without a Privy app ID, sign-in is unavailable.
 
-## Backend contract (PR #9)
+## Backend contract (merged PR #9)
 
-Types are regenerated from [backend PR #9](https://github.com/jog01/agele/pull/9)'s `openapi.json`. Quote/build responses do **not** echo `inputMint` or `outputMint`. `priceImpactPct` is a number in percentage points (`3` means `3%`), not a ratio or string. `expiresAt` is a number in Unix milliseconds, compared directly with `Date.now()`. Submit results have an optional signature, optional base-unit `inputAmountResult` / `outputAmountResult`, optional numeric `code`, and optional `error`. GET status retains `inAmount` / `outAmount`.
+Types are regenerated from backend main at `0347220`, including merged [PR #9](https://github.com/jog01/agele/pull/9). Quote/build responses do **not** echo `inputMint` or `outputMint`. `priceImpactPct` is a number in percentage points (`3` means `3%`), not a ratio or string. `expiresAt` is a number in Unix milliseconds, compared directly with `Date.now()`. Submit results have an optional signature, optional base-unit `inputAmountResult` / `outputAmountResult`, optional numeric `code`, and optional `error`. GET status retains `inAmount` / `outAmount`.
 
 Requests require positive base-unit amount strings (up to 78 digits), base58 mint strings of 32–44 characters, and optional integer slippage from 0–10,000 bps. Quote OpenAPI additionally permits nullable slippage; the frontend always sends `50`. Submit accepts a nonempty signed-transaction string up to 4,096 characters. All four documented routes list `400`, `401`, `404`, `409`, `422`, `429`, `502` and `503` errors, although some apply only to specific operations.
 
 The current backend quote is preview-only: it calls Jupiter without checking sponsorship, the mint allowlist, or trading caps. Disabled sponsorship is checked during create/submit. A quote can therefore succeed before create returns `503 trading_disabled`. A sponsor kill switch currently returns `422 sponsor_rejected` (reason `kill_switch`), not `503`. Swap rejection also covers transaction/payer integrity mismatches, not only slippage, impact or mint caps. If execution outcome is unknown, submit returns `{ status: "submitted" }` without a signature; the client polls and, on timeout, shows the request ID rather than inventing an explorer link.
+
+The merged backend bounds Redis operations with deadlines. Sponsor-store failures now propagate `503 rate_limit_unavailable` (“Swap rate-limit storage temporarily unavailable”), rather than being classified as `422 sponsor_rejected` quota/missing-record failures. The client preserves that server message and does not label it as trading disabled. Swap paths and payload schemas are unchanged from the previously checked PR head `d5a52a0`.
 
 ## Screens
 
@@ -124,7 +126,7 @@ These screenshots use a throwaway local HTTP mock API and the real frontend with
 
 ## Configuration and checks
 
-Use `NEXT_PUBLIC_API_URL` for the Agele API and configure Privy and Solana as described in [Sign-in, embedded wallet and deposit](auth-wallet.md). `lib/api/schema.d.ts` is fully generated from PR #9's OpenAPI; non-swap additions (`PriceTick` and `Health.marketData`) are already on backend main. Regenerate after the backend merge.
+Use `NEXT_PUBLIC_API_URL` for the Agele API and configure Privy and Solana as described in [Sign-in, embedded wallet and deposit](auth-wallet.md). `lib/api/schema.d.ts` is fully generated from backend main's OpenAPI, including merged portfolio/indexing endpoints as well as swaps.
 
 ```bash
 bun run check

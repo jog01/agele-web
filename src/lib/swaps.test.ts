@@ -71,6 +71,10 @@ describe("swap errors", () => {
     expect(swapErrorMessage(new ApiError("Server message", status, code))).toContain(expected);
   });
   it("handles absent errors", () => expect(swapErrorMessage(null)).toContain("Swap failed"));
+  it("preserves sponsor-storage unavailability without a demo label", () => {
+    const message = "Swap rate-limit storage temporarily unavailable";
+    expect(swapErrorMessage(new ApiError(message, 503, "rate_limit_unavailable"))).toBe(message);
+  });
 });
 
 describe("swap orchestration", () => {
