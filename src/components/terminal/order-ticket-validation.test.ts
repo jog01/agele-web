@@ -47,7 +47,8 @@ it.each(["buy", "sell"] as const)("gates empty, oversized and valid %s previews"
   fireEvent.change(input, { target: { value: "9".repeat(80) } });
   expect(preview.disabled).toBe(true);
   expect(input.getAttribute("aria-invalid")).toBe("true");
-  expect(screen.getAllByText(/Amount is too large/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Amount is too large/)).toHaveLength(1);
+  expect(input.getAttribute("aria-describedby")).toContain(screen.getByText(/Amount is too large/).id);
   fireEvent.submit(input.closest("form")!);
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.change(input, { target: { value: "10" } });
@@ -71,7 +72,8 @@ it.each(["buy", "sell"] as const)(
       fireEvent.change(input, { target: { value } });
       expect(input.value).toBe(value);
       expect(input.getAttribute("aria-invalid")).toBe("true");
-      expect(screen.getAllByText("Enter a valid amount").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Enter a valid amount")).toHaveLength(1);
+      expect(input.getAttribute("aria-describedby")).toContain(screen.getByText("Enter a valid amount").id);
       expect(preview.disabled).toBe(true);
       fireEvent.submit(input.closest("form")!);
       expect(screen.queryByRole("dialog")).toBeNull();

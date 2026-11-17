@@ -270,7 +270,7 @@ export function OrderTicket({
           </>
         )}
       </form>
-      {swap.status && (
+      {swap.status && swap.status !== swap.validation && (
         <p role="status" className="mt-2 text-center text-warning text-xs">
           {swap.status}
           {swap.explorerUrl && (
