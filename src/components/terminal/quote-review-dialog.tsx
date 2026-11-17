@@ -35,8 +35,8 @@ interface Props {
 function Line({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-1">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="tabular text-right">{value}</span>
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="tabular min-w-0 break-all text-right">{value}</span>
     </div>
   );
 }
@@ -61,7 +61,7 @@ export function QuoteReviewDialog({
   const to = side === "buy" ? token : { symbol: "USDC", mint: USDC_MINT };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>
             Review {side} {token.symbol}
@@ -110,7 +110,7 @@ export function QuoteReviewDialog({
           </div>
         )}
         {swap.status && (
-          <p role="status" className="text-warning text-xs">
+          <p role="status" className="min-w-0 break-words text-warning text-xs">
             {swap.status}
             {swap.explorerUrl && (
               <>

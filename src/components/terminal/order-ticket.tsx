@@ -63,9 +63,9 @@ export function OrderTicket({
   const [reviewOpen, setReviewOpen] = useState(false);
   const symbol = token?.symbol ?? "";
   const amount = Number(raw);
-  const est = price ? estimate(side, amount, price) : null;
   const unit = side === "buy" ? "USDC" : symbol;
   const swap = useSwap(token, side, raw, price);
+  const est = swap.validAmount && price ? estimate(side, amount, price) : null;
 
   return (
     <section aria-label="Order ticket" className="rounded-lg border bg-card p-3">
@@ -133,7 +133,13 @@ export function OrderTicket({
             void swap.confirm();
             return;
           }
-          if ((est || swap.quote) && token && !swap.busy && (auth.authenticated || DEMO_MODE))
+          if (
+            swap.validAmount &&
+            (est || swap.quote) &&
+            token &&
+            !swap.busy &&
+            (auth.authenticated || DEMO_MODE)
+          )
             setReviewOpen(true);
         }}
       >
@@ -152,8 +158,9 @@ export function OrderTicket({
             autoComplete="off"
             placeholder="0.00"
             value={raw}
-            onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setRaw(e.target.value)}
-            aria-describedby={`${amountId}-balance`}
+            onChange={(e) => setRaw(e.target.value)}
+            aria-invalid={!!swap.validation}
+            aria-describedby={`${amountId}-balance ${amountId}-validation`}
             className={cn(
               "tabular w-full bg-transparent font-medium text-[32px] leading-10 outline-none placeholder:text-muted-foreground/50",
               side === "buy" && "pl-5",
@@ -187,6 +194,9 @@ export function OrderTicket({
           ))}
         </div>
 
+        <p id={`${amountId}-validation`} className="mt-1 text-warning text-xs">
+          {swap.validation}
+        </p>
         <Separator className="my-3" />
         <div className="text-[13px]">
           <Row
@@ -226,7 +236,9 @@ export function OrderTicket({
           disabled={
             swap.busy ||
             (!swap.pending &&
-              (auth.authenticated ? (!est && !swap.quote) || !token : !auth.configured || !auth.ready))
+              (auth.authenticated
+                ? !swap.validAmount || (!est && !swap.quote) || !token
+                : !auth.configured || !auth.ready))
           }
           onClick={(e) => {
             if (!auth.authenticated) {
@@ -247,7 +259,7 @@ export function OrderTicket({
               type="submit"
               variant="ghost"
               className="mt-1 h-10 w-full text-xs"
-              disabled={(!est && !swap.quote) || !token || swap.busy}
+              disabled={!swap.validAmount || (!est && !swap.quote) || !token || swap.busy}
             >
               Preview {side} {symbol}
             </Button>
@@ -272,7 +284,7 @@ export function OrderTicket({
         </p>
       )}
 
-      {token && (est || swap.quote) && (
+      {token && swap.validAmount && (est || swap.quote) && (
         <QuoteReviewDialog
           open={reviewOpen}
           onOpenChange={setReviewOpen}

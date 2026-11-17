@@ -324,3 +324,23 @@ it("does not show an estimated sell Value on quote failure or empty input", () =
   const empty = renderHook(() => useSwap(token, "sell", "", 150));
   expect(empty.result.current.valueUsd).toBeNull();
 });
+
+it.each(["buy", "sell"] as const)("rejects oversized %s amounts before requesting a quote", (side) => {
+  query.mockReturnValue({ data: undefined, error: null });
+  const { result } = renderHook(() => useSwap(token, side, "9".repeat(80), 150));
+  expect(result.current.validAmount).toBe(false);
+  expect(result.current.inputAmount).toBeUndefined();
+  expect(result.current.validation).toContain("Amount is too large");
+  expect(query.mock.lastCall?.[0].enabled).toBe(false);
+});
+
+it("accepts the API's 78-digit base-unit boundary but not 79 digits", () => {
+  query.mockReturnValue({ data: undefined, error: null });
+  const { result, rerender } = renderHook(({ raw }) => useSwap(token, "buy", raw, 150), {
+    initialProps: { raw: "9".repeat(72) },
+  });
+  expect(result.current.validAmount).toBe(true);
+  expect(result.current.validation).toBe("");
+  rerender({ raw: "9".repeat(73) });
+  expect(result.current.validAmount).toBe(false);
+});
