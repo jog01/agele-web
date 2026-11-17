@@ -25,6 +25,7 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
+import { SwapHistoryPanel } from "./swap-history-panel";
 import { HoldersPanel, PositionsPanel, TradersPanel } from "./token-activity-panels";
 
 function ActivityTable({ mint }: { mint: string }) {
@@ -229,6 +230,9 @@ export function ActivityPanel({ mint }: { mint: string }) {
             <TabsTrigger value="positions" className="flex-none">
               Positions
             </TabsTrigger>
+            <TabsTrigger value="swaps" className="flex-none">
+              My swaps
+            </TabsTrigger>
             <TabsTrigger value="traders" className="flex-none">
               Traders
             </TabsTrigger>
@@ -246,6 +250,9 @@ export function ActivityPanel({ mint }: { mint: string }) {
         </TabsContent>
         <TabsContent value="positions" className="min-h-0 flex-1 overflow-auto">
           <PositionsPanel key={mint} mint={mint} />
+        </TabsContent>
+        <TabsContent value="swaps" className="min-h-0 flex-1 overflow-auto">
+          <SwapHistoryPanel mint={mint} />
         </TabsContent>
         <TabsContent value="traders" className="min-h-0 flex-1 overflow-auto">
           <TradersPanel key={mint} mint={mint} />

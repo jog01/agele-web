@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
@@ -8,6 +8,7 @@ import { fromBaseUnits, toBaseUnits } from "@/lib/amounts";
 import { ApiError, type Token } from "@/lib/api/client";
 import { pendingSwaps } from "@/lib/pending-swaps";
 import { solanaCluster } from "@/lib/solana/cluster";
+import { swapHistoryKey } from "@/lib/swap-history";
 import {
   checkSwap,
   executeSwap,
@@ -20,6 +21,7 @@ import {
 
 export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: string, price: number | null) {
   const auth = useAuth();
+  const qc = useQueryClient();
   const [phase, setPhase] = useState<SwapPhase>("idle");
   const [message, setMessage] = useState("");
   const [disabledByApi, setDisabledByApi] = useState(false);
@@ -106,6 +108,8 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
         return;
       }
       setRequote(undefined);
+      if (["confirmed", "failed", "expired"].includes(result.status))
+        void qc.invalidateQueries({ queryKey: swapHistoryKey(auth) });
       track(result.status === "pending-unknown" ? result : undefined);
       const url = result.signature
         ? `https://solscan.io/tx/${result.signature}${solanaCluster().explorerQuery}`
@@ -130,13 +134,14 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
       } else {
         setRequote(undefined);
         setPhase("failed");
+        void qc.invalidateQueries({ queryKey: swapHistoryKey(auth) });
         setMessage(swapErrorMessage(error));
         if (error instanceof ApiError && error.code === "trading_disabled") setDisabledByApi(true);
       }
     } finally {
       pendingSwaps.end(owner);
     }
-  }, [auth, owner, input, quote, tradingDisabled, reviewedOrder, key]);
+  }, [auth, owner, input, quote, tradingDisabled, reviewedOrder, key, qc]);
   useEffect(() => {
     if (!owner || !auth.ready || !pending || autoResumed.current === owner) return;
     autoResumed.current = owner;

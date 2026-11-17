@@ -9,7 +9,9 @@ import { QuoteReviewDialog } from "./quote-review-dialog";
 
 const quoteState = vi.hoisted(() => ({ available: true, error: null as Error | null }));
 
-vi.mock("@tanstack/react-query", () => ({
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useQuery: () => ({
     data: quoteState.available
       ? {

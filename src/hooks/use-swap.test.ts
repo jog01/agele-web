@@ -7,6 +7,7 @@ import { type SwapIssued, swapApi } from "@/lib/swaps";
 import { useSwap } from "./use-swap";
 
 const query = vi.hoisted(() => vi.fn());
+const queryClient = vi.hoisted(() => ({ invalidateQueries: vi.fn() }));
 const auth = vi.hoisted(() => ({
   configured: true,
   ready: true,
@@ -15,7 +16,11 @@ const auth = vi.hoisted(() => ({
   login: vi.fn(),
   signSwap: vi.fn(async () => "signed"),
 }));
-vi.mock("@tanstack/react-query", () => ({ useQuery: query }));
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQuery: query,
+  useQueryClient: () => queryClient,
+}));
 vi.mock("@/components/auth/auth-context", () => ({ useAuth: () => auth }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
@@ -41,6 +46,7 @@ beforeEach(() => {
   auth.walletAddress = "wallet-a";
   auth.login.mockClear();
   auth.signSwap.mockClear();
+  queryClient.invalidateQueries.mockClear();
 });
 afterEach(() => {
   cleanup();
@@ -138,6 +144,7 @@ it("blocks submit if its pending request cannot be persisted", async () => {
   const { result } = renderHook(() => useSwap(token, "sell", "1", 150));
   await confirm(result);
   expect(submit).not.toHaveBeenCalled();
+  expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["swaps", "wallet-a"] });
 });
 
 it("shares the in-flight submit lock with a remounted ticket", async () => {
@@ -182,6 +189,7 @@ it("recovers a lost submit response by polling, without another create", async (
   const { result } = renderHook(() => useSwap(token, "sell", "1", 150));
   await confirm(result);
   expect(result.current.status).toBe("Swap confirmed");
+  expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["swaps", "wallet-a"] });
   expect(result.current.pending).toBe(false);
   expect(create).toHaveBeenCalledTimes(1);
   expect(submit).toHaveBeenCalledTimes(1);
@@ -230,6 +238,7 @@ it.each(["failed", "expired"] as const)(
     status.mockResolvedValue({ requestId: "one", status: terminal });
     await confirm(result);
     expect(result.current.pending).toBe(false);
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["swaps", "wallet-a"] });
     expect(create).toHaveBeenCalledTimes(1);
     await confirm(result);
     expect(create).toHaveBeenCalledTimes(2);

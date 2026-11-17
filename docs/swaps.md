@@ -112,13 +112,51 @@ Pending tracking is written to `sessionStorage` before submit, scoped by Solana 
 
 ## Backend contract (merged PR #9)
 
-Types are regenerated from backend main at `0347220`, including merged [PR #9](https://github.com/jog01/agele/pull/9). Quote/build responses do **not** echo `inputMint` or `outputMint`. `priceImpactPct` is a number in percentage points (`3` means `3%`), not a ratio or string. `expiresAt` is a number in Unix milliseconds, compared directly with `Date.now()`. Submit results have an optional signature, optional base-unit `inputAmountResult` / `outputAmountResult`, optional numeric `code`, and optional `error`. GET status retains `inAmount` / `outAmount`.
+Types are regenerated from backend main at `c878ea4`, including merged [PR #9](https://github.com/jog01/agele/pull/9) and [PR #12](https://github.com/jog01/agele/pull/12). Quote/build responses do **not** echo `inputMint` or `outputMint`. `priceImpactPct` is a number in percentage points (`3` means `3%`), not a ratio or string. `expiresAt` is a number in Unix milliseconds, compared directly with `Date.now()`. Submit results have an optional signature, optional base-unit `inputAmountResult` / `outputAmountResult`, optional numeric `code`, and optional `error`. GET status retains `inAmount` / `outAmount`.
 
 Requests require positive base-unit amount strings (up to 78 digits), base58 mint strings of 32–44 characters, and optional integer slippage from 0–10,000 bps. Quote OpenAPI additionally permits nullable slippage; the frontend always sends `50`. Submit accepts a nonempty signed-transaction string up to 4,096 characters. All four documented routes list `400`, `401`, `404`, `409`, `422`, `429`, `502` and `503` errors, although some apply only to specific operations.
 
 The current backend quote is preview-only: it calls Jupiter without checking sponsorship, the mint allowlist, or trading caps. Disabled sponsorship is checked during create/submit. A quote can therefore succeed before create returns `503 trading_disabled`. A sponsor kill switch currently returns `422 sponsor_rejected` (reason `kill_switch`), not `503`. Swap rejection also covers transaction/payer integrity mismatches, not only slippage, impact or mint caps. If execution outcome is unknown, submit returns `{ status: "submitted" }` without a signature; the client polls and, on timeout, shows the request ID rather than inventing an explorer link.
 
 The merged backend bounds Redis operations with deadlines. Sponsor-store failures now propagate `503 rate_limit_unavailable` (“Swap rate-limit storage temporarily unavailable”), rather than being classified as `422 sponsor_rejected` quota/missing-record failures. The client preserves that server message and does not label it as trading disabled. Swap paths and payload schemas are unchanged from the previously checked PR head `d5a52a0`.
+
+## My swaps history and chart overlay
+
+The terminal's existing **Market activity → My swaps** tab sits beside Positions and Trades, keeping personal execution history alongside market activity without changing the terminal layout. It lists the authenticated viewer's swaps across tokens, newest first: side, exact amounts and symbols, status, UTC creation time, optional Solscan link, and failed-swap error text. Loading, retryable error, empty and signed-out states are explicit. A pagination failure preserves already-loaded rows. **Load more swaps** passes the opaque `nextCursor` unchanged with `limit=25`; overlapping requests are deduplicated by request ID.
+
+```mermaid
+sequenceDiagram
+    participant Viewer
+    participant History as My swaps / React Query
+    participant API as Authenticated Agele API
+    participant Chart as Chart markers
+    Viewer->>History: Sign in
+    History->>API: GET /v1/swaps?limit=25 (Bearer token)
+    API-->>History: items, nextCursor
+    History-->>Viewer: Exact amounts, status, UTC time, explorer link
+    Viewer->>Chart: Toggle My swaps (live data only)
+    History-->>Chart: Confirmed current-token swaps from loaded pages
+    Viewer->>History: Load more
+    History->>API: GET /v1/swaps?limit=25&cursor=opaque
+    API-->>History: Older items, nextCursor or null
+    Note over History,API: Confirmed / failed / expired execution or realtime reconnect invalidates viewer's history
+    Viewer->>History: Sign out / change viewer
+    History-->>Chart: Clear / replace viewer-isolated results
+```
+
+History queries use the existing feed's viewer-isolation convention (`["swaps", walletAddress-or-userLabel]`) and are enabled only for authenticated viewers with an identity. Terminal results from `useSwap` and realtime reconnects invalidate that viewer's history. Pages are shared between the chart and history tab. There is no separate history websocket topic or background history polling.
+
+USDC uses six decimals; other mint decimals and symbols come from token metadata queries. Amounts use `fromBaseUnits` (string/BigInt), never floating-point conversion. While metadata is missing, unavailable or invalid, rows show the original base-unit string and shortened mint rather than guessing decimals. Non-confirmed amounts remain quoted values, not proof of execution. Buy/sell is relative to the current chart token if present, otherwise the USDC side; other pairs are labelled swap.
+
+The **My swaps** chart toggle uses Lightweight Charts markers at `createdAt` (ISO UTC → Unix seconds), not execution time. Only confirmed swaps involving the current token are drawn: output token = green Buy below the bar, input token = red Sell above the bar. Signed-out or demo-market views keep the toggle disabled with an explanatory label/tooltip. The overlay covers **loaded history pages only**; load older pages in the tab to extend it. Markers outside the visible candle range may require changing the range. Failed, expired, issued and submitted swaps never produce markers.
+
+### Mock-backed history screenshots
+
+![Confirmed personal buys and sells on the chart](images/swap-history-overlay.png)
+
+![Personal swap history after loading a second page](images/swap-history-list.png)
+
+Captured against a throwaway local API and temporary signed-in auth fixture, neither committed. The mock reports `marketData: live` solely to exercise the overlay's live-data gate; prices, history, identities and signatures are fixtures, not real market data or transactions. The list screenshot follows an actual Load more interaction, shows exact `1.234567891 SOL`, failed/expired statuses, an error, and raw units for an unknown mint. Each screenshot was visually inspected. No signing, real authentication, explorer transaction, websocket reconnect or on-chain execution was exercised.
 
 ## Screens
 

@@ -17,6 +17,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useLiveCandles } from "@/hooks/use-live-candles";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import { useNow } from "@/hooks/use-now";
+import { useSwapOverlay } from "@/hooks/use-swap-overlay";
 import type { Candle, Interval } from "@/lib/api/client";
 import { useToken } from "@/lib/api/queries";
 import { marketCapCandle, movingAverage, tokenSupply } from "@/lib/candles";
@@ -199,6 +200,8 @@ export function PriceChart({
     }
   }, [candles, chartMode, snapshotKey, chartStyle, scaleMode, range, ma7, ma25]);
 
+  const swaps = useSwapOverlay(mint, demoMode, candleSeries, lineSeries, chartStyle, candles);
+
   return (
     <section
       aria-label={`${symbol} price chart`}
@@ -308,11 +311,13 @@ export function PriceChart({
         </label>
         <button
           type="button"
-          disabled
-          title="My swaps needs sign-in and API data; no endpoint is available yet."
-          className="opacity-50"
+          disabled={swaps.disabled}
+          title={swaps.title}
+          aria-pressed={swaps.shown}
+          onClick={swaps.toggle}
+          className={swaps.disabled ? "opacity-50" : swaps.shown ? "text-positive" : ""}
         >
-          My swaps
+          {swaps.label}
         </button>
         <button
           type="button"
