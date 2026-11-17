@@ -75,23 +75,23 @@ The USDC mint follows `NEXT_PUBLIC_SOLANA_CLUSTER` (`lib/solana/cluster.ts`): `E
 
 ## Screens
 
-| Demo build (no Privy app id) | Signed in: account menu |
-| --- | --- |
+| Demo build (no Privy app id)                         | Signed in: account menu                  |
+| ---------------------------------------------------- | ---------------------------------------- |
 | ![Portfolio in demo mode](images/portfolio-demo.png) | ![Account menu](images/account-menu.png) |
 
-| Signed in: portfolio | Deposit dialog |
-| --- | --- |
+| Signed in: portfolio                                   | Deposit dialog                               |
+| ------------------------------------------------------ | -------------------------------------------- |
 | ![Portfolio signed in](images/portfolio-signed-in.png) | ![Deposit dialog](images/deposit-dialog.png) |
 
 The screenshots of signed-in screens use a stubbed auth context. The balance shows "Unavailable" because the public mainnet RPC rejects browser token-account queries. Set `NEXT_PUBLIC_SOLANA_RPC_URL` to a domain-restricted provider key (for example, Helius).
 
 ## Configuration
 
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_PRIVY_APP_ID` | Enables sign-in. Empty means demo mode. |
-| `NEXT_PUBLIC_PRIVY_CLIENT_ID` | Optional Privy app client id, per environment. |
-| `NEXT_PUBLIC_SOLANA_CLUSTER` | `mainnet-beta` (default) or `devnet`. |
-| `NEXT_PUBLIC_SOLANA_RPC_URL` | Browser-safe RPC for balances and Privy signing. |
+| Variable                      | Purpose                                          |
+| ----------------------------- | ------------------------------------------------ |
+| `NEXT_PUBLIC_PRIVY_APP_ID`    | Enables sign-in. Empty means demo mode.          |
+| `NEXT_PUBLIC_PRIVY_CLIENT_ID` | Optional Privy app client id, per environment.   |
+| `NEXT_PUBLIC_SOLANA_CLUSTER`  | `mainnet-beta` (default) or `devnet`.            |
+| `NEXT_PUBLIC_SOLANA_RPC_URL`  | Browser-safe RPC for balances and Privy signing. |
 
 In the Privy dashboard, enable Google and email login and Solana embedded wallets, and add the app's domains to allowed origins.
