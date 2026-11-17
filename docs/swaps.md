@@ -14,7 +14,7 @@ sequenceDiagram
   T->>T: Validate precision, debounce 350ms
   T->>A: GET /v1/swaps/quote?inputMint&outputMint&amount&slippageBps
   A-->>T: Quote (base-unit amounts, impact, fee)
-  T-->>U: Review server quote; network fee Sponsored
+  T-->>U: Review server quote; network fee not quoted
   U->>T: Confirm (signed out → prompt sign-in)
   T->>A: POST /v1/swaps (Bearer token)
   A-->>T: requestId, unsigned base64 transaction, expiresAt (Unix milliseconds)
@@ -108,7 +108,7 @@ Pending tracking is written to `sessionStorage` before submit, scoped by Solana 
 | Failed transaction | Returned transaction error, falling back to “Swap failed”. |
 | Expired transaction | Quote expired. Review a fresh quote and try again. |
 
-`DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and platform fee use the server quote when available. Client estimates appear only while the quote loads. Network fees are labelled **Sponsored** only with a server quote and without a trading-disabled response; otherwise they show a dash. A signed-out Confirm prompts sign-in when Privy is configured and ready. Without a Privy app ID, Confirm is disabled with “Trading is unavailable in demo. Configure sign-in to trade.” Signed-in users without a signer also see disabled Confirm and a wallet-readiness message.
+`DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and **Route fee** use the server quote when available. Price impact is displayed to two decimal places (for example, `1.234567%` → `1.23%`); tiny positive non-zero values show `<0.01%` rather than zero. Route fee is the provider's `feeBps` divided by 100 (`2` bps → `0.02%`), not an Agele fee. **Platform fee** always shows **—** because no Agele fee is configured. Both the ticket and review use these labels. Client estimates appear only while the quote loads. Network fee is **Not quoted**: a provider quote does not guarantee sponsorship. A signed-out Confirm prompts sign-in when Privy is configured and ready. Without a Privy app ID, Confirm is disabled with “Trading is unavailable in demo. Configure sign-in to trade.” Signed-in users without a signer also see disabled Confirm and a wallet-readiness message.
 
 ## Backend contract (merged PR #9)
 
@@ -173,6 +173,8 @@ Captured against a throwaway local API and temporary signed-in auth fixture, nei
 | ![422 swap rejected message](images/swap-rejected.png) | ![Sell review with numeric USD value](images/swap-sell-review.png) |
 
 These screenshots show the redesigned ticket from main using a throwaway local HTTP mock API with `NEXT_PUBLIC_API_URL=http://localhost:4100`. “Server quote” here means a response from that mock, not a live Jupiter quote. A temporary screenshot-only signed-in auth-context fixture enables Review and Confirm without a Privy app ID, real identity or wallet; it was removed before checks and is not committed. Balances and positions remain unavailable.
+
+These earlier screenshots predate the current fee labels: provider `feeBps` now appears as Route fee, Platform fee is a dash, and Network fee is Not quoted. They have not been recaptured for the fee-label change.
 
 The mock supplies market endpoints and successful quotes, or `422 swap_rejected` on quote for the rejection screenshot. For both trading-disabled screenshots, quote succeeds and clicking Confirm sends `POST /v1/swaps`, which returns `503 trading_disabled` before signing. The existing quote amounts remain visible, Network fee changes to a dash, and Confirm becomes disabled. The ticket screenshot is captured after closing that review; the disabled review is then reopened. Sell review verifies a numeric **$1,500.00** Value for 10 SOL. Each PNG was visually inspected after capture.
 

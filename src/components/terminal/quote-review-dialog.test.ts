@@ -7,7 +7,12 @@ import { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
 import { QuoteReviewDialog } from "./quote-review-dialog";
 
-const quoteState = vi.hoisted(() => ({ available: true, error: null as Error | null }));
+const quoteState = vi.hoisted(() => ({
+  available: true,
+  error: null as Error | null,
+  priceImpactPct: 0.1,
+  feeBps: 25,
+}));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
@@ -19,8 +24,8 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
           outAmount: "150000000",
           otherAmountThreshold: "149000000",
           slippageBps: 50,
-          priceImpactPct: 0.1,
-          feeBps: 25,
+          priceImpactPct: quoteState.priceImpactPct,
+          feeBps: quoteState.feeBps,
           router: "mock",
         }
       : undefined,
@@ -67,6 +72,8 @@ afterEach(() => {
   cleanup();
   quoteState.available = true;
   quoteState.error = null;
+  quoteState.priceImpactPct = 0.1;
+  quoteState.feeBps = 25;
 });
 
 it("disables Confirm with an honest status in no-Privy demo mode despite a valid quote", () => {
@@ -96,6 +103,19 @@ it("shows the exact entered SOL amount without four-decimal display rounding", (
   expect(screen.queryByText("1.2346 SOL", { exact: true })).toBeNull();
 });
 
+it.each([
+  [1.23456789, "1.23%"],
+  [0.000001, "<0.01%"],
+  [0, "0.00%"],
+] as const)("shows rounded impact and honest fee labels for impact %s", (impact, expected) => {
+  quoteState.priceImpactPct = impact;
+  quoteState.feeBps = 2;
+  show();
+  expect(screen.getByText("Price impact").parentElement?.textContent).toBe(`Price impact${expected}`);
+  expect(screen.getByText("Route fee").parentElement?.textContent).toBe("Route fee0.02%");
+  expect(screen.getByText("Platform fee").parentElement?.textContent).toBe("Platform fee—");
+});
+
 it("does not mix fixture prices with provider quotes or promise sponsorship", () => {
   show();
   expect(screen.queryByText("Demo price")).toBeNull();
@@ -113,5 +133,8 @@ it.each([null, new Error("Quote unavailable")])(
     expect(screen.getByText("Demo price")).toBeDefined();
     expect(screen.getByRole("alert").textContent).toContain("Estimates are not live quotes");
     expect(screen.getByText("Not quoted")).toBeDefined();
+    expect(screen.getByText("Price impact").parentElement?.textContent).toBe("Price impact—");
+    expect(screen.getByText("Route fee").parentElement?.textContent).toBe("Route fee—");
+    expect(screen.getByText("Platform fee").parentElement?.textContent).toBe("Platform fee—");
   },
 );
