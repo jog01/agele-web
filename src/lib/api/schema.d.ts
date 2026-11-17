@@ -137,6 +137,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tokens/{mint}/holders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Largest token accounts merged by owner wallet */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenHolders"];
+                    };
+                };
+                /** @description Unknown token */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Market data upstream unavailable */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens/trending": {
         parameters: {
             query?: never;
@@ -323,6 +380,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tokens/{mint}/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Viewer's indexed position, including closed positions. Missing/zero price falls back to average cost. X-Data-Source: indexed. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Position or null when the viewer has none */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            position: components["schemas"]["TokenPosition"];
+                        };
+                    };
+                };
+                /** @description Invalid mint */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tokens/{mint}/traders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Indexed users ranked by lifetime token volume USD descending, ties by user ID ascending. Buys/sells are trade counts; PnL is lifetime realized plus current open unrealized. Keyset pagination is live, not snapshot-isolated. X-Data-Source: indexed. */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Traders and opaque next cursor; empty when no indexed trades exist */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            traders: components["schemas"]["TokenTrader"][];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Invalid mint, limit or cursor */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -370,6 +565,193 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Owned swaps, newest first; pass nextCursor unchanged for the next page */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                requestId: string;
+                                /** @enum {string} */
+                                status: "issued" | "submitted" | "confirmed" | "failed" | "expired";
+                                signature?: string;
+                                inAmount: string;
+                                outAmount: string;
+                                error?: string;
+                                inputMint: string;
+                                outputMint: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Creation time in UTC; ISO 8601
+                                 */
+                                createdAt: string;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Invalid pagination parameters */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        inputMint: string;
+                        outputMint: string;
+                        amount: string;
+                        slippageBps?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Swap issued for review and signing */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            inAmount: string;
+                            outAmount: string;
+                            otherAmountThreshold: string;
+                            /** @description Price impact in percentage points (3 means 3%) */
+                            priceImpactPct: number;
+                            slippageBps: number;
+                            feeBps: number;
+                            router: string;
+                            requestId: string;
+                            transaction: string;
+                            /** @description Unix timestamp in milliseconds */
+                            expiresAt: number;
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Swap not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description No primary linked wallet */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Swap or sponsorship rejected */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Quote rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Jupiter unavailable */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Trading or quoting unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -491,135 +873,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/swaps": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        inputMint: string;
-                        outputMint: string;
-                        amount: string;
-                        slippageBps?: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description Swap issued for review and signing */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            inAmount: string;
-                            outAmount: string;
-                            otherAmountThreshold: string;
-                            /** @description Price impact in percentage points (3 means 3%) */
-                            priceImpactPct: number;
-                            slippageBps: number;
-                            feeBps: number;
-                            router: string;
-                            requestId: string;
-                            transaction: string;
-                            /** @description Unix timestamp in milliseconds */
-                            expiresAt: number;
-                        };
-                    };
-                };
-                /** @description Invalid request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description Missing or invalid token */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description Swap not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description No primary linked wallet */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description Swap or sponsorship rejected */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description Quote rate limit exceeded */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description Jupiter unavailable */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description Trading or quoting unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1365,6 +1618,22 @@ export interface components {
                 details?: unknown;
             };
         };
+        TokenHolders: {
+            mint: string;
+            totalHolders: number;
+            top10Pct: number;
+            holders: {
+                rank: number;
+                wallet: string;
+                amount: number;
+                pctSupply: number;
+                valueUsd: number;
+                isPool?: boolean;
+                label?: string;
+            }[];
+            /** @description Snapshot time, Unix seconds */
+            updatedAt: number;
+        };
         Token: {
             mint: string;
             symbol: string;
@@ -1397,6 +1666,27 @@ export interface components {
             amountUsd: number;
             priceUsd: number;
             time: number;
+        };
+        TokenPosition: {
+            mint: string;
+            symbol: string;
+            quantity: number;
+            avgCostUsd: number;
+            priceUsd: number;
+            valueUsd: number;
+            unrealizedPnlUsd: number;
+            realizedPnlUsd: number;
+        } | null;
+        TokenTrader: {
+            /** @description Primary wallet, or null if the user has none */
+            wallet: string | null;
+            handle: string;
+            buys: number;
+            sells: number;
+            volumeUsd: number;
+            realizedPnlUsd: number;
+            unrealizedPnlUsd: number;
+            pnlUsd: number;
         };
         Me: {
             id: string;

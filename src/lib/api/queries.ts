@@ -1,14 +1,59 @@
 "use client";
 
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/auth/auth-context";
 import { useLiveLeaderboard } from "@/hooks/use-live-leaderboard";
 import { useLivePrices } from "@/hooks/use-live-prices";
 import { ApiError, api, type Interval, type LeaderboardWindow, type Me, unwrap } from "./client";
 import { leaderboardDataSource } from "./leaderboard";
+import { portfolioViewer } from "./portfolio";
 import { type SocialAuth, socialHeaders, socialViewer } from "./social";
 
 export const tokenQueries = {
+  holders: (mint: string) =>
+    queryOptions({
+      queryKey: ["tokens", mint, "holders"],
+      queryFn: async ({ signal }) =>
+        unwrap(
+          await api.GET("/v1/tokens/{mint}/holders", {
+            params: { path: { mint }, query: { limit: 20 } },
+            signal,
+          }),
+        ),
+      retry: false,
+      staleTime: 30_000,
+    }),
+  position: (mint: string, auth: SocialAuth) =>
+    queryOptions({
+      queryKey: ["tokens", mint, "position", portfolioViewer(auth)],
+      enabled: auth.authenticated && !!portfolioViewer(auth),
+      queryFn: async ({ signal }) => {
+        if (!auth.authenticated || !portfolioViewer(auth))
+          throw new ApiError("Sign in to view your position", 401);
+        const result = await api.GET("/v1/tokens/{mint}/positions", {
+          params: { path: { mint } },
+          headers: await socialHeaders(auth),
+          signal,
+        });
+        return { ...unwrap(result), dataSource: leaderboardDataSource(result.response.headers) };
+      },
+      retry: (count, error) => !(error instanceof ApiError && [401, 404].includes(error.status)) && count < 2,
+      refetchInterval: 30_000,
+    }),
+  traders: (mint: string) =>
+    infiniteQueryOptions({
+      queryKey: ["tokens", mint, "traders"],
+      initialPageParam: undefined as string | undefined,
+      queryFn: async ({ pageParam, signal }) => {
+        const result = await api.GET("/v1/tokens/{mint}/traders", {
+          params: { path: { mint }, query: { limit: 25, cursor: pageParam } },
+          signal,
+        });
+        return { ...unwrap(result), dataSource: leaderboardDataSource(result.response.headers) };
+      },
+      getNextPageParam: (page) => page.nextCursor ?? undefined,
+      retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
+    }),
   trending: () =>
     queryOptions({
       queryKey: ["tokens", "trending"],
