@@ -2,8 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { ChangeText } from "@/components/common/change-text";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,6 +21,7 @@ export function SearchDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   // Fetch on open only: the dialog hydrates before the terminal boundary, and an early cache fill would mismatch it.
   const { data: tokens = [] } = useQuery({ ...tokenQueries.trending(), enabled: open });
   const [query, setQuery] = useState("");
@@ -40,31 +42,59 @@ export function SearchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 p-0 sm:max-w-lg">
+      <DialogContent
+        className="gap-0 p-0 sm:max-w-lg"
+        onOpenAutoFocus={(e) => {
+          if (window.matchMedia("(pointer: coarse)").matches) e.preventDefault();
+          else {
+            e.preventDefault();
+            inputRef.current?.focus();
+          }
+        }}
+      >
         <DialogHeader className="sr-only">
-          <DialogTitle>Search markets</DialogTitle>
+          <DialogTitle>Search tokens</DialogTitle>
           <DialogDescription>
             Search supported Solana tokens by symbol, name or mint address.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center gap-2 border-b px-3">
-          <Search className="size-4 text-muted-foreground" aria-hidden />
+        <form
+          className="relative border-b px-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (results[active]) select(results[active].mint);
+          }}
+        >
+          <Search
+            className="pointer-events-none absolute top-4 left-4 size-4 text-muted-foreground"
+            aria-hidden
+          />
           <Input
-            autoFocus
+            ref={inputRef}
+            type="search"
+            aria-label="Search tokens by symbol, name or mint address"
+            autoComplete="off"
+            spellCheck={false}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setActive(0);
             }}
             onKeyDown={(e) => {
-              if (e.key === "ArrowDown") setActive((i) => Math.min(i + 1, results.length - 1));
-              if (e.key === "ArrowUp") setActive((i) => Math.max(i - 1, 0));
-              if (e.key === "Enter" && results[active]) select(results[active].mint);
+              if (e.nativeEvent.isComposing) return;
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActive((i) => Math.max(0, Math.min(i + 1, results.length - 1)));
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((i) => Math.max(i - 1, 0));
+              }
             }}
             placeholder="Symbol, name or mint address"
-            className="h-12 border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-12 rounded-none border-0 bg-transparent pr-10 pl-8 text-base shadow-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/30 dark:bg-transparent"
           />
-        </div>
+        </form>
         <ul className="max-h-80 overflow-auto p-1">
           {results.length === 0 && (
             <li className="p-6 text-center text-muted-foreground">No supported markets match.</li>
@@ -80,7 +110,7 @@ export function SearchDialog({
                   i === active && "bg-surface-hover",
                 )}
               >
-                <AssetAvatar symbol={t.symbol} />
+                <AssetAvatar mint={t.mint} symbol={t.symbol} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{t.symbol}</span>
                   <span className="block truncate text-muted-foreground text-xs">
@@ -95,6 +125,16 @@ export function SearchDialog({
             </li>
           ))}
         </ul>
+        <div className="flex items-center justify-between border-t px-4 py-3 text-xs text-muted-foreground">
+          <span>Looking for a trader?</span>
+          <Link
+            href="/leaderboard"
+            onClick={() => onOpenChange(false)}
+            className="text-primary hover:underline"
+          >
+            Explore the leaderboard →
+          </Link>
+        </div>
       </DialogContent>
     </Dialog>
   );
