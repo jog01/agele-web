@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLiveTrades } from "@/hooks/use-live-trades";
+import { useMarketDataSource } from "@/hooks/use-market-data-source";
 import { useNow } from "@/hooks/use-now";
 import type { Trade } from "@/lib/api/client";
 import { tokenQueries, useToken } from "@/lib/api/queries";
@@ -27,6 +28,7 @@ import { useTerminalStore } from "@/stores/terminal";
 import { HoldersPanel, PositionsPanel, TradersPanel } from "./token-activity-panels";
 
 function ActivityTable({ mint }: { mint: string }) {
+  const source = useMarketDataSource();
   const { data: trades = [], isPending, isError } = useQuery(tokenQueries.trades(mint));
   const { data: token } = useToken(mint);
   const supply = tokenSupply(token);
@@ -128,15 +130,19 @@ function ActivityTable({ mint }: { mint: string }) {
                 </a>
               </TableCell>
               <TableCell>
-                <a
-                  className="text-muted-foreground hover:underline"
-                  href={`https://solscan.io/tx/${t.signature}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`View transaction ${t.signature}`}
-                >
-                  ↗
-                </a>
+                {source === "mock" ? (
+                  <span className="text-muted-foreground text-xs">Demo</span>
+                ) : (
+                  <a
+                    className="text-muted-foreground hover:underline"
+                    href={`https://solscan.io/tx/${t.signature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`View transaction ${t.signature}`}
+                  >
+                    ↗
+                  </a>
+                )}
               </TableCell>
             </TableRow>
           ))}
