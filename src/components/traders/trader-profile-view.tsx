@@ -219,14 +219,9 @@ function TraderTrades({ wallet }: { wallet: string }) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="tabular wrap-anywhere whitespace-normal text-right">
-                  {formatUsd(trade.valueUsd)}
-                </TableCell>
+                <TableCell className="tabular text-right">{formatUsd(trade.valueUsd)}</TableCell>
                 <TableCell
-                  className={cn(
-                    "tabular wrap-anywhere whitespace-normal pr-4 text-right sm:pr-5",
-                    changeTone(trade.realizedPnlUsd),
-                  )}
+                  className={cn("tabular pr-4 text-right sm:pr-5", changeTone(trade.realizedPnlUsd))}
                 >
                   {formatUsd(trade.realizedPnlUsd)}
                 </TableCell>
