@@ -11,6 +11,7 @@ const { fetchTrending } = vi.hoisted(() => ({
     .mockResolvedValue([{ mint: "sol-mint", symbol: "SOL", priceUsd: 100, priceChange24hPct: 2 }]),
 }));
 vi.mock("@/env", () => ({ env: { NEXT_PUBLIC_SOLANA_CLUSTER: "mainnet-beta" } }));
+vi.mock("@/hooks/use-market-data-source", () => ({ useMarketDataSource: () => "mock" }));
 vi.mock("@/lib/api/queries", () => ({
   tokenQueries: {
     trending: () => ({

@@ -23,12 +23,16 @@ export function MarketExplorer({
   collapsed?: boolean;
   onToggle?: () => void;
 }) {
-  const { data: tokens, isPending, isError, refetch } = useTrending();
+  const markets = useTrending();
   const { watchlist, toggleWatch } = useTerminalStore();
   const [sort, setSort] = useState("trending");
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // The shell ticker can populate this cache before the streamed terminal hydrates.
+  const tokens = mounted ? markets.data : undefined;
+  const isPending = !mounted || markets.isPending;
+  const isError = mounted && markets.isError;
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = (tokens ?? []).filter(
@@ -181,7 +185,7 @@ export function MarketExplorer({
           {isError && (
             <li className="px-3 py-4 text-muted-foreground text-xs">
               Markets unavailable.
-              <Button variant="link" onClick={() => refetch()}>
+              <Button variant="link" onClick={() => markets.refetch()}>
                 Retry
               </Button>
             </li>
