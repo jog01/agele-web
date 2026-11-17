@@ -518,6 +518,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/traders/{wallet}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public profile resolved by any linked Solana wallet or legacy primary wallet. Optional auth adds isFollowing. Stats use leaderboard math; Redis rank may lag fresh PostgreSQL stats. X-Data-Source: indexed or demo. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    wallet: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Trader profile; demo profiles have simulated stats, no holdings or trade history */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TraderProfile"];
+                    };
+                };
+                /** @description Invalid wallet */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traders/{wallet}/trades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public indexed trade history, newest first by executedAt and id. Same UserTrade shape and cursor as /me/trades. Demo traders return an empty history. X-Data-Source: indexed or demo. */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    wallet: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recent trades and next cursor */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            trades: components["schemas"]["UserTrade"][];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Invalid wallet, limit or cursor */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -1688,6 +1842,43 @@ export interface components {
             unrealizedPnlUsd: number;
             pnlUsd: number;
         };
+        TraderProfile: {
+            wallet: string;
+            handle: string;
+            avatarUrl: string | null;
+            followers: number;
+            following: number;
+            isFollowing?: boolean;
+            realizedPnlUsd: number;
+            unrealizedPnlUsd: number;
+            stats: {
+                "24h": components["schemas"]["TraderWindowStats"];
+                "7d": components["schemas"]["TraderWindowStats"];
+                "30d": components["schemas"]["TraderWindowStats"];
+            };
+            positions: components["schemas"]["TokenPosition"][];
+        };
+        TraderWindowStats: {
+            pnlUsd: number;
+            pnlPct: number;
+            volumeUsd: number;
+            trades: number;
+            winRatePct: number;
+            rank: number | null;
+        };
+        UserTrade: {
+            id: string;
+            signature: string;
+            mint: string;
+            symbol: string;
+            /** @enum {string} */
+            side: "buy" | "sell";
+            tokenAmount: number;
+            priceUsd: number;
+            valueUsd: number;
+            realizedPnlUsd: number | null;
+            time: number;
+        };
         Me: {
             id: string;
             privyDid: string;
@@ -1725,19 +1916,6 @@ export interface components {
                 time: number;
                 valueUsd: number;
             }[];
-        };
-        UserTrade: {
-            id: string;
-            signature: string;
-            mint: string;
-            symbol: string;
-            /** @enum {string} */
-            side: "buy" | "sell";
-            tokenAmount: number;
-            priceUsd: number;
-            valueUsd: number;
-            realizedPnlUsd: number | null;
-            time: number;
         };
         LeaderboardEntry: {
             rank: number;

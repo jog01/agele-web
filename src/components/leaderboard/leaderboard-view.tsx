@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-context";
+import { TraderLink } from "@/components/common/trader-link";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -114,7 +115,7 @@ export function LeaderboardView() {
                     <span className="inline-flex size-7 items-center justify-center rounded-full bg-secondary font-semibold text-[11px] text-primary">
                       {e.handle.slice(0, 2).toUpperCase()}
                     </span>
-                    <span className="font-medium">{e.handle}</span>
+                    <TraderLink wallet={e.wallet} handle={e.handle} />
                     {explorer ? (
                       <a
                         href={explorer(e.wallet)}

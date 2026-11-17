@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
+import { TraderLink } from "@/components/common/trader-link";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFeed } from "@/hooks/use-feed";
@@ -77,7 +78,7 @@ export function FeedView() {
               <li key={e.wallet} className="flex items-center gap-3">
                 <Initials handle={e.handle} />
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">{e.handle}</div>
+                  <TraderLink wallet={e.wallet} handle={e.handle} />
                   <div className="text-muted-foreground text-xs">
                     {e.trades} trades · {formatCompactUsd(e.volumeUsd)} volume
                   </div>
@@ -149,7 +150,7 @@ export function FeedView() {
                 <header className="flex items-start gap-3">
                   <Initials handle={p.handle} />
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium">{p.handle}</div>
+                    <TraderLink wallet={p.wallet} handle={p.handle} />
                     <div className={cn("text-xs", p.content.tone)}>
                       {p.kind === "trade"
                         ? p.content.label
