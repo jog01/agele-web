@@ -95,8 +95,9 @@ export function QuoteReviewDialog({
           <Separator className="my-2" />
           {!swap.quote && <Line label="Demo price" value={`${formatPrice(price)} / ${token.symbol}`} />}
           <Line label="Slippage" value={`${swap.quote ? swap.quote.slippageBps / 100 : SLIPPAGE_PCT}%`} />
-          <Line label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
-          <Line label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
+          <Line label="Price impact" value={swap.reviewValues.priceImpact} />
+          <Line label="Route fee" value={swap.reviewValues.routeFee} />
+          <Line label="Platform fee" value={swap.reviewValues.platformFee} />
           <Line label="Network fee" value="Not quoted" />
           <Line label="Network" value="Solana" />
           <Line label="Value" value={formatUsd(swap.valueUsd)} />

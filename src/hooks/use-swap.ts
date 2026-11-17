@@ -8,6 +8,7 @@ import { fromBaseUnits, toBaseUnits } from "@/lib/amounts";
 import { ApiError, type Token } from "@/lib/api/client";
 import { pendingSwaps } from "@/lib/pending-swaps";
 import { solanaCluster } from "@/lib/solana/cluster";
+import { swapReviewValues } from "@/lib/swap-display";
 import { swapHistoryKey } from "@/lib/swap-history";
 import {
   checkSwap,
@@ -152,6 +153,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     validation,
     inputAmount: input ? fromBaseUnits(input.amount, side === "buy" ? 6 : token!.decimals) : undefined,
     quote,
+    reviewValues: swapReviewValues(quote),
     receive,
     minReceive,
     valueUsd:

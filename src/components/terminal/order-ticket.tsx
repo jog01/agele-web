@@ -220,8 +220,9 @@ export function OrderTicket({
             }
           />
           <Row label="Slippage" value={`${(swap.quote?.slippageBps ?? 50) / 100}%`} />
-          <Row label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
-          <Row label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
+          <Row label="Price impact" value={swap.reviewValues.priceImpact} />
+          <Row label="Route fee" value={swap.reviewValues.routeFee} />
+          <Row label="Platform fee" value={swap.reviewValues.platformFee} />
           <Row label="Network fee" value="Not quoted" />
         </div>
 
