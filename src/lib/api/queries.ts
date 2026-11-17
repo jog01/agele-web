@@ -3,7 +3,7 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useLiveLeaderboard } from "@/hooks/use-live-leaderboard";
 import { useLivePrices } from "@/hooks/use-live-prices";
-import { api, type Interval, type LeaderboardWindow, unwrap } from "./client";
+import { ApiError, api, type Interval, type LeaderboardWindow, type Me, unwrap } from "./client";
 
 export const tokenQueries = {
   trending: () =>
@@ -64,6 +64,24 @@ export const socialQueries = {
       queryFn: async ({ signal }) =>
         unwrap(await api.GET("/v1/leaderboard", { params: { query: { window, limit: 25 } }, signal })),
       refetchInterval: 30_000,
+    }),
+};
+
+export const userQueries = {
+  /** `null` when the API has no Privy config (503 `auth_not_configured`): treated as demo mode. */
+  me: () =>
+    queryOptions({
+      queryKey: ["me"],
+      queryFn: async ({ signal }): Promise<Me | null> => {
+        try {
+          return unwrap(await api.GET("/v1/me", { signal }));
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 503) return null;
+          throw err;
+        }
+      },
+      staleTime: 60_000,
+      retry: (count, err) => !(err instanceof ApiError && err.status === 401) && count < 2,
     }),
 };
 

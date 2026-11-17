@@ -259,6 +259,15 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         put?: never;
@@ -416,6 +425,14 @@ export interface components {
             privyDid: string;
             walletAddress: string | null;
             handle: string | null;
+            wallets: {
+                address: string;
+                /** @enum {string} */
+                chainType: "solana";
+                walletClientType: string;
+                privyWalletId: string | null;
+                isPrimary: boolean;
+            }[];
         };
         LeaderboardEntry: {
             rank: number;
