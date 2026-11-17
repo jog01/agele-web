@@ -19,6 +19,12 @@ flowchart LR
 
 Every page renders inside `AppShell` (top bar, status strip, mobile bottom nav, search dialog). Static shells prerender; `/trade/[mint]` streams the terminal under `<Suspense>` because it reads route params.
 
+## Screens (v0.1, demo data)
+
+| Feed | Leaderboard | Portfolio |
+| --- | --- | --- |
+| ![Feed](images/feed.png) | ![Leaderboard](images/leaderboard.png) | ![Portfolio](images/portfolio.png) |
+
 ## Terminal component tree
 
 ```mermaid
