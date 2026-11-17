@@ -25,7 +25,7 @@ Every page renders inside `AppShell` (top bar, status strip, mobile bottom nav, 
 
 ## Trader profile
 
-`/traders/[wallet]` streams a profile under `<Suspense>`. Names in the feed, leaderboard, and terminal's top traders open the wallet-based route. The profile shows public positions, PnL, and leaderboard performance. The period selector updates from the three windows already returned by the profile API; it does not refetch.
+`/traders/[wallet]` streams a profile under `<Suspense>`. Names in the feed, leaderboard, and terminal's top traders open the wallet-based route. Ranked links carry the source period; other links default to 7d. The profile shows public positions, PnL, and leaderboard performance. The period selector updates from the three windows already returned by the profile API; it does not refetch.
 
 ```mermaid
 sequenceDiagram
@@ -40,6 +40,11 @@ sequenceDiagram
   else Profile found
     A-->>P: Profile, all windows, and X-Data-Source
     P-->>U: Profile, positions, and source label
+    opt Signed-in visitor follows or unfollows
+      U->>P: Follow / Unfollow
+      P->>A: PUT / DELETE /v1/follows/{wallet}
+      P->>A: Refresh profile to update follow state and counts
+    end
     P->>A: GET /v1/traders/{wallet}/trades
     A-->>P: Newest trades and nextCursor
     opt Cursor present and visitor loads more

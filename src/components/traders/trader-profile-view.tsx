@@ -11,14 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useFollow } from "@/hooks/use-follow";
 import { ApiError, type LeaderboardWindow } from "@/lib/api/client";
+import { LEADERBOARD_WINDOWS } from "@/lib/api/leaderboard";
 import type { components } from "@/lib/api/schema";
 import { traderProfileQuery, traderTradesQuery } from "@/lib/api/traders";
 import { changeTone, formatAmount, formatPct, formatUsd, utcTimestamp } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
 
-const WINDOWS = ["24h", "7d", "30d"] as const satisfies readonly LeaderboardWindow[];
 const COUNT = new Intl.NumberFormat("en-US");
 const FRAME = "mx-auto max-w-[1000px] space-y-4 px-4 py-6 sm:px-6";
 const LINK = "font-medium text-primary hover:underline focus-visible:underline";
@@ -33,17 +34,16 @@ export function TraderProfileLoading() {
   );
 }
 
-function ProfileAnnouncement({ handle }: { handle?: string }) {
+function ProfileAnnouncement({ handle }: { handle: string }) {
   const [message, setMessage] = useState("");
   useEffect(() => {
-    if (!handle) return;
     // Next announces on navigation, before the profile query resolves.
     const timeout = window.setTimeout(() => setMessage(`Trader profile: ${handle}`), 100);
     return () => window.clearTimeout(timeout);
   }, [handle]);
   return (
     <span role="status" aria-atomic="true" className="sr-only">
-      {handle ? message : ""}
+      {message}
     </span>
   );
 }
@@ -57,8 +57,14 @@ function Metric({ label, value, className }: { label: string; value: string; cla
   );
 }
 
-function TraderStats({ stats }: { stats: components["schemas"]["TraderProfile"]["stats"] }) {
-  const [window, setWindow] = useState<LeaderboardWindow>("7d");
+function TraderStats({
+  stats,
+  initialWindow,
+}: {
+  stats: components["schemas"]["TraderProfile"]["stats"];
+  initialWindow: LeaderboardWindow;
+}) {
+  const [window, setWindow] = useState(initialWindow);
   const { rank, pnlUsd, pnlPct, volumeUsd, trades, winRatePct } = stats[window];
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4 sm:p-5">
@@ -69,12 +75,12 @@ function TraderStats({ stats }: { stats: components["schemas"]["TraderProfile"][
           variant="outline"
           value={window}
           onValueChange={(value) => {
-            const next = WINDOWS.find((w) => w === value);
+            const next = LEADERBOARD_WINDOWS.find((w) => w === value);
             if (next) setWindow(next);
           }}
           aria-label="Performance window"
         >
-          {WINDOWS.map((w) => (
+          {LEADERBOARD_WINDOWS.map((w) => (
             <ToggleGroupItem key={w} value={w} className="h-10 px-4 lg:h-8 lg:px-3">
               {w}
             </ToggleGroupItem>
@@ -180,7 +186,6 @@ function TraderTrades({ wallet }: { wallet: string }) {
           <TableHeader>
             <TableRow>
               <TableHead className="pl-4 sm:pl-5">Trade</TableHead>
-              <TableHead>Time</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead className="pr-4 text-right sm:pr-5">Realized PnL</TableHead>
             </TableRow>
@@ -188,33 +193,40 @@ function TraderTrades({ wallet }: { wallet: string }) {
           <TableBody>
             {rows.map(({ trade, dataSource }) => (
               <TableRow key={trade.id}>
-                <TableCell className="pl-4 sm:pl-5">
+                <TableCell className="whitespace-normal pl-4 sm:pl-5">
                   <span className={trade.side === "buy" ? "text-positive" : "text-negative"}>
                     {trade.side === "buy" ? "Buy" : "Sell"}
                   </span>{" "}
                   <Link href={`/trade/${encodeURIComponent(trade.mint)}`} className={LINK}>
                     {trade.symbol}
                   </Link>
-                  <div className="tabular text-muted-foreground text-xs">
+                  <div className="tabular mt-0.5 text-muted-foreground text-xs">
                     {formatAmount(trade.tokenAmount)}
                   </div>
+                  <div className="mt-0.5 flex flex-wrap gap-x-2 text-muted-foreground text-xs">
+                    <time dateTime={new Date(trade.time * 1000).toISOString()}>
+                      {utcTimestamp(trade.time)}
+                    </time>
+                    {dataSource === "indexed" && (
+                      <a
+                        href={`https://solscan.io/tx/${encodeURIComponent(trade.signature)}${solanaCluster().explorerQuery}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={LINK}
+                      >
+                        Solscan <ExternalLink aria-hidden className="inline size-3" />
+                      </a>
+                    )}
+                  </div>
                 </TableCell>
-                <TableCell className="text-xs">
-                  <time dateTime={new Date(trade.time * 1000).toISOString()}>{utcTimestamp(trade.time)}</time>
-                  {dataSource === "indexed" && (
-                    <a
-                      href={`https://solscan.io/tx/${encodeURIComponent(trade.signature)}${solanaCluster().explorerQuery}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={cn("block", LINK)}
-                    >
-                      Solscan <ExternalLink aria-hidden className="inline size-3" />
-                    </a>
-                  )}
+                <TableCell className="tabular wrap-anywhere whitespace-normal text-right">
+                  {formatUsd(trade.valueUsd)}
                 </TableCell>
-                <TableCell className="tabular text-right">{formatUsd(trade.valueUsd)}</TableCell>
                 <TableCell
-                  className={cn("tabular pr-4 text-right sm:pr-5", changeTone(trade.realizedPnlUsd))}
+                  className={cn(
+                    "tabular wrap-anywhere whitespace-normal pr-4 text-right sm:pr-5",
+                    changeTone(trade.realizedPnlUsd),
+                  )}
                 >
                   {formatUsd(trade.realizedPnlUsd)}
                 </TableCell>
@@ -234,7 +246,60 @@ function TraderTrades({ wallet }: { wallet: string }) {
   );
 }
 
-export function TraderProfileView({ wallet }: { wallet: string }) {
+function FollowTrader({
+  wallet,
+  routeWallet,
+  isFollowing,
+}: {
+  wallet: string;
+  routeWallet: string;
+  isFollowing?: boolean;
+}) {
+  const auth = useAuth();
+  const follow = useFollow();
+  if (!auth.authenticated) {
+    return auth.configured ? (
+      <Button variant="outline" disabled={!auth.ready} onClick={auth.login}>
+        Sign in to follow
+      </Button>
+    ) : (
+      <p className="text-muted-foreground text-sm">Sign-in isn’t configured, so following is unavailable.</p>
+    );
+  }
+  if (auth.walletAddress === wallet || auth.walletAddress === routeWallet) return null;
+  if (isFollowing === undefined)
+    return <p className="text-muted-foreground text-sm">Follow status unavailable.</p>;
+
+  return (
+    <div className="space-y-2">
+      <Button
+        variant="outline"
+        disabled={follow.isPending}
+        onClick={() => follow.mutate({ wallet, isFollowing: !isFollowing })}
+      >
+        {follow.isPending ? "Updating…" : isFollowing ? "Unfollow" : "Follow"}
+      </Button>
+      {follow.isError && (
+        <p role="alert" className="text-muted-foreground text-sm">
+          {follow.error.message}
+        </p>
+      )}
+      {follow.isSuccess && !follow.variables.isFollowing && isFollowing && (
+        <p role="status" className="text-muted-foreground text-sm">
+          Still following this trader. You may follow another linked wallet.
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function TraderProfileView({
+  wallet,
+  initialWindow = "7d",
+}: {
+  wallet: string;
+  initialWindow?: LeaderboardWindow;
+}) {
   const auth = useAuth();
   const { data, error, isPending, refetch } = useQuery(traderProfileQuery(wallet, auth));
   if (isPending) return <TraderProfileLoading />;
@@ -242,7 +307,10 @@ export function TraderProfileView({ wallet }: { wallet: string }) {
   const missing = error instanceof ApiError && (error.status === 400 || error.status === 404);
   return (
     <div className={FRAME}>
-      <Link href="/leaderboard" className={cn("inline-flex items-center gap-1.5 text-sm", LINK)}>
+      <Link
+        href={`/leaderboard?window=${initialWindow}`}
+        className={cn("inline-flex items-center gap-1.5 text-sm", LINK)}
+      >
         <ArrowLeft aria-hidden className="size-4" />
         Leaderboard
       </Link>
@@ -311,6 +379,7 @@ export function TraderProfileView({ wallet }: { wallet: string }) {
                 </p>
               </div>
             </div>
+            <FollowTrader wallet={data.wallet} routeWallet={wallet} isFollowing={data.isFollowing} />
             {data.dataSource === "demo" && (
               <p className="text-muted-foreground text-sm">Performance figures are simulated.</p>
             )}
@@ -327,7 +396,7 @@ export function TraderProfileView({ wallet }: { wallet: string }) {
               />
             </dl>
           </section>
-          <TraderStats stats={data.stats} />
+          <TraderStats stats={data.stats} initialWindow={initialWindow} />
           <TraderPositions positions={data.positions} demo={data.dataSource === "demo"} />
           <TraderTrades wallet={wallet} />
         </>

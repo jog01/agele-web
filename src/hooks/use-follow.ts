@@ -54,6 +54,7 @@ export function useFollow() {
       await Promise.all([
         qc.invalidateQueries(boards),
         qc.invalidateQueries({ queryKey: ["feed", viewer, "following"] }),
+        qc.invalidateQueries({ queryKey: ["trader", viewer] }),
       ]);
     },
   });

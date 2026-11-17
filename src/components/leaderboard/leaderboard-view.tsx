@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFollow } from "@/hooks/use-follow";
 import type { LeaderboardWindow } from "@/lib/api/client";
+import { LEADERBOARD_WINDOWS, parseLeaderboardWindow } from "@/lib/api/leaderboard";
 import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd, formatPct, formatUsd, shortAddress } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
@@ -16,16 +17,10 @@ import { cn } from "@/lib/utils";
 const STICKY_RANK = "max-lg:sticky max-lg:left-0 max-lg:z-10 max-lg:w-12 max-lg:min-w-12 max-lg:bg-card";
 const STICKY_TRADER = "max-lg:sticky max-lg:left-12 max-lg:z-10 max-lg:bg-card";
 
-const WINDOWS = ["24h", "7d", "30d"] as const satisfies readonly LeaderboardWindow[];
-
-function parseWindow(value: string | null): LeaderboardWindow {
-  return WINDOWS.find((w) => w === value) ?? "7d";
-}
-
 export function LeaderboardView() {
   const router = useRouter();
   const pathname = usePathname();
-  const window = parseWindow(useSearchParams().get("window"));
+  const window = parseLeaderboardWindow(useSearchParams().get("window"));
   const setWindow = (next: LeaderboardWindow) =>
     router.replace(`${pathname}?window=${next}`, { scroll: false });
   const { data, isPending, isError, refetch } = useLeaderboard(window);
@@ -66,7 +61,7 @@ export function LeaderboardView() {
           variant="outline"
           aria-label="Ranking window"
         >
-          {WINDOWS.map((w) => (
+          {LEADERBOARD_WINDOWS.map((w) => (
             <ToggleGroupItem key={w} value={w} className="h-10 px-4 lg:h-8 lg:px-3">
               {w}
             </ToggleGroupItem>
@@ -115,7 +110,7 @@ export function LeaderboardView() {
                     <span className="inline-flex size-7 items-center justify-center rounded-full bg-secondary font-semibold text-[11px] text-primary">
                       {e.handle.slice(0, 2).toUpperCase()}
                     </span>
-                    <TraderLink wallet={e.wallet} handle={e.handle} />
+                    <TraderLink wallet={e.wallet} handle={e.handle} window={window} />
                     {explorer ? (
                       <a
                         href={explorer(e.wallet)}

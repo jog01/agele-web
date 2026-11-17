@@ -15,7 +15,7 @@ function retry(count: number, error: Error) {
 
 export function traderProfileQuery(wallet: string, auth: TraderAuth) {
   return queryOptions({
-    queryKey: ["trader", wallet, socialViewer(auth)],
+    queryKey: ["trader", socialViewer(auth), wallet],
     enabled: auth.ready,
     retry,
     queryFn: async ({ signal }) => {

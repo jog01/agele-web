@@ -5,14 +5,14 @@ import { createElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { AuthContext, type AuthState, demoAuth } from "@/components/auth/auth-context";
 import { TraderLink } from "@/components/common/trader-link";
-import type { UserTrade } from "@/lib/api/client";
+import type { LeaderboardWindow, UserTrade } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { TraderProfileView } from "./trader-profile-view";
 
-const { get } = vi.hoisted(() => ({ get: vi.fn() }));
+const { get, put, del } = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), del: vi.fn() }));
 vi.mock("@/lib/api/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/client")>()),
-  api: { GET: get },
+  api: { GET: get, PUT: put, DELETE: del },
 }));
 
 const wallet = "7UoqY5gZVcHjspNprmQ6WW1Lu73HrPwKSEj7ddEZ2UHw";
@@ -43,20 +43,27 @@ const trade: UserTrade = {
   tokenAmount: 1,
   realizedPnlUsd: null,
 };
+const signedIn: AuthState = {
+  ...demoAuth,
+  configured: true,
+  authenticated: true,
+  walletAddress: "viewer-wallet",
+  getAccessToken: async () => "access-token",
+};
 
 function ok(data: unknown, source?: string) {
   return { data, response: new Response(null, { headers: source ? { "X-Data-Source": source } : {} }) };
 }
 
 const clients: QueryClient[] = [];
-function renderProfile(auth = demoAuth) {
+function renderProfile(auth = demoAuth, initialWindow?: LeaderboardWindow) {
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   clients.push(client);
   const tree = (value: AuthState) =>
     createElement(
       QueryClientProvider,
       { client },
-      createElement(AuthContext, { value }, createElement(TraderProfileView, { wallet })),
+      createElement(AuthContext, { value }, createElement(TraderProfileView, { wallet, initialWindow })),
     );
   const rendered = render(tree(auth));
   return { setAuth: (value: AuthState) => rendered.rerender(tree(value)) };
@@ -67,11 +74,15 @@ afterEach(() => {
   for (const client of clients) client.clear();
   clients.length = 0;
   get.mockReset();
+  put.mockReset();
+  del.mockReset();
 });
 
-it("links names by wallet, not handle", () => {
-  render(createElement(TraderLink, { wallet, handle: "Orca" }));
-  expect(screen.getByRole("link", { name: "Orca" }).getAttribute("href")).toBe(`/traders/${wallet}`);
+it("links names by wallet and preserves the source ranking window", () => {
+  render(createElement(TraderLink, { wallet, handle: "Orca", window: "24h" }));
+  expect(screen.getByRole("link", { name: "Orca" }).getAttribute("href")).toBe(
+    `/traders/${wallet}?window=24h`,
+  );
 });
 
 it("labels demo data, explains empty history, and switches window without another request", async () => {
@@ -82,6 +93,7 @@ it("labels demo data, explains empty history, and switches window without anothe
   expect(await screen.findByRole("heading", { name: "Orca" })).toBeDefined();
   expect((await screen.findByText("Trader profile: Orca")).getAttribute("role")).toBe("status");
   expect(screen.getByText("Demo profile")).toBeDefined();
+  expect(screen.getByText("Sign-in isn’t configured, so following is unavailable.")).toBeDefined();
   expect(screen.getByText("Demo profiles don’t include positions.")).toBeDefined();
   expect(await screen.findByText("Demo profiles don’t include trade history.")).toBeDefined();
   expect(screen.queryByRole("link", { name: /Solana Explorer|Solscan/ })).toBeNull();
@@ -91,6 +103,17 @@ it("labels demo data, explains empty history, and switches window without anothe
   fireEvent.click(screen.getByRole("radio", { name: "30d" }));
   expect(screen.getByText("#2")).toBeDefined();
   expect(get.mock.calls.map(([path]) => path)).toEqual([profilePath, tradesPath]);
+});
+
+it("opens in the source ranking window and offers sign-in when configured", async () => {
+  const login = vi.fn();
+  get
+    .mockResolvedValueOnce(ok(profile, "demo"))
+    .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "demo"));
+  renderProfile({ ...demoAuth, configured: true, login }, "24h");
+  expect(await screen.findByText("Unranked")).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "Sign in to follow" }));
+  expect(login).toHaveBeenCalledOnce();
 });
 
 it("uses the opaque next cursor, preserves trades after a failed page, and retries that page", async () => {
@@ -171,13 +194,7 @@ it("uses bearer auth without showing the previous viewer’s following state aft
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "indexed"))
     .mockResolvedValueOnce(ok(profile, "indexed"))
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "indexed"));
-  const { setAuth } = renderProfile({
-    ...demoAuth,
-    configured: true,
-    authenticated: true,
-    walletAddress: "viewer-wallet",
-    getAccessToken: async () => "access-token",
-  });
+  const { setAuth } = renderProfile(signedIn);
   expect(await screen.findByText("Following")).toBeDefined();
   expect(await screen.findByText("No trades yet.")).toBeDefined();
   setAuth(demoAuth);
@@ -190,4 +207,27 @@ it("uses bearer auth without showing the previous viewer’s following state aft
     undefined,
     undefined,
   ]);
+});
+
+it("follows and unfollows with the viewer token, refreshing counts and follow state", async () => {
+  get
+    .mockResolvedValueOnce(ok({ ...profile, isFollowing: false }, "indexed"))
+    .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "indexed"))
+    .mockResolvedValueOnce(ok({ ...profile, followers: 31, isFollowing: true }, "indexed"))
+    .mockResolvedValueOnce(ok({ ...profile, isFollowing: false }, "indexed"));
+  put.mockResolvedValue({ response: new Response(null, { status: 204 }) });
+  del.mockResolvedValue({ response: new Response(null, { status: 204 }) });
+  renderProfile(signedIn);
+  await screen.findByText("No trades yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Follow" }));
+  expect(await screen.findByText("31")).toBeDefined();
+  fireEvent.click(await screen.findByRole("button", { name: "Unfollow" }));
+  expect(await screen.findByText("30")).toBeDefined();
+  expect(screen.getByRole("button", { name: "Follow" })).toBeDefined();
+  const args = [
+    "/v1/follows/{wallet}",
+    { params: { path: { wallet } }, headers: { Authorization: "Bearer access-token" } },
+  ];
+  expect(put).toHaveBeenCalledExactlyOnceWith(...args);
+  expect(del).toHaveBeenCalledExactlyOnceWith(...args);
 });
