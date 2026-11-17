@@ -1,0 +1,147 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Graphite / Ice theme (dark only in v0.1). Source: docs/design/ui-spec-v0.1.md */
+:root,
+.dark {
+  color-scheme: dark;
+  --radius: 0.5rem;
+  --background: #0b0e13;
+  --foreground: #edf2f7;
+  --card: #11161d;
+  --card-foreground: #edf2f7;
+  --popover: #171e28;
+  --popover-foreground: #edf2f7;
+  --primary: #9ccbff;
+  --primary-foreground: #0b1523;
+  --secondary: #1b2531;
+  --secondary-foreground: #d8e3f0;
+  --muted: #171e28;
+  --muted-foreground: #94a3b8;
+  --accent: #203047;
+  --accent-foreground: #d2e7ff;
+  --destructive: #ff8195;
+  --destructive-foreground: #2b0b14;
+  --border: #293442;
+  --input: #526277;
+  --ring: #9ccbff;
+  --chart-1: #9ccbff;
+  --chart-2: #5de0aa;
+  --chart-3: #ff8195;
+  --chart-4: #f1c981;
+  --chart-5: #b9a4ef;
+  --sidebar: #0e131a;
+  --sidebar-foreground: #edf2f7;
+  --sidebar-primary: #9ccbff;
+  --sidebar-primary-foreground: #0b1523;
+  --sidebar-accent: #203047;
+  --sidebar-accent-foreground: #d2e7ff;
+  --sidebar-border: #293442;
+  --sidebar-ring: #9ccbff;
+  --positive: #5de0aa;
+  --positive-foreground: #082419;
+  --positive-subtle: #123026;
+  --negative: #ff8195;
+  --negative-foreground: #2b0b14;
+  --negative-subtle: #351d27;
+  --warning: #f1c981;
+  --warning-foreground: #2b200c;
+  --warning-subtle: #30291c;
+  --surface-hover: #1b2531;
+  --chart-grid: #1b2430;
+  --chart-crosshair: #768ca6;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-positive-subtle: var(--positive-subtle);
+  --color-negative: var(--negative);
+  --color-negative-foreground: var(--negative-foreground);
+  --color-negative-subtle: var(--negative-subtle);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-surface-hover: var(--surface-hover);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+@layer base {
+  body {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override component transitions */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override component transitions */
+    transition-duration: 0.01ms !important;
+  }
+}
