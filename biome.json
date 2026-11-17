@@ -10,6 +10,7 @@
       "**",
       "!**/node_modules",
       "!**/.next",
+      "!**/*.md",
       "!**/src/lib/api/schema.d.ts",
       "!**/src/components/ui"
     ]
