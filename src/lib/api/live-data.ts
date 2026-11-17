@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Token } from "./client";
+import type { Token, Trade } from "./client";
 
 export const priceTickSchema = z.object({
   mint: z.string(),
@@ -18,6 +18,12 @@ export const leaderboardSignalSchema = z.object({
 export type LeaderboardSignal = z.infer<typeof leaderboardSignalSchema>;
 
 type LiveToken = Token & { priceTime?: number };
+
+export function newestTokenPrice(mint: string, token: LiveToken | undefined, trade: Trade | null) {
+  const currentToken = token?.mint === mint ? token : undefined;
+  if (trade?.mint === mint && trade.time > (currentToken?.priceTime ?? -1)) return trade.priceUsd;
+  return currentToken?.priceUsd ?? null;
+}
 
 export function mergeTokenPrice(token: LiveToken | undefined, tick: PriceTick): LiveToken | undefined {
   if (!token || token.mint !== tick.mint || (token.priceTime ?? -1) > tick.time) return token;

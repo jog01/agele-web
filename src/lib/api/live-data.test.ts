@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Token } from "./client";
+import type { Token, Trade } from "./client";
 import {
   leaderboardSignalSchema,
   mergeTokenPrice,
   mergeTrendingPrice,
+  newestTokenPrice,
   type PriceTick,
   priceTickSchema,
 } from "./live-data";
@@ -22,6 +23,33 @@ const token: Token = {
   holders: 10,
 };
 const tick: PriceTick = { mint: token.mint, priceUsd: 3, marketCapUsd: 300, time: 100 };
+
+describe("newest displayed price", () => {
+  const trade: Trade = {
+    mint: token.mint,
+    signature: "tx",
+    trader: "wallet",
+    side: "buy",
+    time: 99,
+    priceUsd: 2,
+    tokenAmount: 1,
+    amountUsd: 2,
+  };
+
+  it("uses a newer price tick after a trade, then a newer trade over that tick", () => {
+    expect(newestTokenPrice(token.mint, token, trade)).toBe(2);
+    const liveToken = mergeTokenPrice(token, tick);
+    expect(newestTokenPrice(token.mint, liveToken, trade)).toBe(3);
+    expect(newestTokenPrice(token.mint, liveToken, { ...trade, time: 101, priceUsd: 4 })).toBe(4);
+  });
+
+  it("ignores other mints, handles empty data, and favors a tick on equal timestamps", () => {
+    expect(newestTokenPrice("other", token, trade)).toBeNull();
+    expect(newestTokenPrice(token.mint, undefined, null)).toBeNull();
+    expect(newestTokenPrice(token.mint, token, null)).toBe(1);
+    expect(newestTokenPrice(token.mint, mergeTokenPrice(token, tick), { ...trade, time: 100 })).toBe(3);
+  });
+});
 
 describe("live price cache merges", () => {
   it("updates only price fields and records the tick time without mutating snapshots", () => {

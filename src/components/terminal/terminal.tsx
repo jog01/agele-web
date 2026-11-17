@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useLiveTokenPrice } from "@/hooks/use-live-token-price";
 import { useToken } from "@/lib/api/queries";
 import { ActivityPanel } from "./activity-panel";
 import { AssetSummary } from "./asset-summary";
@@ -13,9 +14,7 @@ import { TopTraders } from "./top-traders";
 
 export function Terminal({ mint }: { mint: string }) {
   const { data: token, isError } = useToken(mint);
-  const [livePrice, setLivePrice] = useState<number | null>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset live price on token switch
-  useEffect(() => setLivePrice(null), [mint]);
+  const livePrice = useLiveTokenPrice(mint, token);
   const price = livePrice ?? token?.priceUsd ?? null;
   const [sheetSide, setSheetSide] = useState<Side | null>(null);
 
@@ -36,7 +35,7 @@ export function Terminal({ mint }: { mint: string }) {
       <div className="flex min-h-0 flex-col gap-2 md:overflow-auto">
         <AssetSummary token={token} livePrice={livePrice} />
         <div className="flex h-[360px] flex-col md:h-auto md:min-h-[360px] md:flex-[3]">
-          <PriceChart mint={mint} symbol={token?.symbol ?? ""} onLivePrice={setLivePrice} />
+          <PriceChart mint={mint} symbol={token?.symbol ?? ""} />
         </div>
         <ActivityPanel mint={mint} />
       </div>
