@@ -64,6 +64,29 @@ An open gate does not implement swaps: confirmation currently has no submission 
 The source strip reflects market data only. The chart's static demo caption is still owned by the chart workstream.
 Live candles/trades require a Birdeye key: a 503 shows “Chart data unavailable”; the activity table has no explicit error state.
 
+## Feed and follows
+
+```mermaid
+flowchart LR
+    S[Global / Following] --> A{Following and signed out?}
+    A -->|Yes| LOGIN[Sign-in prompt; no feed request]
+    A -->|No| GET[GET /v1/feed with bearer token when signed in]
+    GET --> CACHE[Viewer and scope isolated infinite query]
+    CACHE --> ITEMS[Demo thesis / trade cards]
+    CACHE --> CURSOR{nextCursor?}
+    CURSOR -->|Opaque cursor| MORE[Load more with unchanged cursor]
+    MORE --> GET
+    CURSOR -->|null| END[No more pages]
+    F[Existing Follow / Unfollow button] --> OPT[Optimistic leaderboard isFollowing]
+    OPT --> MUT[Authenticated PUT / DELETE follows wallet]
+    MUT -->|Error| ROLLBACK[Restore wallet follow state]
+    MUT --> REFRESH[Invalidate viewer leaderboard and Following feed]
+    ROLLBACK --> REFRESH
+```
+
+Feed content stays labelled **demo** until backend trade indexing lands, even when market prices are live.
+Signed-out leaderboard results do not include follow state. Follow mutations require auth and accept 204 without a response body.
+
 ## Mock-mode trade page
 
 Captured from this repository's dev server on port 3000 with the mock API on port 4000 and Privy unconfigured.
