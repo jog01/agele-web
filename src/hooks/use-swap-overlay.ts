@@ -4,7 +4,7 @@ import {
   createSeriesMarkers,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
-  type UTCTimestamp,
+  type Time,
 } from "lightweight-charts";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Candle, Interval } from "@/lib/api/client";
@@ -22,12 +22,12 @@ export function useSwapOverlay(
 ) {
   const history = useSwapHistory();
   const [shown, setShown] = useState(false);
-  const primitive = useRef<ISeriesMarkersPluginApi<UTCTimestamp> | null>(null);
+  const primitive = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const available = history.authenticated && !demoMode;
   useEffect(() => {
     const series = style === "candles" ? candles.current : line.current;
     if (!series) return;
-    const markers = createSeriesMarkers<UTCTimestamp>(series, []);
+    const markers = createSeriesMarkers(series, []);
     primitive.current = markers;
     return () => {
       primitive.current = null;
