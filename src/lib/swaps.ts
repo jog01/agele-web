@@ -14,6 +14,11 @@ export interface ReviewedSwap {
   order?: SwapIssued;
 }
 
+export interface PendingSwap {
+  requestId: string;
+  signature?: string;
+}
+
 export type SwapPhase =
   | "idle"
   | "creating"
@@ -21,6 +26,7 @@ export type SwapPhase =
   | "signing"
   | "submitting"
   | "confirming"
+  | "pending-unknown"
   | "confirmed"
   | "failed"
   | "expired";
@@ -58,12 +64,48 @@ interface Dependencies {
   phase?: (phase: SwapPhase) => void;
   now?: () => number;
   wait?: (ms: number) => Promise<void>;
+  submitted?: (pending: PendingSwap | undefined) => void;
+}
+
+type TrackingDependencies = Pick<Dependencies, "status" | "phase" | "wait">;
+
+export async function checkSwap(pending: PendingSwap, deps: TrackingDependencies, initial?: SwapSubmission) {
+  const wait = deps.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  let result: SwapSubmission | SwapStatus = initial ?? { status: "submitted", signature: pending.signature };
+  for (
+    let attempt = 0;
+    !["confirmed", "failed", "expired"].includes(result.status) && attempt < 40;
+    attempt++
+  ) {
+    deps.phase?.("confirming");
+    try {
+      await wait(1500);
+      const next = await deps.status(pending.requestId);
+      result = { ...next, signature: next.signature ?? result.signature ?? pending.signature };
+    } catch {
+      deps.phase?.("pending-unknown");
+      return {
+        status: "pending-unknown" as const,
+        requestId: pending.requestId,
+        signature: result.signature ?? pending.signature,
+      };
+    }
+  }
+  if (result.status === "confirmed" || result.status === "failed" || result.status === "expired") {
+    deps.phase?.(result.status);
+    return { ...result, status: result.status, requestId: pending.requestId };
+  }
+  deps.phase?.("pending-unknown");
+  return {
+    status: "pending-unknown" as const,
+    requestId: pending.requestId,
+    signature: result.signature ?? pending.signature,
+  };
 }
 
 export async function executeSwap(review: ReviewedSwap, deps: Dependencies) {
   const { input } = review;
   const now = deps.now ?? Date.now;
-  const wait = deps.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   deps.phase?.("creating");
   let order = review.order ?? (await deps.create(input));
   if (order.expiresAt <= now()) {
@@ -88,16 +130,33 @@ export async function executeSwap(review: ReviewedSwap, deps: Dependencies) {
     return { status: "expired" as const, requestId: order.requestId };
   }
   deps.phase?.("submitting");
-  let result: SwapSubmission | SwapStatus = await deps.submit(order.requestId, signed);
-  for (let attempt = 0; result.status === "submitted" && attempt < 40; attempt++) {
-    deps.phase?.("confirming");
-    await wait(1500);
-    const next = await deps.status(order.requestId);
-    result = { ...next, signature: next.signature ?? result.signature };
+  const pending = { requestId: order.requestId };
+  deps.submitted?.(pending);
+  let result: SwapSubmission;
+  try {
+    result = await deps.submit(order.requestId, signed);
+    const submitted = { ...pending, signature: result?.signature };
+    deps.submitted?.(submitted);
+    return await checkSwap(submitted, deps, result);
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.status >= 400 &&
+      error.status < 500 &&
+      [
+        "validation_error",
+        "unauthorized",
+        "forbidden",
+        "wallet_not_linked",
+        "swap_rejected",
+        "sponsor_rejected",
+        "rate_limited",
+      ].includes(error.code ?? "")
+    ) {
+      deps.submitted?.(undefined);
+      throw error;
+    }
+    deps.phase?.("pending-unknown");
+    return checkSwap(pending, deps);
   }
-  if (result.status === "failed") throw new Error(result.error ?? "Swap failed");
-  if (result.status === "issued")
-    throw new Error("Unexpected swap status. Check your wallet before retrying.");
-  if (result.status !== "submitted") deps.phase?.(result.status);
-  return { ...result, requestId: order.requestId };
 }

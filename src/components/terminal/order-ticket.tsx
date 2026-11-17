@@ -129,6 +129,10 @@ export function OrderTicket({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (swap.pending) {
+            void swap.confirm();
+            return;
+          }
           if ((est || swap.quote) && token && !swap.busy && (auth.authenticated || DEMO_MODE))
             setReviewOpen(true);
         }}
@@ -221,7 +225,8 @@ export function OrderTicket({
           )}
           disabled={
             swap.busy ||
-            (auth.authenticated ? (!est && !swap.quote) || !token : !auth.configured || !auth.ready)
+            (!swap.pending &&
+              (auth.authenticated ? (!est && !swap.quote) || !token : !auth.configured || !auth.ready))
           }
           onClick={(e) => {
             if (!auth.authenticated) {
@@ -230,7 +235,11 @@ export function OrderTicket({
             }
           }}
         >
-          {auth.authenticated ? `Review ${side} ${symbol}` : "Sign in to trade"}
+          {swap.pending
+            ? "Check swap status"
+            : auth.authenticated
+              ? `Review ${side} ${symbol}`
+              : "Sign in to trade"}
         </Button>
         {DEMO_MODE && (
           <>
@@ -252,6 +261,14 @@ export function OrderTicket({
       {swap.status && (
         <p role="status" className="mt-2 text-center text-warning text-xs">
           {swap.status}
+          {swap.explorerUrl && (
+            <>
+              {" "}
+              <a href={swap.explorerUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                View on Solscan
+              </a>
+            </>
+          )}
         </p>
       )}
 

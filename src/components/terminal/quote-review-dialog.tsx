@@ -110,6 +110,14 @@ export function QuoteReviewDialog({
         {swap.status && (
           <p role="status" className="text-warning text-xs">
             {swap.status}
+            {swap.explorerUrl && (
+              <>
+                {" "}
+                <a href={swap.explorerUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                  View on Solscan
+                </a>
+              </>
+            )}
           </p>
         )}
         <DialogFooter>
@@ -117,7 +125,7 @@ export function QuoteReviewDialog({
             Back
           </Button>
           <Button disabled={swap.confirmDisabled} onClick={() => void swap.confirm()}>
-            Confirm {side} {token.symbol}
+            {swap.pending ? "Check swap status" : `Confirm ${side} ${token.symbol}`}
           </Button>
         </DialogFooter>
       </DialogContent>

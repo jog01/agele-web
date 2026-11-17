@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fromBaseUnits, toBaseUnits } from "./amounts";
 import { ApiError } from "./api/client";
 import {
+  checkSwap,
   executeSwap,
   type SwapIssued,
   type SwapStatus,
@@ -78,6 +79,67 @@ describe("swap errors", () => {
 });
 
 describe("swap orchestration", () => {
+  it.each([
+    new TypeError("Network down"),
+    new ApiError("Upstream timeout", 502),
+    new ApiError("Unknown", 409),
+    new Error("Unknown submit error"),
+  ])("checks the existing request after uncertain submit: %s", async (error) => {
+    const deps = dependencies();
+    deps.submit.mockRejectedValue(error);
+    expect(await executeSwap({ input, otherAmountThreshold: "1900" }, deps)).toMatchObject({
+      status: "confirmed",
+      requestId: "one",
+    });
+    expect(deps.phase).toHaveBeenCalledWith("pending-unknown");
+    expect(deps.create).toHaveBeenCalledTimes(1);
+    expect(deps.status).toHaveBeenCalledExactlyOnceWith("one");
+  });
+  it("preserves the request and signature on poll failure and resumes only GET", async () => {
+    const deps = dependencies();
+    deps.submit.mockResolvedValue({ status: "submitted", signature: "sig" });
+    deps.status.mockRejectedValueOnce(new Error("Lost response"));
+    const pending = await executeSwap({ input, otherAmountThreshold: "1900" }, deps);
+    expect(pending).toMatchObject({ status: "pending-unknown", requestId: "one", signature: "sig" });
+    expect(await checkSwap(pending, deps)).toMatchObject({ status: "confirmed", signature: "sig" });
+    expect(deps.create).toHaveBeenCalledTimes(1);
+    expect(deps.sign).toHaveBeenCalledTimes(1);
+    expect(deps.submit).toHaveBeenCalledTimes(1);
+  });
+  it("retains a signature learned while polling when a later poll fails", async () => {
+    const deps = dependencies();
+    deps.status
+      .mockResolvedValueOnce({ requestId: "one", status: "submitted", signature: "learned" })
+      .mockRejectedValueOnce(new Error("Offline"));
+    expect(await checkSwap({ requestId: "one" }, deps)).toMatchObject({
+      status: "pending-unknown",
+      signature: "learned",
+    });
+  });
+  it("does not treat issued status as evidence that submit did not execute", async () => {
+    const deps = dependencies();
+    deps.status.mockResolvedValueOnce({ requestId: "one", status: "issued" });
+    expect(await checkSwap({ requestId: "one" }, deps)).toMatchObject({ status: "confirmed" });
+    expect(deps.status).toHaveBeenCalledTimes(2);
+  });
+  it.each(["failed", "expired"] as const)("ends pending only on definite %s", async (status) => {
+    const deps = dependencies();
+    deps.status.mockResolvedValue({ requestId: "one", status, error: "Execution ended" });
+    expect(await checkSwap({ requestId: "one", signature: "sig" }, deps)).toMatchObject({
+      status,
+      requestId: "one",
+      signature: "sig",
+    });
+  });
+  it("releases a definite pre-execution 422 rejection without polling", async () => {
+    const deps = { ...dependencies(), submitted: vi.fn() };
+    deps.submit.mockRejectedValue(new ApiError("Rejected", 422, "swap_rejected"));
+    await expect(executeSwap({ input, otherAmountThreshold: "1900" }, deps)).rejects.toMatchObject({
+      code: "swap_rejected",
+    });
+    expect(deps.submitted.mock.calls).toEqual([[{ requestId: "one" }], [undefined]]);
+    expect(deps.status).not.toHaveBeenCalled();
+  });
   it("returns a worse minimum for review without signing", async () => {
     const deps = dependencies();
     const lower = { ...order, otherAmountThreshold: "1899", outAmount: "1999" };
@@ -162,7 +224,12 @@ describe("swap orchestration", () => {
     deps.submit.mockResolvedValue({ status: "failed", signature: "sig", error: "Slippage exceeded" });
     await expect(
       executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
-    ).rejects.toThrow("Slippage exceeded");
+    ).resolves.toMatchObject({
+      status: "failed",
+      error: "Slippage exceeded",
+      requestId: "one",
+      signature: "sig",
+    });
     expect(deps.status).not.toHaveBeenCalled();
   });
   it("does not sign when trading is disabled", async () => {
@@ -197,7 +264,7 @@ describe("swap orchestration", () => {
     deps.status.mockResolvedValue({ requestId: "one", status: "submitted" });
     expect(
       await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
-    ).toMatchObject({ status: "submitted", signature: "sig" });
+    ).toMatchObject({ status: "pending-unknown", signature: "sig", requestId: "one" });
     expect(deps.status).toHaveBeenCalledTimes(40);
   });
   it("polls when execution outcome and signature are initially unknown", async () => {
@@ -213,7 +280,7 @@ describe("swap orchestration", () => {
     deps.status.mockResolvedValue({ requestId: "one", status: "submitted" });
     expect(
       await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
-    ).toMatchObject({ status: "submitted", signature: undefined });
+    ).toMatchObject({ status: "pending-unknown", signature: undefined, requestId: "one" });
   });
   it("preserves execution result amounts and numeric code", async () => {
     const deps = dependencies();

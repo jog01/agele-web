@@ -26,7 +26,7 @@ sequenceDiagram
   P-->>T: signedTransaction (Uint8Array)
   T->>A: POST /v1/swaps/{requestId}/submit (base64 signedTransaction)
   A-->>T: confirmed / failed / submitted, signature?, result amounts?, code?, error?
-  loop Only while submitted; up to 40 polls, 1.5s apart
+  loop Until terminal status; up to 40 polls, 1.5s apart
     T->>A: GET /v1/swaps/{requestId} (Bearer token)
     A-->>T: status, signature?, error?
   end
@@ -35,7 +35,9 @@ sequenceDiagram
   else Failed / expired
     T-->>U: Error / fresh quote required
   else Still submitted after polling limit
-    T-->>U: Still pending; check explorer before retrying
+    T-->>U: Outcome unknown; keep requestId and block new swaps
+    U->>T: Check swap status
+    T->>A: GET /v1/swaps/{same requestId} (never create again)
   end
 ```
 
@@ -70,17 +72,22 @@ flowchart TD
   Signing -- cancelled / error --> Failed
   Signing -- expired during signing --> Expired
   Signing --> Submitting[submitting]
-  Submitting -- error / failed --> Failed
+  Submitting -- definite pre-execution 4xx / failed --> Failed
+  Submitting -- network / 5xx / unknown error --> Pending[pending-unknown; retain requestId and signature]
   Submitting -- confirmed --> Confirmed[confirmed; Solscan toast]
   Submitting -- submitted --> Confirming[confirming]
   Confirming -- submitted; below poll limit --> Confirming
   Confirming -- confirmed --> Confirmed
-  Confirming -- failed / request error --> Failed
+  Confirming -- failed --> Failed
+  Confirming -- request error --> Pending
   Confirming -- expired --> Expired
-  Confirming -- poll limit --> Pending[idle; still pending, check explorer]
+  Confirming -- poll limit --> Pending
+  Pending -- Check swap status; GET same requestId --> Confirming
 ```
 
-Before signing, the created order's minimum is compared to the reviewed minimum using BigInt. A lower minimum returns `requote` without signing and displays the created order's values with “Price moved: review the new minimum and confirm again”. The next Confirm uses that same order for the same mints, amount and slippage. Changing the input discards that review; expiry triggers re-creation and another minimum check. An expired transaction is never submitted. Polling is bounded to 40 GET requests (60 seconds of interval waits, plus request latency). A pending message is not a failure or a confirmation: check the linked transaction before retrying.
+Before signing, the created order's minimum is compared to the reviewed minimum using BigInt. A lower minimum returns `requote` without signing and displays the created order's values with “Price moved: review the new minimum and confirm again”. The next Confirm uses that same order for the same mints, amount and slippage. Changing the input discards that review; expiry triggers re-creation and another minimum check. An expired transaction is never submitted.
+
+Once submit is sent, the ticket retains its request ID before awaiting the response. Network errors, 5xx responses and unrecognized submit errors are uncertain, not failures: the client checks GET status automatically. Each polling pass is bounded to 40 GET requests (60 seconds of interval waits, plus request latency). A failed status request or polling limit enters `pending-unknown` and retains the request ID and any signature, with a Solscan link when available. **Check swap status** resumes GET on that same request even if the amount, side or quote changed; it never creates, signs or submits another swap. An `issued` status after uncertain submission is not proof of non-execution. Only a definite terminal status (`confirmed`, `failed`, `expired`) or a recognized pre-execution 4xx rejection clears tracking. No timeout, transport error or unknown response unlocks a new create.
 
 ## Errors and demo gating
 
