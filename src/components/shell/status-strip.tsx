@@ -17,7 +17,7 @@ export function StatusStrip() {
   const source = useMarketDataSource();
   const { status, lastMessageAt } = useRealtimeStore();
   const now = useNow();
-  const { data: tokens = [] } = useQuery({ ...tokenQueries.trending(), enabled: false });
+  const { data: tokens = [] } = useQuery(tokenQueries.trending());
   const ago = lastMessageAt && now ? Math.max(0, Math.round((now - lastMessageAt) / 1000)) : null;
   return (
     <footer className="hidden h-8 shrink-0 items-center gap-3 border-t bg-sidebar px-3 text-[10px] text-muted-foreground lg:flex">
