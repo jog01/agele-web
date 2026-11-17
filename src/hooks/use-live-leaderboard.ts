@@ -11,7 +11,7 @@ export function useLiveLeaderboard() {
     const off = realtime.subscribe("leaderboard:global", (data) => {
       const parsed = leaderboardSignalSchema.safeParse(data);
       if (!parsed.success) return;
-      void qc.invalidateQueries({ queryKey: ["leaderboard", parsed.data.window], exact: true });
+      void qc.invalidateQueries({ queryKey: ["leaderboard", parsed.data.window] });
     });
     const offReconnect = realtime.onReconnect(() => {
       void qc.invalidateQueries({ queryKey: ["leaderboard"] });

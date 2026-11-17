@@ -91,11 +91,13 @@ describe("live data hooks", () => {
   it("invalidates only the signaled leaderboard window, all windows on reconnect, and cleans up", () => {
     const { qc, wrapper } = setup();
     for (const window of ["24h", "7d", "30d"]) qc.setQueryData(["leaderboard", window], { entries: [] });
+    qc.setQueryData(["leaderboard", "7d", "viewer"], { entries: [] });
     const { unmount } = renderHook(() => useLiveLeaderboard(), { wrapper });
     act(() => listeners.get("leaderboard:global")?.({ window: "bogus", updatedAt: 1 }));
     expect(qc.getQueryState(["leaderboard", "24h"])?.isInvalidated).toBe(false);
     act(() => listeners.get("leaderboard:global")?.({ window: "7d", updatedAt: 1 }));
     expect(qc.getQueryState(["leaderboard", "7d"])?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(["leaderboard", "7d", "viewer"])?.isInvalidated).toBe(true);
     expect(qc.getQueryState(["leaderboard", "24h"])?.isInvalidated).toBe(false);
     act(() => {
       for (const cb of reconnects) cb();

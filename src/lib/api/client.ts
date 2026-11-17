@@ -27,6 +27,11 @@ export type Trade = components["schemas"]["Trade"];
 export type LeaderboardEntry = components["schemas"]["LeaderboardEntry"];
 export type Comment = components["schemas"]["Comment"];
 export type Me = components["schemas"]["Me"];
+export type FeedItem = components["schemas"]["FeedItem"];
+export type FeedPage = paths["/v1/feed"]["get"]["responses"][200]["content"]["application/json"];
+export type LeaderboardPage =
+  paths["/v1/leaderboard"]["get"]["responses"][200]["content"]["application/json"];
+export type FeedScope = "global" | "following";
 export type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 export type LeaderboardWindow = "24h" | "7d" | "30d";
 
