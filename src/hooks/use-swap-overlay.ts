@@ -25,13 +25,14 @@ export function useSwapOverlay(
   const primitive = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const available = history.authenticated && !demoMode;
   useEffect(() => {
-    const series = style === "candles" ? candles.current : line.current;
+    const seriesRef = style === "candles" ? candles : line;
+    const series = seriesRef.current;
     if (!series) return;
     const markers = createSeriesMarkers(series, []);
     primitive.current = markers;
     return () => {
       primitive.current = null;
-      markers.detach();
+      if (seriesRef.current === series) markers.detach();
     };
   }, [candles, line, style]);
   useEffect(() => {

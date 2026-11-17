@@ -84,3 +84,13 @@ it("reuses the primitive for candle, history and visibility updates, detaching o
   unmount();
   expect(mocks.detach).toHaveBeenCalledTimes(1);
 });
+
+it("does not detach markers from a disposed series", () => {
+  history(false);
+  const series = { current: candle.current as ISeriesApi<"Candlestick"> | null };
+  const { unmount } = renderHook(() => useSwapOverlay("token", true, series, line, "candles", bars, "1m"));
+  expect(mocks.markers).toHaveBeenCalledWith(series.current, []);
+  series.current = null;
+  unmount();
+  expect(mocks.detach).not.toHaveBeenCalled();
+});
