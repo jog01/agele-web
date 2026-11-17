@@ -4,6 +4,18 @@
  */
 
 export interface paths {
+    "/v1/swaps/quote": {
+        get: { parameters: { query: SwapInput }; responses: SwapResponses<SwapQuote> };
+    };
+    "/v1/swaps": {
+        post: { requestBody: { content: { "application/json": SwapInput } }; responses: SwapResponses<SwapIssued, 201> };
+    };
+    "/v1/swaps/{requestId}/submit": {
+        post: { parameters: { path: { requestId: string } }; requestBody: { content: { "application/json": { signedTransaction: string } } }; responses: SwapResponses<SwapSubmission> };
+    };
+    "/v1/swaps/{requestId}": {
+        get: { parameters: { path: { requestId: string } }; responses: SwapResponses<SwapStatus> };
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -849,6 +861,14 @@ export interface paths {
         trace?: never;
     };
 }
+
+export type SwapInput = { inputMint: string; outputMint: string; amount: string; slippageBps?: number };
+export type SwapQuote = { inputMint: string; outputMint: string; inAmount: string; outAmount: string; otherAmountThreshold: string; priceImpactPct: string; slippageBps: number; feeBps: number; router: string };
+export type SwapIssued = SwapQuote & { requestId: string; transaction: string; expiresAt: string };
+export type SwapSubmission = { signature: string; status: "submitted" | "confirmed" | "failed"; error?: string };
+export type SwapStatus = { requestId: string; status: "issued" | "submitted" | "confirmed" | "failed" | "expired"; signature?: string; inAmount?: string; outAmount?: string; error?: string };
+type SwapResponse<T> = { headers: { [name: string]: unknown }; content: { "application/json": T } };
+type SwapResponses<T, S extends number = 200> = { [K in S]: SwapResponse<T> } & { [K in 401 | 409 | 422 | 503]: SwapResponse<{ error: { code: string; message: string } }> };
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {

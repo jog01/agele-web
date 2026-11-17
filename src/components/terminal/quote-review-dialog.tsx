@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
+import type { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
 import { DASH, formatAmount, formatPrice, formatUsd, shortAddress } from "@/lib/format";
+import { solanaCluster } from "@/lib/solana/cluster";
 import { type Side, SLIPPAGE_PCT } from "./order-ticket";
 
-const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const USDC_MINT = solanaCluster().usdcMint;
 
 interface Props {
   open: boolean;
@@ -25,8 +27,9 @@ interface Props {
   token: Token;
   amount: number;
   price: number;
-  receive: number;
-  minReceive: number;
+  receive: string;
+  minReceive: string;
+  swap: ReturnType<typeof useSwap>;
 }
 
 function Line({ label, value }: { label: string; value: React.ReactNode }) {
@@ -51,8 +54,9 @@ export function QuoteReviewDialog({
   price,
   receive,
   minReceive,
+  swap,
 }: Props) {
-  const { demoMode: DEMO_MODE, tradingDisabled } = useMarketDataMode();
+  const { demoMode: DEMO_MODE } = useMarketDataMode();
   const from = side === "buy" ? { symbol: "USDC", mint: USDC_MINT } : token;
   const to = side === "buy" ? token : { symbol: "USDC", mint: USDC_MINT };
   return (
@@ -82,32 +86,37 @@ export function QuoteReviewDialog({
             label="To (estimated)"
             value={
               <>
-                {formatAmount(receive)} {to.symbol}
+                {receive} {to.symbol}
                 <span className="block font-mono text-muted-foreground text-xs">{shortAddress(to.mint)}</span>
               </>
             }
           />
-          <Line label="Minimum receive" value={`${formatAmount(minReceive)} ${to.symbol}`} />
+          <Line label="Minimum receive" value={`${minReceive} ${to.symbol}`} />
           <Separator className="my-2" />
           <Line label="Price" value={`${formatPrice(price)} / ${token.symbol}`} />
-          <Line label="Slippage" value={`${SLIPPAGE_PCT}%`} />
-          <Line label="Price impact" value={DASH} />
-          <Line label="Platform fee" value={DASH} />
-          <Line label="Network fee" value={DASH} />
+          <Line label="Slippage" value={`${swap.quote ? swap.quote.slippageBps / 100 : SLIPPAGE_PCT}%`} />
+          <Line label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
+          <Line label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
+          <Line label="Network fee" value="Sponsored" />
           <Line label="Network" value="Solana" />
-          <Line label="Value" value={formatUsd(side === "buy" ? amount : receive)} />
+          <Line label="Value" value={formatUsd(swap.valueUsd)} />
         </div>
         {DEMO_MODE && (
           <div role="alert" className="flex gap-2 rounded-md bg-warning-subtle p-3 text-warning text-xs">
             <TriangleAlert className="size-4 shrink-0" aria-hidden />
-            Demo data: this is an estimate from fixture prices, not a live quote. Submission is disabled.
+            Demo data: fixture market prices. Estimates are not live quotes.
           </div>
+        )}
+        {swap.status && (
+          <p role="status" className="text-warning text-xs">
+            {swap.status}
+          </p>
         )}
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Back
           </Button>
-          <Button disabled={tradingDisabled}>
+          <Button disabled={swap.confirmDisabled} onClick={() => void swap.confirm()}>
             Confirm {side} {token.symbol}
           </Button>
         </DialogFooter>
