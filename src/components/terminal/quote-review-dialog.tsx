@@ -86,18 +86,18 @@ export function QuoteReviewDialog({
             label="To (estimated)"
             value={
               <>
-                {receive} {to.symbol}
+                {receive === DASH ? DASH : `${receive} ${to.symbol}`}
                 <span className="block font-mono text-muted-foreground text-xs">{shortAddress(to.mint)}</span>
               </>
             }
           />
-          <Line label="Minimum receive" value={`${minReceive} ${to.symbol}`} />
+          <Line label="Minimum receive" value={minReceive === DASH ? DASH : `${minReceive} ${to.symbol}`} />
           <Separator className="my-2" />
           <Line label="Price" value={`${formatPrice(price)} / ${token.symbol}`} />
           <Line label="Slippage" value={`${swap.quote ? swap.quote.slippageBps / 100 : SLIPPAGE_PCT}%`} />
           <Line label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
           <Line label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
-          <Line label="Network fee" value="Sponsored" />
+          <Line label="Network fee" value={swap.quote && !swap.tradingDisabled ? "Sponsored" : DASH} />
           <Line label="Network" value="Solana" />
           <Line label="Value" value={formatUsd(swap.valueUsd)} />
         </div>

@@ -195,7 +195,7 @@ export function OrderTicket({
           <Row label="Slippage" value={`${(swap.quote?.slippageBps ?? 50) / 100}%`} />
           <Row label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
           <Row label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
-          <Row label="Network fee" value="Sponsored" />
+          <Row label="Network fee" value={swap.quote && !swap.tradingDisabled ? "Sponsored" : DASH} />
         </div>
 
         <Button
