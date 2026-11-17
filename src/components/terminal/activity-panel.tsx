@@ -2,52 +2,160 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquareText } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLiveTrades } from "@/hooks/use-live-trades";
 import { useNow } from "@/hooks/use-now";
-import { tokenQueries } from "@/lib/api/queries";
-import { formatPrice, formatUsd, shortAddress, timeAgo, utcTimestamp } from "@/lib/format";
+import type { Trade } from "@/lib/api/client";
+import { tokenQueries, useToken } from "@/lib/api/queries";
+import { tokenSupply } from "@/lib/candles";
+import {
+  formatAmount,
+  formatCompact,
+  formatCompactUsd,
+  formatPrice,
+  formatUsd,
+  shortAddress,
+  timeAgo,
+  utcTimestamp,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useTerminalStore } from "@/stores/terminal";
 
 function ActivityTable({ mint }: { mint: string }) {
-  const { data: trades = [], isPending } = useQuery(tokenQueries.trades(mint));
+  const { data: trades = [], isPending, isError } = useQuery(tokenQueries.trades(mint));
+  const { data: token } = useToken(mint);
+  const supply = tokenSupply(token);
+  const mode = useTerminalStore((s) => s.chartMode);
+  const [side, setSide] = useState("all");
+  const [minimum, setMinimum] = useState("");
+  const [recent, setRecent] = useState<Record<string, number>>({});
+  const onTrade = useCallback(
+    (trade: Trade) => setRecent((previous) => ({ ...previous, [trade.signature]: Date.now() })),
+    [],
+  );
+  useLiveTrades(mint, onTrade);
   const now = useNow();
+  useEffect(() => {
+    if (!now) return;
+    setRecent((previous) =>
+      Object.fromEntries(Object.entries(previous).filter(([, time]) => now - time < 2500)),
+    );
+  }, [now]);
+  const visible = trades.filter(
+    (trade) =>
+      (side === "all" || trade.side === side) && trade.amountUsd >= Math.max(0, Number(minimum) || 0),
+  );
   if (isPending) return <p className="p-4 text-muted-foreground">Loading activity…</p>;
+  if (isError) return <p className="p-4 text-muted-foreground">Trades unavailable.</p>;
   return (
-    <Table>
-      <TableHeader className="sticky top-0 bg-card">
-        <TableRow>
-          <TableHead>Action</TableHead>
-          <TableHead>Trader</TableHead>
-          <TableHead className="text-right">Amount (USD)</TableHead>
-          <TableHead className="text-right">Price (USD)</TableHead>
-          <TableHead className="text-right">Time</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {trades.map((t) => (
-          <TableRow key={t.signature} className="h-9">
-            <TableCell>
-              <span className={cn("font-medium", t.side === "buy" ? "text-positive" : "text-negative")}>
-                {t.side === "buy" ? "Buy" : "Sell"}
-              </span>
-            </TableCell>
-            <TableCell className="font-mono text-muted-foreground text-xs">
-              {shortAddress(t.trader)}
-            </TableCell>
-            <TableCell className="tabular text-right">{formatUsd(t.amountUsd)}</TableCell>
-            <TableCell className="tabular text-right">{formatPrice(t.priceUsd)}</TableCell>
-            <TableCell className="tabular text-right text-muted-foreground" title={utcTimestamp(t.time)}>
-              {now ? timeAgo(t.time, now) : ""}
-            </TableCell>
+    <>
+      <div className="flex items-center gap-3 border-b p-2 text-xs">
+        <select
+          aria-label="Trade type"
+          className="bg-card"
+          value={side}
+          onChange={(e) => setSide(e.target.value)}
+        >
+          <option value="all">All</option>
+          <option value="buy">Buys</option>
+          <option value="sell">Sells</option>
+        </select>
+        <label>
+          Min size (USD){" "}
+          <input
+            className="w-24 rounded border bg-background px-2 py-1"
+            type="number"
+            min="0"
+            value={minimum}
+            onChange={(e) => setMinimum(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          disabled
+          title="Following filter is unavailable: sign-in and API data are required."
+          className="text-muted-foreground opacity-50"
+        >
+          Following · unavailable
+        </button>
+      </div>
+      <Table>
+        <TableHeader className="sticky top-0 bg-card">
+          <TableRow>
+            <TableHead>Age</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead className="text-right">{mode === "mcap" ? "MCap" : "Price"}</TableHead>
+            <TableHead className="text-right">Amount (USD)</TableHead>
+            <TableHead className="text-right">Token amount</TableHead>
+            <TableHead>Trader</TableHead>
+            <TableHead>Tx</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {visible.map((t) => (
+            <TableRow
+              key={t.signature}
+              className={cn("h-9 transition-colors duration-700", recent[t.signature] && "bg-positive/10")}
+            >
+              <TableCell className="tabular text-muted-foreground" title={utcTimestamp(t.time)}>
+                {now ? timeAgo(t.time, now) : ""}
+              </TableCell>
+              <TableCell>
+                <span className={cn("font-medium", t.side === "buy" ? "text-positive" : "text-negative")}>
+                  {t.side === "buy" ? "Buy" : "Sell"}
+                </span>
+              </TableCell>
+              <TableCell className="tabular text-right">
+                {mode === "mcap"
+                  ? formatCompactUsd(supply === null ? null : t.priceUsd * supply)
+                  : formatPrice(t.priceUsd)}
+              </TableCell>
+              <TableCell className="tabular text-right">{formatUsd(t.amountUsd)}</TableCell>
+              <TableCell className="tabular text-right">{formatAmount(t.tokenAmount)}</TableCell>
+              <TableCell className="font-mono text-xs">
+                <a
+                  className="hover:underline"
+                  href={`https://solscan.io/account/${t.trader}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {shortAddress(t.trader)}
+                </a>
+              </TableCell>
+              <TableCell>
+                <a
+                  className="text-muted-foreground hover:underline"
+                  href={`https://solscan.io/tx/${t.signature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`View transaction ${t.signature}`}
+                >
+                  ↗
+                </a>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {!visible.length && <p className="p-4 text-muted-foreground">No trades match these filters.</p>}
+    </>
+  );
+}
+
+function HoldersPanel({ mint }: { mint: string }) {
+  const { data: token, isPending, isError } = useToken(mint);
+  return (
+    <div className="space-y-2 p-4">
+      <p className="font-medium">
+        Holders · {isPending ? "Loading…" : isError ? "Unavailable" : formatCompact(token?.holders)}
+      </p>
+      <p className="text-muted-foreground">Top holder list isn't available yet</p>
+    </div>
   );
 }
 
@@ -118,7 +226,16 @@ export function ActivityPanel({ mint }: { mint: string }) {
       <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col gap-0">
         <TabsList variant="line" className="h-10 w-full justify-start border-b px-2">
           <TabsTrigger value="activity" className="flex-none">
-            Activity
+            Trades
+          </TabsTrigger>
+          <TabsTrigger value="holders" className="flex-none">
+            Holders
+          </TabsTrigger>
+          <TabsTrigger value="positions" className="flex-none">
+            Positions
+          </TabsTrigger>
+          <TabsTrigger value="traders" className="flex-none">
+            Traders
           </TabsTrigger>
           <TabsTrigger value="thesis" className="flex-none gap-1.5">
             <MessageSquareText className="size-3.5" aria-hidden />
@@ -126,7 +243,18 @@ export function ActivityPanel({ mint }: { mint: string }) {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="activity" className="min-h-0 flex-1 overflow-auto">
-          <ActivityTable mint={mint} />
+          <ActivityTable key={mint} mint={mint} />
+        </TabsContent>
+        <TabsContent value="holders">
+          <HoldersPanel mint={mint} />
+        </TabsContent>
+        <TabsContent value="positions">
+          <p className="p-4 text-muted-foreground">
+            Positions aren't available yet. Sign-in and a positions API are required.
+          </p>
+        </TabsContent>
+        <TabsContent value="traders">
+          <p className="p-4 text-muted-foreground">Per-token trader rankings aren't available yet.</p>
         </TabsContent>
         <TabsContent value="thesis" className="min-h-0 flex-1 overflow-auto">
           <ThesisPanel mint={mint} />
