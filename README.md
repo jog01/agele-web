@@ -1,6 +1,6 @@
 # agele-web
 
-Next.js 16 frontend for Agele, a social trading terminal for Solana spot markets. The backend (REST, WebSocket, jobs) lives in [jog01/agele](https://github.com/jog01/agele), along with the architecture docs.
+Next.js 16 frontend for Agele, a social trading terminal for Solana spot markets. The backend (REST, WebSocket, jobs) lives in [jog01/agele](https://github.com/jog01/agele). Frontend diagrams (routes, component tree, data flow): [docs/architecture.md](docs/architecture.md).
 
 Stack: Next.js 16 (App Router, Turbopack, Cache Components), shadcn/ui, Tailwind v4, TradingView `lightweight-charts`, TanStack Query + `openapi-fetch`, Zustand, Privy, Biome, Vitest.
 
