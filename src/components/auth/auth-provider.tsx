@@ -34,8 +34,12 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   const embedded = wallet?.walletClientType === "privy";
 
   // Set during render, not in an effect: children's queries (e.g. /v1/me) fire in effects that run before ours.
-  setAccessTokenGetter(authenticated ? getAccessToken : null);
-  useEffect(() => () => setAccessTokenGetter(null), []);
+  const tokenGetter = authenticated ? getAccessToken : null;
+  setAccessTokenGetter(tokenGetter);
+  useEffect(() => {
+    setAccessTokenGetter(tokenGetter);
+    return () => setAccessTokenGetter(null);
+  }, [tokenGetter]);
 
   // The API syncs wallets from Privy while its record has none, so refetch the profile when one appears.
   const lastAddress = useRef<string | null>(null);
