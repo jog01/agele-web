@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TraderLink } from "@/components/common/trader-link";
 import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd } from "@/lib/format";
 
@@ -23,7 +24,12 @@ export function TopTraders() {
             <span className="inline-flex size-7 items-center justify-center rounded-full bg-secondary font-semibold text-[11px] text-primary">
               {e.handle.slice(0, 2).toUpperCase()}
             </span>
-            <span className="min-w-0 flex-1 truncate">{e.handle}</span>
+            <TraderLink
+              wallet={e.wallet}
+              handle={e.handle}
+              window="24h"
+              className="min-w-0 flex-1 truncate"
+            />
             <span className={`tabular text-xs ${e.pnlUsd >= 0 ? "text-positive" : "text-negative"}`}>
               {e.pnlUsd >= 0 ? "+" : ""}
               {formatCompactUsd(e.pnlUsd)}

@@ -14,10 +14,48 @@ flowchart LR
   NAV --> FEED["/feed<br/>theses + traders to follow"]
   NAV --> LB["/leaderboard<br/>24h / 7d / 30d"]
   NAV --> PF["/portfolio<br/>equity, holdings, PnL"]
+  FEED --> TRADER["/traders/[wallet]<br/>public profile"]
+  LB --> TRADER
+  MINT -- "Top traders" --> TRADER
+  TRADER -- "Token links" --> MINT
   SEARCH{{"Cmd/Ctrl+K or /<br/>search dialog"}} --> MINT
 ```
 
 Every page renders inside `AppShell` (top bar, status strip, mobile bottom nav, search dialog). Static shells prerender; `/trade/[mint]` streams the terminal under `<Suspense>` because it reads route params.
+
+## Trader profile
+
+`/traders/[wallet]` streams a profile under `<Suspense>`. Names in the feed, leaderboard, and terminal's top traders open the wallet-based route. Ranked links carry the source period; other links default to 7d. The profile shows public positions, PnL, and leaderboard performance. The period selector updates from the three windows already returned by the profile API; it does not refetch.
+
+```mermaid
+sequenceDiagram
+  actor U as Trader profile visitor
+  participant P as Profile / TanStack Query
+  participant A as Agele API
+  U->>P: Open trader by wallet
+  P->>A: GET /v1/traders/{wallet} (optional bearer)
+  alt Trader not found
+    A-->>P: 404
+    P-->>U: Trader not found
+  else Profile found
+    A-->>P: Profile, all windows, and X-Data-Source
+    P-->>U: Profile, positions, and source label
+    opt Signed-in visitor follows or unfollows
+      U->>P: Follow / Unfollow
+      P->>A: PUT / DELETE /v1/follows/{wallet}
+      P->>A: Refresh profile to update follow state and counts
+    end
+    P->>A: GET /v1/traders/{wallet}/trades
+    A-->>P: Newest trades and nextCursor
+    opt Cursor present and visitor loads more
+      U->>P: Load more trades
+      P->>A: GET /v1/traders/{wallet}/trades?cursor=…
+      A-->>P: Next page, null cursor at end
+    end
+  end
+```
+
+Profile caches are keyed by wallet and viewer so signed-in following state stays separate. Demo profiles show simulated stats and explain the absence of positions and history. Explorer links are shown only for responses marked `indexed`.
 
 ## Screens (v0.1, demo data)
 
