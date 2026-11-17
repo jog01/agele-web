@@ -80,6 +80,7 @@ it("labels demo data, explains empty history, and switches window without anothe
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "demo"));
   renderProfile();
   expect(await screen.findByRole("heading", { name: "Orca" })).toBeDefined();
+  expect((await screen.findByText("Trader profile: Orca")).getAttribute("role")).toBe("status");
   expect(screen.getByText("Demo profile")).toBeDefined();
   expect(screen.getByText("Demo profiles don’t include positions.")).toBeDefined();
   expect(await screen.findByText("Demo profiles don’t include trade history.")).toBeDefined();

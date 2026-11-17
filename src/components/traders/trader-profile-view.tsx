@@ -3,7 +3,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { CopyAddress } from "@/components/common/copy-address";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +30,21 @@ export function TraderProfileLoading() {
         Loading trader profile…
       </p>
     </div>
+  );
+}
+
+function ProfileAnnouncement({ handle }: { handle?: string }) {
+  const [message, setMessage] = useState("");
+  useEffect(() => {
+    if (!handle) return;
+    // Next announces on navigation, before the profile query resolves.
+    const timeout = window.setTimeout(() => setMessage(`Trader profile: ${handle}`), 100);
+    return () => window.clearTimeout(timeout);
+  }, [handle]);
+  return (
+    <span role="status" aria-atomic="true" className="sr-only">
+      {handle ? message : ""}
+    </span>
   );
 }
 
@@ -245,6 +260,7 @@ export function TraderProfileView({ wallet }: { wallet: string }) {
         </section>
       ) : (
         <>
+          <ProfileAnnouncement handle={data.handle} />
           <section className="space-y-4 rounded-lg border bg-card p-4 sm:p-5">
             <div className="flex items-start gap-3 sm:gap-4">
               <Avatar aria-hidden className="size-12 sm:size-14">
