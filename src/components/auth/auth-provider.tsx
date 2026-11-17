@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { env } from "@/env";
+import { useSwapSigner } from "@/hooks/use-swap-signer";
 import { setAccessTokenGetter } from "@/lib/api/client";
 import { userQueries } from "@/lib/api/queries";
 import { solanaCluster, toWsUrl } from "@/lib/solana/cluster";
@@ -32,6 +33,7 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   const wallet = primarySolanaWallet(user?.linkedAccounts ?? []);
   const address = wallet?.address ?? null;
   const embedded = wallet?.walletClientType === "privy";
+  const signSwap = useSwapSigner(address, embedded);
 
   // Set during render, not in an effect: children's queries (e.g. /v1/me) fire in effects that run before ours.
   const tokenGetter = authenticated ? getAccessToken : null;
@@ -107,8 +109,21 @@ function PrivyBridge({ children }: { children: ReactNode }) {
       login: () => privy.login(),
       logout: () => privy.logout(),
       getAccessToken,
+      signSwap,
     }),
-    [privy, authenticated, user, address, embedded, creating, create, exportWallet, addFunds, getAccessToken],
+    [
+      privy,
+      authenticated,
+      user,
+      address,
+      embedded,
+      creating,
+      create,
+      exportWallet,
+      addFunds,
+      getAccessToken,
+      signSwap,
+    ],
   );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

@@ -26,6 +26,7 @@ export interface AuthState {
   login: () => void;
   logout: () => Promise<void>;
   getAccessToken: () => Promise<string | null>;
+  signSwap?: (transaction: string) => Promise<string>;
 }
 
 export const noWallet: WalletState = {

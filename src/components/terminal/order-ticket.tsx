@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
+import { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
 import { DASH, formatAmount, formatCompactUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ export function OrderTicket({
   const amount = Number(raw);
   const est = price ? estimate(side, amount, price) : null;
   const unit = side === "buy" ? "USDC" : symbol;
+  const swap = useSwap(token, side, raw, price);
 
   return (
     <section aria-label="Order ticket" className="rounded-lg border bg-card p-3">
@@ -127,7 +129,12 @@ export function OrderTicket({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (est && token && (auth.authenticated || DEMO_MODE)) setReviewOpen(true);
+          if (swap.pending) {
+            void swap.confirm();
+            return;
+          }
+          if ((est || swap.quote) && token && !swap.busy && (auth.authenticated || DEMO_MODE))
+            setReviewOpen(true);
         }}
       >
         <div className="relative rounded-md border border-input/70 bg-background px-3 py-3 focus-within:ring-2 focus-within:ring-foreground/50">
@@ -184,16 +191,28 @@ export function OrderTicket({
         <div className="text-[13px]">
           <Row
             label="Estimated receive"
-            value={est ? `${formatAmount(est.receive)} ${side === "buy" ? symbol : "USDC"}` : DASH}
+            value={
+              swap.receive
+                ? `${swap.receive} ${side === "buy" ? symbol : "USDC"}`
+                : swap.fallback && est
+                  ? `${formatAmount(est.receive)} ${side === "buy" ? symbol : "USDC"}`
+                  : DASH
+            }
           />
           <Row
             label="Minimum receive"
-            value={est ? `${formatAmount(est.minReceive)} ${side === "buy" ? symbol : "USDC"}` : DASH}
+            value={
+              swap.minReceive
+                ? `${swap.minReceive} ${side === "buy" ? symbol : "USDC"}`
+                : swap.fallback && est
+                  ? `${formatAmount(est.minReceive)} ${side === "buy" ? symbol : "USDC"}`
+                  : DASH
+            }
           />
-          <Row label="Slippage" value={`${SLIPPAGE_PCT}%`} />
-          <Row label="Price impact" value={DASH} />
-          <Row label="Platform fee" value={DASH} />
-          <Row label="Network fee" value="Quoted on review" />
+          <Row label="Slippage" value={`${(swap.quote?.slippageBps ?? 50) / 100}%`} />
+          <Row label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
+          <Row label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
+          <Row label="Network fee" value={swap.quote && !swap.tradingDisabled ? "Sponsored" : DASH} />
         </div>
 
         <Button
@@ -204,7 +223,11 @@ export function OrderTicket({
               ? "bg-positive text-positive-foreground hover:bg-positive/90"
               : "bg-negative text-negative-foreground hover:bg-negative/90",
           )}
-          disabled={auth.authenticated ? !est || !token : !auth.configured || !auth.ready}
+          disabled={
+            swap.busy ||
+            (!swap.pending &&
+              (auth.authenticated ? (!est && !swap.quote) || !token : !auth.configured || !auth.ready))
+          }
           onClick={(e) => {
             if (!auth.authenticated) {
               e.preventDefault();
@@ -212,7 +235,11 @@ export function OrderTicket({
             }
           }}
         >
-          {auth.authenticated ? `Review ${side} ${symbol}` : "Sign in to trade"}
+          {swap.pending
+            ? "Check swap status"
+            : auth.authenticated
+              ? `Review ${side} ${symbol}`
+              : "Sign in to trade"}
         </Button>
         {DEMO_MODE && (
           <>
@@ -220,28 +247,42 @@ export function OrderTicket({
               type="submit"
               variant="ghost"
               className="mt-1 h-10 w-full text-xs"
-              disabled={!est || !token}
+              disabled={(!est && !swap.quote) || !token || swap.busy}
             >
               Preview {side} {symbol}
             </Button>
             <p className="mt-1 flex items-center justify-center gap-1.5 text-warning text-xs">
               <LockKeyhole className="size-3" aria-hidden />
-              Demo only · submission disabled
+              Demo market data
             </p>
           </>
         )}
       </form>
+      {swap.status && (
+        <p role="status" className="mt-2 text-center text-warning text-xs">
+          {swap.status}
+          {swap.explorerUrl && (
+            <>
+              {" "}
+              <a href={swap.explorerUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                View on Solscan
+              </a>
+            </>
+          )}
+        </p>
+      )}
 
-      {token && est && price && (
+      {token && (est || swap.quote) && (
         <QuoteReviewDialog
           open={reviewOpen}
           onOpenChange={setReviewOpen}
           side={side}
           token={token}
-          amount={amount}
-          price={price}
-          receive={est.receive}
-          minReceive={est.minReceive}
+          amount={swap.inputAmount ?? DASH}
+          price={price ?? 0}
+          receive={swap.receive ?? (swap.fallback && est ? formatAmount(est.receive) : DASH)}
+          minReceive={swap.minReceive ?? (swap.fallback && est ? formatAmount(est.minReceive) : DASH)}
+          swap={swap}
         />
       )}
     </section>
