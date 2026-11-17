@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { LeaderboardWindow } from "@/lib/api/client";
@@ -8,9 +9,19 @@ import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd, formatPct, formatUsd, shortAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+const WINDOWS = ["24h", "7d", "30d"] as const satisfies readonly LeaderboardWindow[];
+
+function parseWindow(value: string | null): LeaderboardWindow {
+  return WINDOWS.find((w) => w === value) ?? "7d";
+}
+
 export function LeaderboardView() {
-  const [window, setWindow] = useState<LeaderboardWindow>("7d");
-  const { data, isPending, isError } = useLeaderboard(window);
+  const router = useRouter();
+  const pathname = usePathname();
+  const window = parseWindow(useSearchParams().get("window"));
+  const setWindow = (next: LeaderboardWindow) =>
+    router.replace(`${pathname}?window=${next}`, { scroll: false });
+  const { data, isPending, isError, refetch } = useLeaderboard(window);
   return (
     <div className="mx-auto max-w-[1280px] space-y-4 px-6 py-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -33,8 +44,8 @@ export function LeaderboardView() {
           variant="outline"
           aria-label="Ranking window"
         >
-          {(["24h", "7d", "30d"] as const).map((w) => (
-            <ToggleGroupItem key={w} value={w} className="px-3">
+          {WINDOWS.map((w) => (
+            <ToggleGroupItem key={w} value={w} className="h-10 px-4 lg:h-8 lg:px-3">
               {w}
             </ToggleGroupItem>
           ))}
@@ -64,7 +75,10 @@ export function LeaderboardView() {
             {isError && (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  Rankings unavailable.
+                  Rankings unavailable.{" "}
+                  <Button variant="outline" size="sm" onClick={() => refetch()}>
+                    Retry
+                  </Button>
                 </TableCell>
               </TableRow>
             )}
