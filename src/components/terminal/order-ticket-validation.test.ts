@@ -6,7 +6,9 @@ import { AuthContext, demoAuth } from "@/components/auth/auth-context";
 import type { Token } from "@/lib/api/client";
 import { OrderTicket } from "./order-ticket";
 
-vi.mock("@tanstack/react-query", () => ({
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useQuery: () => ({ data: undefined, error: null }),
 }));
 vi.mock("@/hooks/use-market-data-source", () => ({
