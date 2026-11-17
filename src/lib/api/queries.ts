@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth/auth-context";
 import { useLiveLeaderboard } from "@/hooks/use-live-leaderboard";
 import { useLivePrices } from "@/hooks/use-live-prices";
 import { ApiError, api, type Interval, type LeaderboardWindow, type Me, unwrap } from "./client";
+import { leaderboardDataSource } from "./leaderboard";
 import { type SocialAuth, socialHeaders, socialViewer } from "./social";
 
 export const tokenQueries = {
@@ -63,14 +64,14 @@ export const socialQueries = {
   leaderboard: (window: LeaderboardWindow, auth?: SocialAuth) =>
     queryOptions({
       queryKey: ["leaderboard", window, socialViewer(auth)],
-      queryFn: async ({ signal }) =>
-        unwrap(
-          await api.GET("/v1/leaderboard", {
-            params: { query: { window, limit: 25 } },
-            headers: await socialHeaders(auth),
-            signal,
-          }),
-        ),
+      queryFn: async ({ signal }) => {
+        const result = await api.GET("/v1/leaderboard", {
+          params: { query: { window, limit: 25 } },
+          headers: await socialHeaders(auth),
+          signal,
+        });
+        return { ...unwrap(result), dataSource: leaderboardDataSource(result.response.headers) };
+      },
       refetchInterval: 30_000,
     }),
 };

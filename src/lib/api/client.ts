@@ -32,6 +32,10 @@ export type FeedPage = paths["/v1/feed"]["get"]["responses"][200]["content"]["ap
 export type LeaderboardPage =
   paths["/v1/leaderboard"]["get"]["responses"][200]["content"]["application/json"];
 export type FeedScope = "global" | "following";
+export type Portfolio = components["schemas"]["Portfolio"];
+export type PortfolioHistory = components["schemas"]["PortfolioHistory"];
+export type UserTrade = components["schemas"]["UserTrade"];
+export type PortfolioRange = "7d" | "30d" | "all";
 export type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 export type LeaderboardWindow = "24h" | "7d" | "30d";
 

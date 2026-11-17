@@ -87,6 +87,25 @@ flowchart LR
 Feed content stays labelled **demo** until backend trade indexing lands, even when market prices are live.
 Signed-out leaderboard results do not include follow state. Follow mutations require auth and accept 204 without a response body.
 
+## Portfolio and indexed rankings
+
+```mermaid
+flowchart LR
+    A{Signed in with viewer identity?} -->|No| S[Existing sign-in state; no requests]
+    A -->|Yes: bearer token| P[Portfolio / history by range / paged trades]
+    P --> Q[Viewer-isolated query cache; refresh every 30s]
+    Q --> UI[Portfolio metric cards; unavailable values stay blank]
+    P --> H[History preserves final live-equity point]
+    P --> T[Opaque trade cursor; null ends paging; buy PnL stays null]
+    L[Leaderboard REST response] --> D[X-Data-Source: demo / indexed]
+    D --> LABEL[Existing leaderboard source label; unknown if missing or invalid]
+    WS[leaderboard:global window + updatedAt] --> R[Invalidate matching rankings and refetch]
+    R --> L
+```
+
+Portfolio errors never substitute demo balances or PnL. History and trade hooks are exposed for future
+Design-owned chart/table slots; the current portfolio layout only has summary metrics.
+
 ## Mock-mode trade page
 
 Captured from this repository's dev server on port 3000 with the mock API on port 4000 and Privy unconfigured.

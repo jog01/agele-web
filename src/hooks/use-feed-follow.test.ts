@@ -55,8 +55,9 @@ const trade: FeedItem = {
   position: "none",
   createdAt: 99,
 };
-function board(isFollowing: boolean): LeaderboardPage {
+function board(isFollowing: boolean): LeaderboardPage & { dataSource: "demo" } {
   return {
+    dataSource: "demo",
     window: "7d",
     entries: [
       {
@@ -84,6 +85,25 @@ afterEach(() => {
 });
 
 describe("feed paging and union handling", () => {
+  it.each([
+    ["buy", "long", "text-positive"],
+    ["buy", "short", "text-positive"],
+    ["buy", "none", "text-positive"],
+    ["sell", "long", "text-negative"],
+    ["sell", "short", "text-negative"],
+    ["sell", "none", "text-negative"],
+  ] as const)("colors %s trades with position %s by side", (side, position, tone) => {
+    expect(feedItemContent({ ...trade, side, position }).tone).toBe(tone);
+  });
+
+  it.each([
+    ["long", "text-positive"],
+    ["short", "text-negative"],
+    ["none", "text-primary"],
+  ] as const)("keeps thesis position %s mapped to %s", (position, tone) => {
+    expect(feedItemContent({ ...thesis, position }).tone).toBe(tone);
+  });
+
   it("passes the opaque cursor unchanged, preserves ordering, and stops on null", async () => {
     const cursor = "opaque:=/++";
     get

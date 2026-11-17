@@ -17,8 +17,13 @@ export function LeaderboardView() {
         <div>
           <h1 className="font-semibold text-2xl">Find your people. Study their process.</h1>
           <p className="mt-1 text-muted-foreground">
-            Ranked by net PnL on supported spot trades, average-cost basis, net of known fees. Demo fixtures,
-            updated every 30s.
+            Ranked by net PnL on supported spot trades, average-cost basis, net of known fees.{" "}
+            {data?.dataSource === "demo"
+              ? "Demo fixtures"
+              : data?.dataSource === "indexed"
+                ? "Indexed trades"
+                : "Data source unavailable"}
+            , updated every 30s.
           </p>
         </div>
         <ToggleGroup

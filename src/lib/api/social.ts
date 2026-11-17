@@ -34,9 +34,20 @@ export function feedQuery(scope: FeedScope, auth: SocialAuth) {
 
 export function feedItemContent(item: FeedItem) {
   return item.kind === "thesis"
-    ? { label: "Thesis", body: item.body, attachment: "Opinion · no execution attached" }
+    ? {
+        label: "Thesis",
+        body: item.body,
+        attachment: "Opinion · no execution attached",
+        tone:
+          item.position === "long"
+            ? "text-positive"
+            : item.position === "short"
+              ? "text-negative"
+              : "text-primary",
+      }
     : {
         label: item.side === "buy" ? "Buy" : "Sell",
+        tone: item.side === "buy" ? "text-positive" : "text-negative",
         body: null,
         attachment: `${item.side === "buy" ? "Bought" : "Sold"} · $${item.amountUsd.toLocaleString("en-US")}`,
       };
