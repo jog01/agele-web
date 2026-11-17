@@ -40,6 +40,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   try {
     if (token && raw) {
       const amount = toBaseUnits(raw.startsWith(".") ? `0${raw}` : raw, side === "buy" ? 6 : token.decimals);
+      if (amount.length > 78) throw new Error("Amount is too large. Use at most 78 base-unit digits.");
       if (amount !== "0")
         input = {
           inputMint: side === "buy" ? solanaCluster().usdcMint : token.mint,
@@ -142,6 +143,8 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     void confirm();
   }, [owner, auth.ready, pending, confirm]);
   return {
+    validAmount: !!input,
+    validation,
     inputAmount: input ? fromBaseUnits(input.amount, side === "buy" ? 6 : token!.decimals) : undefined,
     quote,
     receive,
