@@ -7,13 +7,21 @@ import { useAuth } from "@/components/auth/auth-context";
 import { fromBaseUnits, toBaseUnits } from "@/lib/amounts";
 import { ApiError, type Token } from "@/lib/api/client";
 import { solanaCluster } from "@/lib/solana/cluster";
-import { executeSwap, type SwapInput, type SwapPhase, swapApi, swapErrorMessage } from "@/lib/swaps";
+import {
+  executeSwap,
+  type SwapInput,
+  type SwapIssued,
+  type SwapPhase,
+  swapApi,
+  swapErrorMessage,
+} from "@/lib/swaps";
 
 export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: string, price: number | null) {
   const auth = useAuth();
   const [phase, setPhase] = useState<SwapPhase>("idle");
   const [message, setMessage] = useState("");
   const [disabledByApi, setDisabledByApi] = useState(false);
+  const [requote, setRequote] = useState<{ key: string; order: SwapIssued }>();
   const locked = useRef(false);
   let input: SwapInput | undefined;
   let validation = "";
@@ -44,7 +52,8 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     retry: false,
     staleTime: 10_000,
   });
-  const quote = quoteQuery.data;
+  const reviewedOrder = requote?.key === key ? requote.order : undefined;
+  const quote = reviewedOrder ?? quoteQuery.data;
   const tradingDisabled =
     disabledByApi || (quoteQuery.error instanceof ApiError && quoteQuery.error.code === "trading_disabled");
   const busy = ["creating", "signing", "submitting", "confirming"].includes(phase);
@@ -61,7 +70,16 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     setMessage("");
     try {
       if (!auth.signSwap) throw new Error("Embedded Solana wallet is not ready");
-      const result = await executeSwap(input, { ...swapApi, sign: auth.signSwap, phase: setPhase });
+      const result = await executeSwap(
+        { input, otherAmountThreshold: quote.otherAmountThreshold, order: reviewedOrder },
+        { ...swapApi, sign: auth.signSwap, phase: setPhase },
+      );
+      if (result.status === "requote") {
+        setRequote({ key, order: result.order });
+        setMessage("Price moved: review the new minimum and confirm again");
+        return;
+      }
+      setRequote(undefined);
       const url = result.signature
         ? `https://solscan.io/tx/${result.signature}${solanaCluster().explorerQuery}`
         : undefined;

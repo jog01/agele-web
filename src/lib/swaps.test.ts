@@ -78,9 +78,70 @@ describe("swap errors", () => {
 });
 
 describe("swap orchestration", () => {
+  it("returns a worse minimum for review without signing", async () => {
+    const deps = dependencies();
+    const lower = { ...order, otherAmountThreshold: "1899", outAmount: "1999" };
+    deps.create.mockResolvedValue(lower);
+    expect(await executeSwap({ input, otherAmountThreshold: "1900" }, deps)).toMatchObject({
+      status: "requote",
+      order: lower,
+    });
+    expect(deps.sign).not.toHaveBeenCalled();
+    expect(deps.submit).not.toHaveBeenCalled();
+    await executeSwap({ input, otherAmountThreshold: "1899", order: lower }, deps);
+    expect(deps.create).toHaveBeenCalledTimes(1);
+    expect(deps.sign).toHaveBeenCalledExactlyOnceWith(lower.transaction);
+  });
+  it.each(["1900", "1901", "9007199254740993123456789"])(
+    "signs an equal or higher minimum %s",
+    async (minimum) => {
+      const deps = dependencies();
+      deps.create.mockResolvedValue({ ...order, otherAmountThreshold: minimum });
+      await executeSwap({ input, otherAmountThreshold: "1900" }, deps);
+      expect(deps.sign).toHaveBeenCalledTimes(1);
+    },
+  );
+  it("compares large minimums without floating-point rounding", async () => {
+    const deps = dependencies();
+    deps.create.mockResolvedValue({ ...order, otherAmountThreshold: "9007199254740993000" });
+    expect(await executeSwap({ input, otherAmountThreshold: "9007199254740993001" }, deps)).toMatchObject({
+      status: "requote",
+    });
+    expect(deps.sign).not.toHaveBeenCalled();
+  });
+  it("rechecks the minimum when a reviewed order expires and is recreated", async () => {
+    const deps = dependencies();
+    deps.create.mockResolvedValue({ ...order, requestId: "two", otherAmountThreshold: "1800" });
+    const result = await executeSwap(
+      { input, otherAmountThreshold: "1900", order: { ...order, expiresAt: 0 } },
+      deps,
+    );
+    expect(result).toMatchObject({ status: "requote", order: { requestId: "two" } });
+    expect(deps.sign).not.toHaveBeenCalled();
+  });
+  it.each(["", "invalid", "1.5", "-1"])(
+    "rejects invalid reviewed minimum %s before signing",
+    async (minimum) => {
+      const deps = dependencies();
+      await expect(executeSwap({ input, otherAmountThreshold: minimum }, deps)).rejects.toThrow(
+        "Invalid swap minimum",
+      );
+      expect(deps.sign).not.toHaveBeenCalled();
+    },
+  );
+  it("does not sign a different input amount", async () => {
+    const deps = dependencies();
+    deps.create.mockResolvedValue({ ...order, inAmount: "2" });
+    await expect(executeSwap({ input, otherAmountThreshold: "1900" }, deps)).rejects.toThrow(
+      "Swap input amount changed",
+    );
+    expect(deps.sign).not.toHaveBeenCalled();
+  });
   it("creates, signs and submits without polling on direct confirmation", async () => {
     const deps = dependencies();
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "confirmed", signature: "sig" });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "confirmed", signature: "sig" });
     expect(deps.create).toHaveBeenCalledWith(input);
     expect(deps.sign).toHaveBeenCalledWith("unsigned");
     expect(deps.submit).toHaveBeenCalledWith("one", "signed");
@@ -90,20 +151,26 @@ describe("swap orchestration", () => {
   it("polls submitted to confirmed", async () => {
     const deps = dependencies();
     deps.submit.mockResolvedValue({ status: "submitted", signature: "sig" });
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "confirmed" });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "confirmed" });
     expect(deps.wait).toHaveBeenCalledWith(1500);
     expect(deps.status).toHaveBeenCalledTimes(1);
   });
   it("fails without polling a failed submission", async () => {
     const deps = dependencies();
     deps.submit.mockResolvedValue({ status: "failed", signature: "sig", error: "Slippage exceeded" });
-    await expect(executeSwap(input, deps)).rejects.toThrow("Slippage exceeded");
+    await expect(
+      executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).rejects.toThrow("Slippage exceeded");
     expect(deps.status).not.toHaveBeenCalled();
   });
   it("does not sign when trading is disabled", async () => {
     const deps = dependencies();
     deps.create.mockRejectedValue(new ApiError("Disabled", 503, "trading_disabled"));
-    await expect(executeSwap(input, deps)).rejects.toMatchObject({ code: "trading_disabled" });
+    await expect(
+      executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).rejects.toMatchObject({ code: "trading_disabled" });
     expect(deps.sign).not.toHaveBeenCalled();
   });
   it("recreates an expired order and signs only the fresh transaction", async () => {
@@ -111,7 +178,7 @@ describe("swap orchestration", () => {
     deps.create
       .mockResolvedValueOnce({ ...order, expiresAt: Date.parse("2020-01-01") })
       .mockResolvedValueOnce({ ...order, requestId: "two", transaction: "fresh" });
-    await executeSwap(input, deps);
+    await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps);
     expect(deps.create).toHaveBeenCalledTimes(2);
     expect(deps.sign).toHaveBeenCalledExactlyOnceWith("fresh");
     expect(deps.submit).toHaveBeenCalledWith("two", "signed");
@@ -119,26 +186,34 @@ describe("swap orchestration", () => {
   it("stops if replacement is also expired", async () => {
     const deps = dependencies();
     deps.create.mockResolvedValue({ ...order, expiresAt: Date.parse("2020-01-01") });
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "expired" });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "expired" });
     expect(deps.sign).not.toHaveBeenCalled();
   });
   it("bounds polling and preserves the explorer signature", async () => {
     const deps = dependencies();
     deps.submit.mockResolvedValue({ status: "submitted", signature: "sig" });
     deps.status.mockResolvedValue({ requestId: "one", status: "submitted" });
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "submitted", signature: "sig" });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "submitted", signature: "sig" });
     expect(deps.status).toHaveBeenCalledTimes(40);
   });
   it("polls when execution outcome and signature are initially unknown", async () => {
     const deps = dependencies();
     deps.submit.mockResolvedValue({ status: "submitted" });
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "confirmed", signature: "sig" });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "confirmed", signature: "sig" });
   });
   it("returns a pending request without inventing a signature", async () => {
     const deps = dependencies();
     deps.submit.mockResolvedValue({ status: "submitted" });
     deps.status.mockResolvedValue({ requestId: "one", status: "submitted" });
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "submitted", signature: undefined });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "submitted", signature: undefined });
   });
   it("preserves execution result amounts and numeric code", async () => {
     const deps = dependencies();
@@ -149,7 +224,9 @@ describe("swap orchestration", () => {
       outputAmountResult: "2001",
       code: 0,
     });
-    expect(await executeSwap(input, deps)).toMatchObject({
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({
       inputAmountResult: "1000000",
       outputAmountResult: "2001",
       code: 0,
@@ -163,13 +240,17 @@ describe("swap orchestration", () => {
       now = order.expiresAt;
       return "signed";
     });
-    expect(await executeSwap(input, deps)).toMatchObject({ status: "expired" });
+    expect(
+      await executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).toMatchObject({ status: "expired" });
     expect(deps.submit).not.toHaveBeenCalled();
   });
   it("rejects invalid expiry without signing", async () => {
     const deps = dependencies();
     deps.create.mockResolvedValue({ ...order, expiresAt: Number.NaN });
-    await expect(executeSwap(input, deps)).rejects.toThrow("Invalid swap expiry");
+    await expect(
+      executeSwap({ input, otherAmountThreshold: order.otherAmountThreshold }, deps),
+    ).rejects.toThrow("Invalid swap expiry");
     expect(deps.sign).not.toHaveBeenCalled();
   });
 });

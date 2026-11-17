@@ -8,9 +8,16 @@ export type SwapSubmission =
 export type SwapStatus =
   paths["/v1/swaps/{requestId}"]["get"]["responses"][200]["content"]["application/json"];
 
+export interface ReviewedSwap {
+  input: SwapInput;
+  otherAmountThreshold: string;
+  order?: SwapIssued;
+}
+
 export type SwapPhase =
   | "idle"
   | "creating"
+  | "requote"
   | "signing"
   | "submitting"
   | "confirming"
@@ -53,11 +60,12 @@ interface Dependencies {
   wait?: (ms: number) => Promise<void>;
 }
 
-export async function executeSwap(input: SwapInput, deps: Dependencies) {
+export async function executeSwap(review: ReviewedSwap, deps: Dependencies) {
+  const { input } = review;
   const now = deps.now ?? Date.now;
   const wait = deps.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   deps.phase?.("creating");
-  let order = await deps.create(input);
+  let order = review.order ?? (await deps.create(input));
   if (order.expiresAt <= now()) {
     order = await deps.create(input);
     if (order.expiresAt <= now()) {
@@ -66,6 +74,13 @@ export async function executeSwap(input: SwapInput, deps: Dependencies) {
     }
   }
   if (!Number.isFinite(order.expiresAt)) throw new Error("Invalid swap expiry");
+  if (!/^\d+$/.test(review.otherAmountThreshold) || !/^\d+$/.test(order.otherAmountThreshold))
+    throw new Error("Invalid swap minimum");
+  if (BigInt(order.inAmount) !== BigInt(input.amount)) throw new Error("Swap input amount changed");
+  if (BigInt(order.otherAmountThreshold) < BigInt(review.otherAmountThreshold)) {
+    deps.phase?.("requote");
+    return { status: "requote" as const, requestId: order.requestId, order };
+  }
   deps.phase?.("signing");
   const signed = await deps.sign(order.transaction);
   if (order.expiresAt <= now()) {

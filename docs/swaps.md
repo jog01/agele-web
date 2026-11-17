@@ -62,8 +62,11 @@ flowchart TD
   Creating --> Expiry{Expired before signing?}
   Expiry -- yes --> Recreate[Re-create once; fresh requestId]
   Recreate -- still expired --> Expired[expired]
-  Recreate -- fresh --> Signing[signing]
-  Expiry -- no --> Signing
+  Recreate -- fresh --> Minimum{Created minimum below reviewed minimum?}
+  Expiry -- no --> Minimum
+  Minimum -- yes --> Requote[requote; show created order and new minimum]
+  Requote -- Confirm again; same input --> Expiry
+  Minimum -- no --> Signing[signing]
   Signing -- cancelled / error --> Failed
   Signing -- expired during signing --> Expired
   Signing --> Submitting[submitting]
@@ -77,7 +80,7 @@ flowchart TD
   Confirming -- poll limit --> Pending[idle; still pending, check explorer]
 ```
 
-Every execution creates a new request and obtains a new signature; signed transactions are not reused. An expired transaction is never submitted. Polling is bounded to 40 GET requests (60 seconds of interval waits, plus request latency). A pending message is not a failure or a confirmation: check the linked transaction before retrying.
+Before signing, the created order's minimum is compared to the reviewed minimum using BigInt. A lower minimum returns `requote` without signing and displays the created order's values with “Price moved: review the new minimum and confirm again”. The next Confirm uses that same order for the same mints, amount and slippage. Changing the input discards that review; expiry triggers re-creation and another minimum check. An expired transaction is never submitted. Polling is bounded to 40 GET requests (60 seconds of interval waits, plus request latency). A pending message is not a failure or a confirmation: check the linked transaction before retrying.
 
 ## Errors and demo gating
 
