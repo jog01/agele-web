@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import type { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
-import { DASH, formatAmount, formatPrice, formatUsd, shortAddress } from "@/lib/format";
+import { DASH, formatPrice, formatUsd, shortAddress } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { type Side, SLIPPAGE_PCT } from "./order-ticket";
 
@@ -25,7 +25,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   side: Side;
   token: Token;
-  amount: number;
+  amount: string;
   price: number;
   receive: string;
   minReceive: string;
@@ -75,7 +75,7 @@ export function QuoteReviewDialog({
             label="From"
             value={
               <>
-                {formatAmount(amount)} {from.symbol}
+                {amount} {from.symbol}
                 <span className="block font-mono text-muted-foreground text-xs">
                   {shortAddress(from.mint)}
                 </span>

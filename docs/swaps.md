@@ -43,7 +43,7 @@ sequenceDiagram
 
 `lib/swaps.ts` contains the injected orchestration and typed API adapter; `hooks/use-swap.ts` owns quotes and execution state. `hooks/use-swap-signer.ts` uses Privy 3.51.4's `useSignTransaction` and `useWallets`. Signing takes bytes plus the connected wallet and returns signed bytes; it does not send the transaction.
 
-Buy routes USDC → token; sell routes token → USDC. The USDC mint and Solscan cluster follow `NEXT_PUBLIC_SOLANA_CLUSTER`. Decimal conversions use strings and BigInt, not floating-point multiplication. Numeric USD display values are computed separately from formatted receive labels.
+Buy routes USDC → token; sell routes token → USDC. The USDC mint and Solscan cluster follow `NEXT_PUBLIC_SOLANA_CLUSTER`. Decimal conversions use strings and BigInt, not floating-point multiplication. Review's From amount uses the exact base-unit conversion without display rounding (for example, `1.234567891 SOL` sends `1234567891` base units). Numeric USD display values are computed separately from formatted receive labels.
 
 ## Execution states
 
@@ -106,7 +106,7 @@ Once submit is sent, the ticket retains its request ID before awaiting the respo
 | Failed transaction | Returned transaction error, falling back to “Swap failed”. |
 | Expired transaction | Quote expired. Review a fresh quote and try again. |
 
-`DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and platform fee use the server quote when available. Client estimates appear only while the quote loads. Network fees are labelled **Sponsored** only with a server quote and without a trading-disabled response; otherwise they show a dash. A signed-out Confirm prompts sign-in; without a Privy app ID, sign-in is unavailable.
+`DEMO_MODE` labels fixture market data only; it does not gate submission. The API determines whether trading is disabled. Receive, minimum receive, price impact, slippage and platform fee use the server quote when available. Client estimates appear only while the quote loads. Network fees are labelled **Sponsored** only with a server quote and without a trading-disabled response; otherwise they show a dash. A signed-out Confirm prompts sign-in when Privy is configured and ready. Without a Privy app ID, Confirm is disabled with “Trading is unavailable in demo. Configure sign-in to trade.” Signed-in users without a signer also see disabled Confirm and a wallet-readiness message.
 
 ## Backend contract (merged PR #9)
 

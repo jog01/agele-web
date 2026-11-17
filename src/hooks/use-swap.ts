@@ -65,14 +65,24 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   const tradingDisabled =
     disabledByApi || (quoteQuery.error instanceof ApiError && quoteQuery.error.code === "trading_disabled");
   const busy = ["creating", "signing", "submitting", "confirming"].includes(phase);
+  const unavailable = !auth.configured
+    ? "Trading is unavailable in demo. Configure sign-in to trade."
+    : !auth.ready
+      ? "Sign-in is loading. Trading is unavailable until ready."
+      : !auth.authenticated
+        ? "Trading needs sign-in. Confirm to sign in."
+        : !auth.signSwap
+          ? "Trading is unavailable until your embedded wallet is ready."
+          : "";
   const outputDecimals = side === "buy" ? (token?.decimals ?? 0) : 6;
   const receive = quote ? fromBaseUnits(quote.outAmount, outputDecimals) : undefined;
   const minReceive = quote ? fromBaseUnits(quote.otherAmountThreshold, outputDecimals) : undefined;
   const confirm = async () => {
     if (!auth.authenticated) {
-      auth.login();
+      if (auth.configured && auth.ready) auth.login();
       return;
     }
+    if ((!auth.configured || !auth.ready || !auth.signSwap) && !pendingRef.current) return;
     if (locked.current || (!pendingRef.current && (!input || !quote || tradingDisabled))) return;
     locked.current = true;
     setMessage("");
@@ -123,6 +133,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     }
   };
   return {
+    inputAmount: input ? fromBaseUnits(input.amount, side === "buy" ? 6 : token!.decimals) : undefined,
     quote,
     receive,
     minReceive,
@@ -144,14 +155,21 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     confirmDisabled:
       busy ||
       (!pending &&
-        (tradingDisabled || (auth.authenticated && (!quote || !!quoteQuery.error || key !== debounced)))),
+        (tradingDisabled ||
+          !auth.configured ||
+          !auth.ready ||
+          (auth.authenticated && !auth.signSwap) ||
+          (auth.authenticated && (!quote || !!quoteQuery.error || key !== debounced)))),
     status: pending
       ? `Outcome unknown: checking swap ${pending.requestId}. Confirm again to check status; no new swap will be created.`
       : tradingDisabled
         ? "Demo only · submission disabled"
         : busy
           ? `${phase}…`
-          : message || validation || (quoteQuery.error ? swapErrorMessage(quoteQuery.error) : ""),
+          : message ||
+            validation ||
+            (quoteQuery.error ? swapErrorMessage(quoteQuery.error) : "") ||
+            unavailable,
     fallback: !!input && !quoteQuery.error && !quote,
   };
 }

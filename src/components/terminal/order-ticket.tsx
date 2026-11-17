@@ -278,7 +278,7 @@ export function OrderTicket({
           onOpenChange={setReviewOpen}
           side={side}
           token={token}
-          amount={amount}
+          amount={swap.inputAmount ?? DASH}
           price={price ?? 0}
           receive={swap.receive ?? (swap.fallback && est ? formatAmount(est.receive) : DASH)}
           minReceive={swap.minReceive ?? (swap.fallback && est ? formatAmount(est.minReceive) : DASH)}

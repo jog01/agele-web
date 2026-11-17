@@ -2,11 +2,13 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ApiError, type Token } from "@/lib/api/client";
+import { type SwapIssued, swapApi } from "@/lib/swaps";
 import { useSwap } from "./use-swap";
-import { swapApi, type SwapIssued } from "@/lib/swaps";
 
 const query = vi.hoisted(() => vi.fn());
 const auth = vi.hoisted(() => ({
+  configured: true,
+  ready: true,
   authenticated: false,
   login: vi.fn(),
   signSwap: vi.fn(async () => "signed"),
@@ -31,6 +33,9 @@ const token: Token = {
 beforeEach(() => {
   vi.useFakeTimers();
   auth.authenticated = false;
+  auth.configured = true;
+  auth.ready = true;
+  auth.login.mockClear();
   auth.signSwap.mockClear();
 });
 afterEach(() => {
@@ -180,6 +185,23 @@ it("uses raw server base units for the numeric sell Value", () => {
   const { result } = renderHook(() => useSwap(token, "sell", "10", 150));
   expect(result.current.receive).toBe("1500");
   expect(result.current.valueUsd).toBe(1500);
+});
+
+it("keeps all entered token decimals in review and in the submitted input", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: issued, error: null });
+  const create = vi.spyOn(swapApi, "create").mockResolvedValue({ ...issued, inAmount: "1234567891" });
+  vi.spyOn(swapApi, "submit").mockResolvedValue({ status: "confirmed" });
+  const { result } = renderHook(() => useSwap(token, "sell", "1.234567891", 150));
+  expect(result.current.inputAmount).toBe("1.234567891");
+  await confirm(result);
+  expect(create).toHaveBeenCalledWith(expect.objectContaining({ amount: "1234567891" }));
+});
+
+it.each(["", "1.2345678912"])("does not provide a rounded review amount for invalid input %s", (raw) => {
+  query.mockReturnValue({ data: undefined, error: null });
+  const { result } = renderHook(() => useSwap(token, "sell", raw, 150));
+  expect(result.current.inputAmount).toBeUndefined();
 });
 
 it("computes numeric sell Value while the client estimate loads", () => {
