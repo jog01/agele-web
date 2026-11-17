@@ -87,16 +87,7 @@ export function FeedView() {
                   <Initials handle={p.handle} />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{p.handle}</div>
-                    <div
-                      className={cn(
-                        "text-xs",
-                        p.position === "long"
-                          ? "text-positive"
-                          : p.position === "short"
-                            ? "text-negative"
-                            : "text-primary",
-                      )}
-                    >
+                    <div className={cn("text-xs", p.content.tone)}>
                       {p.kind === "trade"
                         ? p.content.label
                         : p.position === "long"
