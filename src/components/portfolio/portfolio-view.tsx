@@ -44,9 +44,11 @@ export function PortfolioView() {
         <Wallet className="size-8 text-primary" aria-hidden />
         <h2 className="font-semibold text-[15px]">Your portfolio starts here</h2>
         <p className="max-w-md text-muted-foreground">
-          {auth.configured
-            ? "Sign in to create your embedded Solana wallet, then deposit USDC to start trading."
-            : "Sign-in is disabled in this demo build. Holdings, balances and PnL appear once Privy and the indexer are connected."}
+          {auth.authenticated
+            ? "Deposit USDC to your Solana wallet to start trading. Holdings and PnL appear after your first trade."
+            : auth.configured
+              ? "Sign in to create your embedded Solana wallet, then deposit USDC to start trading."
+              : "Sign-in is disabled in this demo build. Holdings, balances and PnL appear once Privy and the indexer are connected."}
         </p>
         {auth.configured && !auth.authenticated && <Button onClick={auth.login}>Sign in</Button>}
         {auth.wallet.address && <Button onClick={openDeposit}>Deposit USDC</Button>}
