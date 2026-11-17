@@ -7,18 +7,22 @@ import { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
 import { QuoteReviewDialog } from "./quote-review-dialog";
 
+const quoteState = vi.hoisted(() => ({ available: true, error: null as Error | null }));
+
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({
-    data: {
-      inAmount: "1234567891",
-      outAmount: "150000000",
-      otherAmountThreshold: "149000000",
-      slippageBps: 50,
-      priceImpactPct: 0.1,
-      feeBps: 25,
-      router: "mock",
-    },
-    error: null,
+    data: quoteState.available
+      ? {
+          inAmount: "1234567891",
+          outAmount: "150000000",
+          otherAmountThreshold: "149000000",
+          slippageBps: 50,
+          priceImpactPct: 0.1,
+          feeBps: 25,
+          router: "mock",
+        }
+      : undefined,
+    error: quoteState.error,
   }),
 }));
 vi.mock("@/hooks/use-market-data-source", () => ({ useMarketDataMode: () => ({ demoMode: true }) }));
@@ -57,7 +61,11 @@ function show(auth: AuthState = demoAuth) {
   return screen.getByRole("button", { name: "Confirm sell SOL" }) as HTMLButtonElement;
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  quoteState.available = true;
+  quoteState.error = null;
+});
 
 it("disables Confirm with an honest status in no-Privy demo mode despite a valid quote", () => {
   const confirm = show();
@@ -85,3 +93,23 @@ it("shows the exact entered SOL amount without four-decimal display rounding", (
   expect(screen.getByText("1.234567891 SOL", { exact: true })).toBeDefined();
   expect(screen.queryByText("1.2346 SOL", { exact: true })).toBeNull();
 });
+
+it("does not mix fixture prices with provider quotes or promise sponsorship", () => {
+  show();
+  expect(screen.queryByText("Demo price")).toBeNull();
+  expect(screen.getByText("Not quoted")).toBeDefined();
+  expect(screen.queryByText("Sponsored")).toBeNull();
+  expect(screen.getByRole("alert").textContent).toContain("provider quote estimates");
+});
+
+it.each([null, new Error("Quote unavailable")])(
+  "labels fixture prices when no quote is available (%s)",
+  (error) => {
+    quoteState.available = false;
+    quoteState.error = error;
+    show();
+    expect(screen.getByText("Demo price")).toBeDefined();
+    expect(screen.getByRole("alert").textContent).toContain("Estimates are not live quotes");
+    expect(screen.getByText("Not quoted")).toBeDefined();
+  },
+);
