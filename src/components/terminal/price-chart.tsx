@@ -15,11 +15,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useLiveCandles } from "@/hooks/use-live-candles";
+import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import { useNow } from "@/hooks/use-now";
 import type { Candle, Interval } from "@/lib/api/client";
 import { useToken } from "@/lib/api/queries";
 import { marketCapCandle, movingAverage, tokenSupply } from "@/lib/candles";
-import { DEMO_MODE } from "@/lib/config";
 import { formatCompactUsd, formatPct, formatPrice } from "@/lib/format";
 import { useTerminalStore } from "@/stores/terminal";
 
@@ -63,6 +63,7 @@ export function PriceChart({
   onLivePrice?: (p: number) => void;
 }) {
   const { interval, setInterval, chartMode, setChartMode } = useTerminalStore();
+  const { demoMode } = useMarketDataMode();
   const { chartStyle, scaleMode, range, ma7, ma25, setChartOptions } = useTerminalStore();
   const now = useNow();
   const container = useRef<HTMLDivElement>(null);
@@ -244,7 +245,7 @@ export function PriceChart({
         )}
         <span className="ml-auto text-muted-foreground text-xs">
           {chartMode === "price" ? "Price (USD)" : "Market cap (USD)"}
-          {DEMO_MODE && " · demo"}
+          {demoMode && " · demo"}
         </span>
         {legend && (
           <p

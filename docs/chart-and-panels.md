@@ -1,7 +1,7 @@
 # Chart and panels
 
-The terminal uses **labelled demo market data** (`DEMO_MODE` in
-`src/lib/config.ts`); these screens do not imply executable trading or real
+The terminal labels demo mode via `useMarketDataMode` (health-derived market
+data source and auth configuration); these screens do not imply executable trading or real
 fills. Depth remains unavailable. API types come from the generated
 `src/lib/api/schema.d.ts`, never handwritten response models.
 
