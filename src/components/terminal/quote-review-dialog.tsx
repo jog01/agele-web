@@ -93,18 +93,20 @@ export function QuoteReviewDialog({
           />
           <Line label="Minimum receive" value={minReceive === DASH ? DASH : `${minReceive} ${to.symbol}`} />
           <Separator className="my-2" />
-          <Line label="Price" value={`${formatPrice(price)} / ${token.symbol}`} />
+          {!swap.quote && <Line label="Demo price" value={`${formatPrice(price)} / ${token.symbol}`} />}
           <Line label="Slippage" value={`${swap.quote ? swap.quote.slippageBps / 100 : SLIPPAGE_PCT}%`} />
           <Line label="Price impact" value={swap.quote ? `${swap.quote.priceImpactPct}%` : DASH} />
           <Line label="Platform fee" value={swap.quote ? `${swap.quote.feeBps / 100}%` : DASH} />
-          <Line label="Network fee" value={swap.quote && !swap.tradingDisabled ? "Sponsored" : DASH} />
+          <Line label="Network fee" value="Not quoted" />
           <Line label="Network" value="Solana" />
           <Line label="Value" value={formatUsd(swap.valueUsd)} />
         </div>
         {DEMO_MODE && (
           <div role="alert" className="flex gap-2 rounded-md bg-warning-subtle p-3 text-warning text-xs">
             <TriangleAlert className="size-4 shrink-0" aria-hidden />
-            Demo data: fixture market prices. Estimates are not live quotes.
+            {swap.quote
+              ? "Demo market data. Review amounts are provider quote estimates, not fixture prices. Sponsorship is not guaranteed by a quote."
+              : "Demo data: fixture market prices. Estimates are not live quotes."}
           </div>
         )}
         {swap.status && (
