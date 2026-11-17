@@ -1,6 +1,7 @@
 "use client";
 
 import { env } from "@/env";
+import { useMarketDataSource } from "@/hooks/use-market-data-source";
 import { useNow } from "@/hooks/use-now";
 import { cn } from "@/lib/utils";
 import { useRealtimeStore } from "@/stores/realtime";
@@ -8,6 +9,7 @@ import { useRealtimeStore } from "@/stores/realtime";
 const LABEL = { connecting: "Connecting", open: "Live", closed: "Reconnecting" } as const;
 
 export function StatusStrip() {
+  const source = useMarketDataSource();
   const { status, lastMessageAt } = useRealtimeStore();
   const now = useNow();
   const ago = lastMessageAt && now ? Math.max(0, Math.round((now - lastMessageAt) / 1000)) : null;
@@ -24,7 +26,7 @@ export function StatusStrip() {
         Market data: {LABEL[status]}
       </span>
       <span className="tabular">{ago === null ? "No updates yet" : `Last update ${ago}s ago`}</span>
-      <span>Source: demo fixtures</span>
+      <span>Source: {source === "mock" ? "demo fixtures" : "live"}</span>
       <span className="ml-auto">Solana {env.NEXT_PUBLIC_SOLANA_CLUSTER}</span>
       <a
         href="https://www.tradingview.com"

@@ -11,8 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import type { Token } from "@/lib/api/client";
-import { DEMO_MODE } from "@/lib/config";
 import { DASH, formatAmount, formatPrice, formatUsd, shortAddress } from "@/lib/format";
 import { type Side, SLIPPAGE_PCT } from "./order-ticket";
 
@@ -52,6 +52,7 @@ export function QuoteReviewDialog({
   receive,
   minReceive,
 }: Props) {
+  const { demoMode: DEMO_MODE, tradingDisabled } = useMarketDataMode();
   const from = side === "buy" ? { symbol: "USDC", mint: USDC_MINT } : token;
   const to = side === "buy" ? token : { symbol: "USDC", mint: USDC_MINT };
   return (
@@ -106,7 +107,7 @@ export function QuoteReviewDialog({
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Back
           </Button>
-          <Button disabled={DEMO_MODE}>
+          <Button disabled={tradingDisabled}>
             Confirm {side} {token.symbol}
           </Button>
         </DialogFooter>

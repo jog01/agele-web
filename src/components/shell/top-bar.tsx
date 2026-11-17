@@ -6,7 +6,8 @@ import { useAuth } from "@/components/auth/auth-context";
 import { DemoBadge } from "@/components/common/demo-badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DEMO_MODE, PRODUCT_NAME } from "@/lib/config";
+import { useMarketDataMode } from "@/hooks/use-market-data-source";
+import { PRODUCT_NAME } from "@/lib/config";
 import { shortAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export const NAV = [
 
 export function TopBar({ section, onSearch }: { section?: NavSection; onSearch?: () => void }) {
   const auth = useAuth();
+  const { demoMode: DEMO_MODE } = useMarketDataMode();
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-sidebar px-3">
       <Link href="/" className="flex items-center gap-2 font-semibold text-[15px] tracking-tight">

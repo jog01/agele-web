@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useMarketDataMode } from "@/hooks/use-market-data-source";
 import type { Token } from "@/lib/api/client";
-import { DEMO_MODE } from "@/lib/config";
 import { DASH, formatAmount, formatCompactUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { QuoteReviewDialog } from "./quote-review-dialog";
@@ -42,6 +42,7 @@ export function OrderTicket({
   initialSide?: Side;
 }) {
   const [side, setSide] = useState<Side>(initialSide);
+  const { demoMode: DEMO_MODE } = useMarketDataMode();
   const [raw, setRaw] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
   const symbol = token?.symbol ?? "";
