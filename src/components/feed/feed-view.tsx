@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFeed } from "@/hooks/use-feed";
 import { useFollow } from "@/hooks/use-follow";
 import { useNow } from "@/hooks/use-now";
@@ -46,27 +47,34 @@ export function FeedView() {
         <div>
           <h1 className="font-semibold text-2xl">Your network.</h1>
           <p className="mt-1 text-muted-foreground">
-            Demo feed · Theses and trades from traders across supported markets. Following feed unlocks after
-            sign-in.
+            Demo feed · Theses and trades from traders across supported markets.{" "}
+            {auth.configured
+              ? "Following feed unlocks after sign-in."
+              : "Sign-in is not configured in this build, so following is unavailable."}
           </p>
         </div>
-        <div>
+        <ToggleGroup
+          type="single"
+          value={scope}
+          onValueChange={(v) => v && setScope(v as FeedScope)}
+          variant="outline"
+          aria-label="Feed scope"
+        >
           {(["global", "following"] as const).map((value) => (
-            <Button
-              key={value}
-              variant="outline"
-              size="sm"
-              aria-pressed={scope === value}
-              onClick={() => setScope(value)}
-            >
+            <ToggleGroupItem key={value} value={value} className="h-10 px-4 lg:h-8 lg:px-3">
               {value === "global" ? "Global" : "Following"}
-            </Button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
         {scope === "following" && !auth.authenticated ? (
-          <Button variant="outline" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
-            Sign in to see your following feed
-          </Button>
+          <div className="space-y-2">
+            <Button variant="outline" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
+              Sign in to see your following feed
+            </Button>
+            {!auth.configured && (
+              <p className="text-muted-foreground text-sm">Sign-in is not configured in this build.</p>
+            )}
+          </div>
         ) : (
           <>
             {feed.isPending && <p className="text-muted-foreground">Loading feed…</p>}
@@ -132,7 +140,9 @@ export function FeedView() {
       <aside className="space-y-3 lg:pt-16">
         <section className="rounded-lg border bg-card p-4">
           <h2 className="font-semibold text-[15px]">Worth a closer look</h2>
-          <p className="mt-1 text-muted-foreground text-xs">Discover traders by process, not hype.</p>
+          <p className="mt-1 text-muted-foreground text-xs">
+            {board?.dataSource === "demo" && "Demo fixtures · "}Discover traders by process, not hype.
+          </p>
           <ul className="mt-3 space-y-3">
             {board?.entries.slice(0, 4).map((e) => (
               <li key={e.wallet} className="flex items-center gap-3">
@@ -154,6 +164,13 @@ export function FeedView() {
               </li>
             ))}
           </ul>
+          {!auth.authenticated && (
+            <p className="mt-3 text-muted-foreground text-xs">
+              {auth.configured
+                ? "Sign in to follow traders."
+                : "Sign-in is not configured in this build, so following is disabled."}
+            </p>
+          )}
           {follow.isError && (
             <p role="alert" className="text-muted-foreground text-xs">
               {follow.error.message}
