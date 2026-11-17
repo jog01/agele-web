@@ -1,6 +1,8 @@
 "use client";
 
 import { queryOptions, useQuery } from "@tanstack/react-query";
+import { useLiveLeaderboard } from "@/hooks/use-live-leaderboard";
+import { useLivePrices } from "@/hooks/use-live-prices";
 import { api, type Interval, type LeaderboardWindow, unwrap } from "./client";
 
 export const tokenQueries = {
@@ -65,5 +67,18 @@ export const socialQueries = {
     }),
 };
 
-export const useTrending = () => useQuery(tokenQueries.trending());
-export const useToken = (mint: string) => useQuery(tokenQueries.detail(mint));
+export function useTrending() {
+  const query = useQuery(tokenQueries.trending());
+  useLivePrices(query.data?.map((token) => token.mint) ?? []);
+  return query;
+}
+
+export function useToken(mint: string) {
+  useLivePrices([mint]);
+  return useQuery(tokenQueries.detail(mint));
+}
+
+export function useLeaderboard(window: LeaderboardWindow) {
+  useLiveLeaderboard();
+  return useQuery(socialQueries.leaderboard(window));
+}

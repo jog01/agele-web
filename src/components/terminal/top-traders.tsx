@@ -1,12 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { socialQueries } from "@/lib/api/queries";
+import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd } from "@/lib/format";
 
 export function TopTraders() {
-  const { data } = useQuery(socialQueries.leaderboard("24h"));
+  const { data } = useLeaderboard("24h");
   return (
     <section aria-label="Top traders" className="rounded-lg border bg-card p-3">
       <div className="mb-2 flex items-center justify-between">
