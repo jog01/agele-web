@@ -158,7 +158,7 @@ export function OrderTicket({
             autoComplete="off"
             placeholder="0.00"
             value={raw}
-            onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setRaw(e.target.value)}
+            onChange={(e) => setRaw(e.target.value)}
             aria-invalid={!!swap.validation}
             aria-describedby={`${amountId}-balance ${amountId}-validation`}
             className={cn(

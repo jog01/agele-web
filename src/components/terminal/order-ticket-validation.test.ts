@@ -54,3 +54,33 @@ it.each(["buy", "sell"] as const)("gates empty, oversized and valid %s previews"
   expect(preview.disabled).toBe(false);
   expect(input.getAttribute("aria-invalid")).toBe("false");
 });
+
+it.each(["buy", "sell"] as const)(
+  "preserves invalid typed %s amounts instead of reinterpreting them",
+  (side) => {
+    render(
+      createElement(
+        AuthContext,
+        { value: demoAuth },
+        createElement(OrderTicket, { token, price: 150, initialSide: side }),
+      ),
+    );
+    const preview = screen.getByRole("button", { name: `Preview ${side} SOL` }) as HTMLButtonElement;
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    for (const value of ["-", "-5", "abc", "5abc", "1.2.3"]) {
+      fireEvent.change(input, { target: { value } });
+      expect(input.value).toBe(value);
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(screen.getAllByText("Enter a valid amount").length).toBeGreaterThan(0);
+      expect(preview.disabled).toBe(true);
+      fireEvent.submit(input.closest("form")!);
+      expect(screen.queryByRole("dialog")).toBeNull();
+    }
+    fireEvent.change(input, { target: { value: "5" } });
+    expect(preview.disabled).toBe(false);
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+    fireEvent.change(input, { target: { value: "" } });
+    expect(preview.disabled).toBe(true);
+    expect(screen.queryByText("Enter a valid amount")).toBeNull();
+  },
+);
