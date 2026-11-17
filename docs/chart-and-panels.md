@@ -14,6 +14,9 @@ fills. Depth remains unavailable. API types come from the generated
 | WS `token:<mint>:trades` | `useLiveTrades` updates the trades cache and delivers trades for candle folding |
 | `GET /v1/tokens/{mint}` | `useToken`: price, market cap and holders count; refreshes every 15 seconds |
 | `GET /v1/tokens/{mint}/comments?limit=20` | Existing Thesis discussion |
+| `GET /v1/tokens/{mint}/positions` | Bearer-authenticated viewer position, including closed positions; refreshes every 30 seconds |
+| `GET /v1/tokens/{mint}/traders?limit=25&cursor=…` | Public indexed-volume ranking, loaded in cursor pages |
+| `GET /v1/tokens/{mint}/holders?limit=20` | Public owner-wallet snapshot, top-10 concentration and update time |
 
 ```mermaid
 flowchart LR
@@ -126,30 +129,86 @@ Manual pan/zoom, hovered candle and the selected under-chart tab are not stored.
 | Tab | Available now / limitation |
 | --- | --- |
 | **Trades** | Age, type, Price/MCap, USD amount, token amount, trader and transaction links to Solscan. Live rows briefly highlight. Following is disabled: sign-in and following API data are required. Demo signatures are synthetic. |
-| **Holders** | Formatted `Token.holders` count only. “Top holder list isn't available yet”: no holders endpoint exists. `HoldersPanel` is separate so a future list query can be wired here. |
-| **Positions** | Honest empty state: sign-in and a positions API are required. |
-| **Traders** | Honest empty state: no per-token trader-ranking endpoint. The existing separate Top Traders panel is unchanged. |
+| **Holders** | Ranked owner wallets with Solscan links, amount, supply share and USD value. Pool rows use `isPool` and the API label (currently Raydium). Shows `totalHolders`, `top10Pct` and UTC `updatedAt`. Loading, empty, 404 and temporary-unavailable/Retry states are distinct. |
+| **Positions** | Existing auth login entry point when signed out (disabled in unconfigured demo builds). Signed-in viewers see quantity, average cost, price, value and signed unrealized/realized PnL. Null means no position; quantity zero means closed, retaining realized PnL. |
+| **Traders** | Public list ranked by lifetime indexed volume, with rank, handle/wallet, Solscan link when a wallet exists, buys/sells, volume and total PnL. Load more follows `nextCursor`; null ends pagination. The separate Top Traders panel is unchanged. |
 | **Thesis** | Existing discussion UI unchanged; posting remains sign-in gated. This is distinct from the disabled chart overlay. |
 
-### Proposed holders API — not implemented
+### Authenticated positions and indexed traders
 
-`GET /v1/tokens/{mint}/holders?limit≤100`
+`tokenQueries.position` keys private results by mint and the portfolio viewer
+identity (wallet address, falling back to user label). Signed-out requests are
+disabled, missing bearer tokens fail before HTTP, and logout switches cache keys
+so private rows cannot remain visible. Errors never become a fabricated zero
+position; 404 means unknown token, not an empty holding.
 
-Here `limit≤100` describes the cap (for example, `?limit=100`), not literal query
-syntax. Proposed response shape:
-
-```ts
-{
-  holders: [{ rank, wallet, amount, pctSupply, valueUsd, label: "pool" | "dev" | null }],
-  total
-}
+```mermaid
+sequenceDiagram
+    participant UI as Positions tab
+    participant Auth as Auth context
+    participant Q as Viewer-isolated query
+    participant API as REST API
+    UI->>Auth: Read authenticated viewer
+    alt Signed out
+        UI-->>UI: Sign-in prompt or demo explanation
+    else Signed in
+        UI->>Q: Query mint and viewer key
+        Q->>Auth: getAccessToken
+        Auth-->>Q: Bearer token
+        Q->>API: GET /v1/tokens/mint/positions with bearer
+        API-->>Q: Position or null and X-Data-Source
+        Q-->>UI: Open, closed, empty or error state
+    end
+    Auth-->>UI: Logout or viewer changes
+    UI->>Q: Switch viewer key and hide previous position
 ```
 
-This is a backend proposal, **not part of the current generated contract**.
-Implement and publish the API schema first, regenerate client types, then wire
-the list; do not invent holder rows or hand-edit generated types.
+Both endpoints label successful responses from `X-Data-Source` using the same
+parser as the leaderboard: indexed, demo, or unknown. PnL is signed and colored;
+unknown provenance is never labelled indexed. Traders without wallets have no
+invented explorer link. Rankings are live, not snapshot-isolated, so the order
+may change between pages. A pagination error preserves existing rows and offers
+Retry load more; initial errors and 404 show Retry without invented rows.
 
-## Verified demo screens
+```mermaid
+flowchart TD
+    OPEN["Open Traders for mint"] --> FETCH["Public GET traders with limit 25 and optional cursor"]
+    FETCH --> OK{"Request succeeded?"}
+    OK -->|No| ERROR["Show error or 404 and Retry; retain earlier rows"]
+    ERROR -->|Retry| FETCH
+    OK -->|Yes| ADD["Append page in API order and show data source"]
+    ADD --> NEXT{"nextCursor exists?"}
+    NEXT -->|No| END["End of list or honest empty state"]
+    NEXT -->|Yes| MORE["Show Load more"]
+    MORE -->|Click| FETCH
+```
+
+### Holders snapshot
+
+The implemented contract replaces the earlier proposed holders API: `limit` is
+**1–20**, with `{ mint, totalHolders, top10Pct, holders, updatedAt }`. Rows use
+`{ rank, wallet, amount, pctSupply, valueUsd, isPool?, label? }` from generated
+types. Supply percentages are already percent units, not fractions. Missing pool
+labels display “Unknown pool”; only `isPool` rows get tags. Snapshot time is Unix
+seconds. No automatic retry loop runs on upstream errors; Retry explicitly
+requests another snapshot. The live provider may return 502 from public RPC rate
+limits until a Helius key is configured; the UI does not claim the list is empty.
+
+```mermaid
+flowchart TD
+    TAB["Open Holders"] --> GET["GET holders with limit 20"]
+    GET --> STATUS{"Response"}
+    STATUS -->|200| SNAP["Show total, top10Pct and UTC updatedAt"]
+    SNAP --> ROWS{"Rows exist?"}
+    ROWS -->|Yes| LIST["Ranked wallets and pool labels"]
+    ROWS -->|No| EMPTY["No holder data yet"]
+    STATUS -->|404| UNKNOWN["Token not found and Retry"]
+    STATUS -->|502 or network error| UNAVAILABLE["Holder data temporarily unavailable and Retry"]
+    UNAVAILABLE -->|Retry| GET
+    UNKNOWN -->|Retry| GET
+```
+
+## Original chart implementation screens
 
 Captured at `/trade/So11111111111111111111111111111111111111112` with the local
 mock API. These screenshots show UI behavior, not real market execution.
@@ -169,10 +228,36 @@ mock API. These screenshots show UI behavior, not real market execution.
 ### Trades filters with no matching rows
 ![Buys and minimum USD size filters showing an honest empty result](images/chart/trades-filter-empty.png)
 
-## Checks
+## Original chart implementation checks
 
 `bun run check && bun run build` passed for the implementation
 (3 test files, 15 tests). Pure logic and hook tests cover folding, conversion,
 MAs, deduplication, selection/snapshot resets, loading, empty and error states.
 The screens above were visually checked; forced reconnect and mobile layout
 were not visually exercised.
+
+## Positions, Traders and Holders verification
+
+Types regenerated with `OPENAPI_URL=../agele/openapi.json bun run api:types`
+from backend main (the API now lives at that repository's root). New panels use
+only those generated response types. My swaps and Design-owned files are untouched.
+
+The following screens use the current local backend with
+`MARKET_DATA_PROVIDER=mock`, local PostgreSQL and Redis. Holders are backend mock
+fixtures. Traders come from two explicitly seeded **local demo database users and
+trades**, not real indexed activity; the backend still correctly reports its
+indexed repository as the data source. Positions is signed out with Privy
+unconfigured. Signed-in open/null/closed and error states are covered in Vitest,
+not a real Privy session. The mock provider does not emit RPC 502s: the 502 → Retry
+→ recovered list interaction is tested in Vitest rather than a fabricated screenshot.
+
+![Signed-out Positions with honest demo sign-in explanation](images/chart/positions-signed-out.png)
+![Traders ranked from seeded local database fixtures](images/chart/traders-indexed-local.png)
+![Holders list from the local mock provider](images/chart/holders-list.png)
+
+Panel/query tests cover bearer and signed-out gating, viewer/mint isolation,
+logout, opaque cursor pagination, null/closed positions, missing wallets, empty
+pages, initial and pagination errors, 404s, pool tagging, and holder 502 recovery.
+`bun install --frozen-lockfile && bun run check && bun run build` passed with
+22 test files and 202 tests. All six Mermaid blocks rendered successfully with
+Mermaid CLI. The three new panels above were visually checked on the new build.

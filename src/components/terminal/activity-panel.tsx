@@ -15,7 +15,6 @@ import { tokenQueries, useToken } from "@/lib/api/queries";
 import { tokenSupply } from "@/lib/candles";
 import {
   formatAmount,
-  formatCompact,
   formatCompactUsd,
   formatPrice,
   formatUsd,
@@ -25,6 +24,7 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
+import { HoldersPanel, PositionsPanel, TradersPanel } from "./token-activity-panels";
 
 function ActivityTable({ mint }: { mint: string }) {
   const { data: trades = [], isPending, isError } = useQuery(tokenQueries.trades(mint));
@@ -147,18 +147,6 @@ function ActivityTable({ mint }: { mint: string }) {
   );
 }
 
-function HoldersPanel({ mint }: { mint: string }) {
-  const { data: token, isPending, isError } = useToken(mint);
-  return (
-    <div className="space-y-2 p-4">
-      <p className="font-medium">
-        Holders · {isPending ? "Loading…" : isError ? "Unavailable" : formatCompact(token?.holders)}
-      </p>
-      <p className="text-muted-foreground">Top holder list isn't available yet</p>
-    </div>
-  );
-}
-
 const MAX_THESIS = 280;
 
 function ThesisPanel({ mint }: { mint: string }) {
@@ -247,16 +235,14 @@ export function ActivityPanel({ mint }: { mint: string }) {
         <TabsContent value="activity" className="min-h-0 flex-1 overflow-auto">
           <ActivityTable key={mint} mint={mint} />
         </TabsContent>
-        <TabsContent value="holders">
-          <HoldersPanel mint={mint} />
+        <TabsContent value="holders" className="min-h-0 flex-1 overflow-auto">
+          <HoldersPanel key={mint} mint={mint} />
         </TabsContent>
-        <TabsContent value="positions">
-          <p className="p-4 text-muted-foreground">
-            Positions aren't available yet. Sign-in and a positions API are required.
-          </p>
+        <TabsContent value="positions" className="min-h-0 flex-1 overflow-auto">
+          <PositionsPanel key={mint} mint={mint} />
         </TabsContent>
-        <TabsContent value="traders">
-          <p className="p-4 text-muted-foreground">Per-token trader rankings aren't available yet.</p>
+        <TabsContent value="traders" className="min-h-0 flex-1 overflow-auto">
+          <TradersPanel key={mint} mint={mint} />
         </TabsContent>
         <TabsContent value="thesis" className="min-h-0 flex-1 overflow-auto">
           <ThesisPanel mint={mint} />
