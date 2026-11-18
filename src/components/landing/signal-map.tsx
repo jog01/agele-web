@@ -71,7 +71,7 @@ export function SignalMap() {
         <g stroke="var(--primary)" strokeOpacity="0.3" strokeWidth="1">
           <path d="M107 199H188Q207 199 207 220V252Q207 271 228 271H292" />
           <path d="M278 107V145Q278 165 298 165H356Q378 165 378 188V238" />
-          <path d="M523 136V150Q523 174 499 174H489V193" />
+          <path className="hidden sm:block lg:hidden xl:block" d="M523 136V150Q523 174 499 174H489V193" />
           <path d="M105 436H197Q219 436 219 414V390Q219 370 242 370H334V300" />
           <path d="M481 440V395Q481 374 460 374H422V283" />
         </g>
@@ -108,7 +108,13 @@ export function SignalMap() {
         />
         <path d="M532 198H589" stroke="var(--primary)" strokeDasharray="3 5" strokeOpacity="0.7" />
         <circle cx="532" cy="198" r="5" fill="var(--primary)" stroke="var(--background)" strokeWidth="3" />
-        <g fontFamily="var(--font-mono)" fontSize="9" letterSpacing="1.5" fill="var(--muted-foreground)">
+        <g
+          className="hidden sm:block lg:hidden xl:block"
+          fontFamily="var(--font-mono)"
+          fontSize="9"
+          letterSpacing="1.5"
+          fill="var(--muted-foreground)"
+        >
           <text x="139" y="412">
             THE MARKET
           </text>
@@ -120,7 +126,11 @@ export function SignalMap() {
         <Person x={278} y={88} />
         <Person x={105} y={436} />
         <Person x={481} y={459} />
-        <g fontFamily="var(--font-sans)" fontSize="11" fill="var(--muted-foreground)">
+        <g
+          className="text-[24px] sm:text-[11px] lg:text-[16px] xl:text-[11px]"
+          fontFamily="var(--font-sans)"
+          fill="var(--muted-foreground)"
+        >
           <text x="56" y="163">
             Trader activity
           </text>
@@ -134,7 +144,7 @@ export function SignalMap() {
             Your next move
           </text>
         </g>
-        <g transform="translate(369 66)">
+        <g className="hidden sm:block lg:hidden xl:block" transform="translate(369 66)">
           <rect width="224" height="69" rx="7" fill="var(--card)" stroke="var(--border)" />
           <path d="M19 20h21v15H29l-7 5v-5h-3z" stroke="var(--primary)" strokeWidth="1.3" />
           <text
@@ -155,7 +165,7 @@ export function SignalMap() {
             strokeWidth="2"
           />
         </g>
-        <g transform="translate(49 279)">
+        <g className="hidden sm:block lg:hidden xl:block" transform="translate(49 279)">
           <rect width="160" height="52" rx="6" fill="var(--card)" stroke="var(--border)" />
           <circle cx="24" cy="26" r="12" fill="var(--background)" />
           <path d="m20 23 4 4 7-8M18 31h12" stroke="var(--primary)" strokeWidth="1.4" />
@@ -180,8 +190,8 @@ export function SignalMap() {
       >
         <Image src="/tokens/sol.webp" alt="" width={26} height={26} className="size-[26px] rounded-full" />
         <div>
-          <p className="font-mono text-[11px] leading-4 text-foreground">SOL</p>
-          <p className="text-[9px] leading-3 text-muted-foreground">Solana</p>
+          <p className="font-mono text-xs leading-4 text-foreground">SOL</p>
+          <p className="text-[10px] leading-3 text-muted-foreground">Solana</p>
         </div>
       </div>
       <figcaption className="absolute right-5 bottom-1 font-mono text-[9px] tracking-wide text-muted-foreground sm:right-6 lg:bottom-0">
