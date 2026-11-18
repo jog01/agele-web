@@ -34,7 +34,7 @@ export function Terminal({ mint }: { mint: string }) {
         "grid min-h-0 grid-cols-1 gap-3 p-3 pb-24 md:h-full md:grid-cols-[minmax(0,1fr)_304px] md:pb-3 lg:p-4 lg:pb-4",
         explorerCollapsed
           ? "2xl:grid-cols-[52px_minmax(0,1fr)_320px]"
-          : "2xl:grid-cols-[240px_minmax(0,1fr)_320px]",
+          : "2xl:grid-cols-[272px_minmax(0,1fr)_320px]",
       )}
     >
       <div className="hidden min-h-0 flex-col gap-3 overflow-auto 2xl:flex">
