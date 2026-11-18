@@ -4,12 +4,23 @@ import Link from "next/link";
 import { TraderLink } from "@/components/common/trader-link";
 import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd } from "@/lib/format";
+import { TableSkeleton } from "./panel-skeleton";
 
 export function TopTraders() {
-  const { data } = useLeaderboard("24h");
+  const { data, isPending, isError, refetch } = useLeaderboard("24h");
+  if (isPending) return <TableSkeleton label="Loading top traders" columns={3} />;
+  if (isError)
+    return (
+      <p className="p-3 text-muted-foreground">
+        Top traders unavailable.{" "}
+        <button type="button" className="text-primary underline" onClick={() => void refetch()}>
+          Retry
+        </button>
+      </p>
+    );
   return (
-    <section aria-label="Top traders" className="rounded-lg border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
+    <section aria-label="Top traders" className="bg-card p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="font-semibold text-sm">
           Top traders <span className="font-normal text-muted-foreground">24h</span>
         </h2>
@@ -22,8 +33,8 @@ export function TopTraders() {
       )}
       <ul className="divide-y divide-border/50">
         {data?.entries.slice(0, 4).map((e) => (
-          <li key={e.wallet} className="flex min-h-12 items-center gap-3">
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary font-semibold text-[11px] text-muted-foreground">
+          <li key={e.wallet} className="flex min-h-9 items-center gap-2">
+            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary font-semibold text-[10px] text-muted-foreground">
               {e.handle.slice(0, 2).toUpperCase()}
             </span>
             <TraderLink

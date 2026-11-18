@@ -149,6 +149,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     void confirm();
   }, [owner, auth.ready, pending, confirm]);
   return {
+    availabilityMessage: unavailable,
     validAmount: !!input,
     validation,
     inputAmount: input ? fromBaseUnits(input.amount, side === "buy" ? 6 : token!.decimals) : undefined,

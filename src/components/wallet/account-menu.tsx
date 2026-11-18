@@ -33,7 +33,7 @@ export function AccountMenu() {
           <span>
             <Button
               size="sm"
-              className="h-10 px-4 font-semibold"
+              className="h-8 px-3 font-semibold text-xs"
               disabled={!auth.configured || !auth.ready}
               onClick={auth.login}
             >
@@ -51,7 +51,7 @@ export function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-10 gap-2 px-3" aria-label="Account and wallet">
+        <Button variant="outline" size="sm" className="h-8 gap-2 px-2" aria-label="Account and wallet">
           {wallet.creating ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (

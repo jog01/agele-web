@@ -14,7 +14,6 @@ import {
 import { Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useLiveCandles } from "@/hooks/use-live-candles";
 import { useMarketDataMode } from "@/hooks/use-market-data-source";
@@ -25,6 +24,7 @@ import { useToken } from "@/lib/api/queries";
 import { marketCapCandle, movingAverage, tokenSupply } from "@/lib/candles";
 import { formatCompactUsd, formatPct, formatPrice } from "@/lib/format";
 import { useTerminalStore } from "@/stores/terminal";
+import { ChartSkeleton } from "./panel-skeleton";
 
 const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 /** Canvas cannot resolve CSS variables, so read the shared brand tokens at mount. */
@@ -227,9 +227,9 @@ export function PriceChart({
   return (
     <section
       aria-label={`${symbol} price chart`}
-      className="flex min-h-[360px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border bg-card"
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b px-2 py-1 [&_[data-slot=toggle-group-item]]:h-7 [&_[data-slot=toggle-group-item]]:px-2 [&_[data-slot=toggle-group-item]]:text-[11px]">
         <ToggleGroup
           type="single"
           size="sm"
@@ -238,7 +238,7 @@ export function PriceChart({
           aria-label="Candle interval"
         >
           {INTERVALS.map((i) => (
-            <ToggleGroupItem key={i} value={i} className="h-9 px-2 text-xs">
+            <ToggleGroupItem key={i} value={i} className="h-7 px-2 text-[11px]">
               {i}
             </ToggleGroupItem>
           ))}
@@ -256,7 +256,7 @@ export function PriceChart({
         <Button
           variant="ghost"
           size="sm"
-          className="ml-auto h-9 text-muted-foreground"
+          className="ml-auto h-7 px-2 text-muted-foreground text-[11px]"
           aria-expanded={settingsOpen}
           aria-controls="chart-settings"
           onClick={() => setSettingsOpen((open) => !open)}
@@ -265,7 +265,7 @@ export function PriceChart({
           Display
         </Button>
       </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1.5">
         {legend && (
           <p
             className="tabular hidden flex-wrap gap-x-3 gap-y-1 font-mono text-muted-foreground text-[11px] lg:flex"
@@ -281,7 +281,7 @@ export function PriceChart({
             <span>Vol {formatCompactUsd(legend.volume)}</span>
           </p>
         )}
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground text-[10px]">
           {chartMode === "price" ? "Price (USD)" : "Market cap (USD)"}
           {demoMode && " · demo"}
         </span>
@@ -301,7 +301,7 @@ export function PriceChart({
       <div
         id="chart-settings"
         hidden={!settingsOpen}
-        className="border-y border-border/60 bg-background/30 px-4 py-3 text-xs text-muted-foreground"
+        className="max-h-[40%] shrink-0 overflow-auto border-y border-border/60 bg-background/30 px-2 py-2 text-xs text-muted-foreground"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <ToggleGroup
@@ -383,7 +383,7 @@ export function PriceChart({
           role="img"
           aria-label={`${symbol} candlestick chart, ${interval} interval`}
         />
-        {isPending && <Skeleton className="absolute inset-2" />}
+        {isPending && <ChartSkeleton />}
         {isError && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
             Chart data unavailable.

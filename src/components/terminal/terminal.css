@@ -1,0 +1,32 @@
+.terminal-workspace [data-slot="skeleton"] {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+.terminal-activity [data-slot="table"] {
+  font-size: 11px;
+}
+.terminal-activity [data-slot="table-head"] {
+  height: 28px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.terminal-activity [data-slot="table-cell"] {
+  padding-block: 6px;
+}
+.terminal-activity [data-slot="table-row"] {
+  height: 32px;
+}
+@media (min-width: 768px) {
+  .terminal-workspace {
+    grid-template-columns: minmax(0, 1fr) 6px var(--ticket-width);
+  }
+  .terminal-chart {
+    height: var(--panel-height);
+  }
+}
+@media (min-width: 1024px) {
+  .terminal-workspace {
+    grid-template-columns: var(--markets-width) 6px minmax(0, 1fr) 6px var(--ticket-width);
+  }
+}
