@@ -48,7 +48,7 @@ export function usePanelLayout() {
 }
 
 export function usePanelSize() {
-  const [element, ref] = useState<HTMLDivElement | null>(null);
+  const [element, ref] = useState<HTMLElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     if (!element) return;
