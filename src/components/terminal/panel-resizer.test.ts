@@ -18,6 +18,19 @@ it("sanitizes saved dimensions and malformed storage", () => {
   });
   expect(clamp(600, 220, 400)).toBe(400);
   expect(clamp(100, 220, 100)).toBe(220);
+  expect(parseLayout('{"chart":-2,"order":2}')).toMatchObject({ chart: 0, order: 1 });
+});
+
+it.each([480, 960, 2400])("round-trips height limits for a %ipx panel", (height) => {
+  const space = height - 6;
+  for (const pixels of [220, height - 166]) {
+    const chart = pixels / space;
+    expect(parseLayout(JSON.stringify({ chart })).chart).toBe(chart);
+  }
+  for (const pixels of [230, height - 106]) {
+    const order = pixels / space;
+    expect(parseLayout(JSON.stringify({ order })).order).toBe(order);
+  }
 });
 
 it("exposes a named, bounded keyboard-operable window splitter", () => {

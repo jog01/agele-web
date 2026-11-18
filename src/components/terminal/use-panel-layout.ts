@@ -16,7 +16,7 @@ export function parseLayout(raw: string | null): Layout {
     return Object.fromEntries(
       Object.entries(DEFAULT_LAYOUT).map(([key, fallback]) => {
         const saved = value?.[key];
-        const [min, max] = key === "markets" ? [200, 380] : key === "ticket" ? [260, 440] : [0.2, 0.85];
+        const [min, max] = key === "markets" ? [200, 380] : key === "ticket" ? [260, 440] : [0, 1];
         return [key, typeof saved === "number" && Number.isFinite(saved) ? clamp(saved, min, max) : fallback];
       }),
     ) as Layout;
