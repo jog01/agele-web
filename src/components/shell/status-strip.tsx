@@ -13,7 +13,7 @@ import { tokenQueries } from "@/lib/api/queries";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useRealtimeStore } from "@/stores/realtime";
-import styles from "./status-strip.module.css";
+import "./status-strip.css";
 
 const LABEL = { connecting: "Connecting", open: "Connected", closed: "Reconnecting" } as const;
 
@@ -43,16 +43,16 @@ export function StatusStrip() {
       </span>
       <div className="flex min-w-0 flex-1 items-center border-x border-border/60">
         <nav
-          className={cn("panel-scrollbars min-w-0 flex-1 overscroll-contain", styles.viewport)}
+          className="agele-ticker-viewport panel-scrollbars min-w-0 flex-1 overscroll-contain"
           aria-label="Market ticker"
           data-paused={paused}
         >
           {tokens.length ? (
             <div
-              className={styles.track}
+              className="agele-ticker-track"
               style={{ animationDuration: `${Math.max(30, tokens.length * 6)}s` }}
             >
-              <div className={styles.group}>
+              <div className="agele-ticker-group">
                 {tokens.map((token) => (
                   <Link
                     href={`/trade/${token.mint}`}
@@ -66,7 +66,7 @@ export function StatusStrip() {
                   </Link>
                 ))}
               </div>
-              <div className={cn(styles.group, styles.copy)} aria-hidden>
+              <div className="agele-ticker-group agele-ticker-copy" aria-hidden>
                 {tokens.map((token) => (
                   <Link
                     href={`/trade/${token.mint}`}
