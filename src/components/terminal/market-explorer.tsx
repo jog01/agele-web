@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowDownWideNarrow, PanelLeftClose, PanelLeftOpen, Search, Star, TrendingUp } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  Star,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AssetAvatar } from "@/components/common/asset-avatar";
@@ -45,47 +53,39 @@ export function MarketExplorer({
     return sort === "holders" ? [...filtered].sort((a, b) => b.holders - a.holders) : filtered;
   }, [tokens, sort, query]);
   const watched = mounted ? (tokens ?? []).filter((t) => watchlist.includes(t.mint)) : [];
-  const row = (token: Token, rank: number, compact = false) => {
+  const row = (token: Token, compact = false) => {
     const active = token.mint === activeMint;
     const isWatched = mounted && watchlist.includes(token.mint);
     return (
       <li
         key={token.mint}
         className={cn(
-          "flex items-center border-l-2 border-transparent",
-          active && "border-primary bg-accent/45",
+          "mx-2 flex items-center rounded-md border-l-2 border-transparent",
+          active && "border-primary bg-accent",
         )}
       >
         <Link
           href={`/trade/${token.mint}`}
           aria-current={active ? "page" : undefined}
           aria-label={collapsed ? token.symbol : undefined}
-          title={collapsed ? `${token.symbol} · ${token.name}` : undefined}
+          title={`${token.symbol} · ${token.name}`}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2 transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
-            collapsed ? "h-12 justify-center" : "min-h-16 py-2 pl-2",
+            "flex min-w-0 flex-1 items-center gap-2.5 rounded-md transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
+            collapsed ? "h-12 justify-center" : "min-h-16 py-3 pl-2",
           )}
         >
-          {!collapsed && !compact && (
-            <span className="tabular w-3 shrink-0 text-center text-muted-foreground text-[10px]">{rank}</span>
-          )}
-          <AssetAvatar mint={token.mint} symbol={token.symbol} className={compact ? "size-6" : "size-7"} />
+          <AssetAvatar mint={token.mint} symbol={token.symbol} className={compact ? "size-7" : "size-8"} />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-xs">{token.symbol}</span>
-                <span className="block truncate text-muted-foreground text-[10px]">
-                  {compact ? `${formatCompactUsd(token.marketCapUsd)} MC` : token.name}
+                <span className="block font-semibold text-sm">{token.symbol}</span>
+                <span className="mt-1 block truncate text-muted-foreground text-xs">
+                  {formatCompactUsd(token.marketCapUsd)} MC
                 </span>
               </span>
               <span className="shrink-0 text-right">
                 <span className="tabular block text-xs">{formatPrice(token.priceUsd)}</span>
-                <ChangeText value={token.priceChange24hPct} className="text-[11px]" />
-                {!compact && (
-                  <span className="tabular block text-muted-foreground text-[10px]">
-                    {formatCompactUsd(token.marketCapUsd)} MC
-                  </span>
-                )}
+                <ChangeText value={token.priceChange24hPct} className="mt-1 block text-xs" />
               </span>
             </>
           )}
@@ -110,15 +110,11 @@ export function MarketExplorer({
     <section aria-label="Markets" className="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card">
       <div
         className={cn(
-          "flex h-12 shrink-0 items-center border-b",
-          collapsed ? "justify-center" : "justify-between pl-3 pr-1",
+          "flex h-16 shrink-0 items-center",
+          collapsed ? "justify-center" : "justify-between pl-4 pr-2",
         )}
       >
-        {!collapsed && (
-          <h2 className="flex items-center gap-2 font-semibold">
-            <TrendingUp className="size-3.5 text-primary" aria-hidden /> Discover
-          </h2>
-        )}
+        {!collapsed && <h2 className="font-semibold text-base tracking-tight">Markets</h2>}
         <Button
           variant="ghost"
           size="icon"
@@ -131,7 +127,7 @@ export function MarketExplorer({
         </Button>
       </div>
       {!collapsed && (
-        <div className="space-y-2 px-2 py-2">
+        <div className="space-y-3 px-4 pb-3">
           <div className="relative">
             <Search
               className="pointer-events-none absolute top-3 left-2.5 size-4 text-muted-foreground"
@@ -145,10 +141,13 @@ export function MarketExplorer({
               aria-label="Filter markets"
               autoComplete="off"
               spellCheck={false}
-              className="h-10 pl-8 text-base pointer-fine:text-xs"
+              className="h-11 bg-background/50 pl-8 text-base pointer-fine:text-sm"
             />
           </div>
-          <fieldset className="grid grid-cols-2 gap-1" aria-label="Market ranking">
+          <fieldset
+            className="grid grid-cols-2 gap-1 rounded-lg bg-background p-1"
+            aria-label="Market ranking"
+          >
             <Button
               variant={sort === "trending" ? "secondary" : "ghost"}
               className="h-10 px-1 text-xs"
@@ -166,9 +165,9 @@ export function MarketExplorer({
               <ArrowDownWideNarrow className="size-3" /> Most held
             </Button>
           </fieldset>
-          <div className="flex justify-between px-1 text-[10px] text-muted-foreground">
-            <span>Token / market cap</span>
-            <span>Price / 24h</span>
+          <div className="flex justify-between pt-1 text-xs text-muted-foreground">
+            <span>Asset</span>
+            <span>Price · 24h</span>
           </div>
         </div>
       )}
@@ -195,22 +194,26 @@ export function MarketExplorer({
               No matching tokens. Try a symbol or mint.
             </li>
           )}
-          {rows.map((t, i) => row(t, i + 1))}
+          {rows.map((t) => row(t))}
         </ul>
         {!collapsed && (
-          <section aria-label="Watchlist" className="mt-1 border-t">
-            <h3 className="flex h-10 items-center gap-2 px-3 font-medium text-xs">
+          <details aria-label="Watchlist" className="group mt-3 border-t border-border/60">
+            <summary className="flex min-h-12 cursor-pointer items-center gap-2 rounded-md px-4 font-medium text-sm transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground">
               <Star className="size-3 text-warning" aria-hidden /> Watchlist{" "}
               <span className="tabular ml-auto text-muted-foreground">{watched.length}</span>
-            </h3>
+              <ChevronDown
+                className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
+                aria-hidden
+              />
+            </summary>
             {!mounted ? (
               <Skeleton className="mx-3 mb-3 h-16" />
             ) : watched.length ? (
-              <ul>{watched.map((t, i) => row(t, i + 1, true))}</ul>
+              <ul>{watched.map((t) => row(t, true))}</ul>
             ) : (
-              <p className="px-3 pb-4 text-muted-foreground text-xs">Star a token to keep it close.</p>
+              <p className="px-4 pb-4 text-muted-foreground text-sm">Star a token to keep it close.</p>
             )}
-          </section>
+          </details>
         )}
       </div>
     </section>

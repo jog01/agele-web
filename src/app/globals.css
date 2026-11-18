@@ -48,56 +48,62 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Graphite / Ice theme (dark only in v0.1). Source: docs/design/ui-spec-v0.1.md */
+/* Sage / Ink. Brand contract: docs/brand.md. */
 :root,
 .dark {
   color-scheme: dark;
-  --radius: 0.5rem;
-  --background: #0b0e13;
-  --foreground: #edf2f7;
-  --card: #11161d;
-  --card-foreground: #edf2f7;
-  --popover: #171e28;
-  --popover-foreground: #edf2f7;
-  --primary: #9ccbff;
-  --primary-foreground: #0b1523;
-  --secondary: #1b2531;
-  --secondary-foreground: #d8e3f0;
-  --muted: #171e28;
-  --muted-foreground: #94a3b8;
-  --accent: #203047;
-  --accent-foreground: #d2e7ff;
-  --destructive: #ff8195;
-  --destructive-foreground: #2b0b14;
-  --border: #293442;
-  --input: #526277;
-  --ring: #9ccbff;
-  --chart-1: #9ccbff;
-  --chart-2: #5de0aa;
-  --chart-3: #ff8195;
-  --chart-4: #f1c981;
-  --chart-5: #b9a4ef;
-  --sidebar: #0e131a;
-  --sidebar-foreground: #edf2f7;
-  --sidebar-primary: #9ccbff;
-  --sidebar-primary-foreground: #0b1523;
-  --sidebar-accent: #203047;
-  --sidebar-accent-foreground: #d2e7ff;
-  --sidebar-border: #293442;
-  --sidebar-ring: #9ccbff;
-  --positive: #5de0aa;
-  --positive-foreground: #082419;
-  --positive-subtle: #123026;
-  --negative: #ff8195;
-  --negative-foreground: #2b0b14;
-  --negative-subtle: #351d27;
-  --warning: #f1c981;
-  --warning-foreground: #2b200c;
-  --warning-subtle: #30291c;
-  --surface-hover: #1b2531;
-  --chart-grid: #1b2430;
-  --chart-crosshair: #768ca6;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.625rem;
+  --background: oklch(0.177 0.004 106.804);
+  --foreground: oklch(0.956 0.011 84.579);
+  --card: oklch(0.213 0.004 106.723);
+  --card-foreground: oklch(0.956 0.011 84.579);
+  --popover: oklch(0.251 0.006 106.792);
+  --popover-foreground: oklch(0.956 0.011 84.579);
+  --primary: oklch(0.854 0.083 134.964);
+  --primary-foreground: oklch(0.231 0.026 137.997);
+  --secondary: oklch(0.285 0.011 122.123);
+  --secondary-foreground: oklch(0.912 0.014 115.851);
+  --muted: oklch(0.251 0.006 106.792);
+  --muted-foreground: oklch(0.723 0.014 102.107);
+  --accent: oklch(0.313 0.031 139.437);
+  --accent-foreground: oklch(0.917 0.053 134.798);
+  --destructive: oklch(0.748 0.124 13.612);
+  --destructive-foreground: oklch(0.237 0.044 11.605);
+  --border: oklch(0.323 0.01 106.965);
+  --input: oklch(0.553 0.021 127.38);
+  --ring: oklch(0.854 0.083 134.964);
+  --chart-1: oklch(0.854 0.083 134.964);
+  --chart-2: oklch(0.801 0.112 164.262);
+  --chart-3: oklch(0.748 0.124 13.612);
+  --chart-4: oklch(0.828 0.098 82.575);
+  --chart-5: oklch(0.774 0.06 296.969);
+  --sidebar: oklch(0.198 0.006 121.989);
+  --sidebar-foreground: oklch(0.956 0.011 84.579);
+  --sidebar-primary: oklch(0.854 0.083 134.964);
+  --sidebar-primary-foreground: oklch(0.231 0.026 137.997);
+  --sidebar-accent: oklch(0.313 0.031 139.437);
+  --sidebar-accent-foreground: oklch(0.917 0.053 134.798);
+  --sidebar-border: oklch(0.323 0.01 106.965);
+  --sidebar-ring: oklch(0.854 0.083 134.964);
+  --positive: oklch(0.801 0.112 164.262);
+  --positive-foreground: oklch(0.244 0.031 167.118);
+  --positive-subtle: oklch(0.292 0.033 166.315);
+  --negative: oklch(0.748 0.124 13.612);
+  --negative-foreground: oklch(0.237 0.044 11.605);
+  --negative-subtle: oklch(0.281 0.03 5.293);
+  --warning: oklch(0.828 0.098 82.575);
+  --warning-foreground: oklch(0.26 0.035 88.113);
+  --warning-subtle: oklch(0.302 0.025 90.714);
+  --surface-hover: oklch(0.285 0.011 122.123);
+  /* Canvas consumers require sRGB strings, not OKLCH. */
+  --chart-background: #191917;
+  --chart-text: #a7a69c;
+  --chart-grid: #292d27;
+  --chart-crosshair: #7e8978;
+  --chart-positive: #72d5ab;
+  --chart-negative: #f18b96;
+  --chart-brand: #b8dca5;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -120,7 +126,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    -webkit-font-smoothing: antialiased;
+    font-synthesis: none;
   }
   html {
     @apply font-sans;
@@ -128,11 +134,12 @@
 }
 @layer base {
   body {
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 1.5;
   }
   .tabular {
     font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
   }
   h1,
   h2,

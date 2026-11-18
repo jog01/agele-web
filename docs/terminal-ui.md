@@ -1,6 +1,6 @@
 # Terminal presentation
 
-The terminal keeps the Graphite/Ice palette in `src/app/globals.css`. shadcn controls supply keyboard and dialog behavior; prices use tabular figures. Chart and activity behavior remain separate from layout and identity rendering.
+The terminal uses the [Sage / Ink brand contract](brand.md) in `src/app/globals.css`. shadcn controls supply keyboard and dialog behavior; prices use tabular Geist Mono figures. Chart and activity behavior remain separate from layout and identity rendering.
 
 ## Token identity
 
