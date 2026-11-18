@@ -1,6 +1,6 @@
 "use client";
 
-import { LockKeyhole, Settings2, Wallet } from "lucide-react";
+import { Settings2, Wallet } from "lucide-react";
 import { useId, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { ChangeText } from "@/components/common/change-text";
@@ -66,6 +66,7 @@ export function OrderTicket({
   const amount = Number(raw);
   const unit = side === "buy" ? "USDC" : symbol;
   const swap = useSwap(token, side, raw, price);
+  const status = !auth.configured && swap.status === swap.availabilityMessage ? "" : swap.status;
   const est = swap.validAmount && price ? estimate(side, amount, price) : null;
   if (!token) return <OrderSkeleton />;
 
@@ -74,6 +75,7 @@ export function OrderTicket({
       <div className="mb-1.5 flex h-6 items-center justify-between">
         <h2 className="font-semibold text-xs tracking-tight">
           Trade <span className="text-muted-foreground">{symbol}</span>
+          {DEMO_MODE && <span className="ml-1.5 font-normal text-[10px] text-muted-foreground">Demo</span>}
         </h2>
         <Dialog>
           <DialogTrigger asChild>
@@ -267,25 +269,19 @@ export function OrderTicket({
               : "Sign in to trade"}
         </Button>
         {DEMO_MODE && (
-          <>
-            <Button
-              type="submit"
-              variant="ghost"
-              className="mt-1 h-7 w-full text-[10px]"
-              disabled={!swap.validAmount || (!est && !swap.quote) || !token || swap.busy}
-            >
-              Preview {side} {symbol}
-            </Button>
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-warning text-[10px]">
-              <LockKeyhole className="size-3" aria-hidden />
-              Demo market data
-            </p>
-          </>
+          <Button
+            type="submit"
+            variant="ghost"
+            className="mt-1 h-7 w-full text-[10px]"
+            disabled={!swap.validAmount || (!est && !swap.quote) || !token || swap.busy}
+          >
+            Preview {side} {symbol}
+          </Button>
         )}
       </form>
-      {swap.status && swap.status !== swap.validation && (
+      {status && status !== swap.validation && (
         <p role="status" className="mt-2 text-center text-warning text-xs">
-          {swap.status}
+          {status}
           {swap.explorerUrl && (
             <>
               {" "}
