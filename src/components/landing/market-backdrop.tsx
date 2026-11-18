@@ -72,7 +72,7 @@ export function MarketBackdrop() {
   const [paused, setPaused] = useState(false);
   return (
     <div className="agele-hero-backdrop pointer-events-none absolute inset-0" data-paused={paused}>
-      <div aria-hidden className="pointer-events-none absolute inset-0 select-none">
+      <div id="agele-hero-scene" aria-hidden className="pointer-events-none absolute inset-0 select-none">
         <svg
           aria-hidden
           id="agele-hero-chart"
@@ -106,11 +106,16 @@ export function MarketBackdrop() {
             </g>
           </g>
         </svg>
-        {TOKENS.map(({ name, src, position }) => (
+        {TOKENS.map(({ name, src, position }, index) => (
           <div
             key={name}
             data-token={name}
-            className={`absolute overflow-hidden rounded-full bg-background opacity-75 outline-1 -outline-offset-1 outline-white/10 ${position}`}
+            className={`absolute overflow-hidden rounded-full bg-background opacity-75 outline-1 -outline-offset-1 outline-white/10 motion-safe:animate-[agele-hero-token-float_10s_ease-in-out_infinite] ${position}`}
+            style={{
+              animationDuration: `${10 + index * 1.2}s`,
+              animationDelay: `${index * -1.7}s`,
+              animationPlayState: paused ? "paused" : "running",
+            }}
           >
             <Image
               src={src}
@@ -127,7 +132,7 @@ export function MarketBackdrop() {
         type="button"
         onClick={() => setPaused((value) => !value)}
         aria-pressed={paused}
-        aria-controls="agele-hero-chart"
+        aria-controls="agele-hero-scene"
         className="pointer-events-auto absolute right-4 bottom-4 z-2 flex min-h-11 items-center gap-2 rounded px-3 text-[11px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground motion-reduce:hidden sm:right-6 sm:bottom-5"
       >
         {paused ? <Play className="size-3" aria-hidden /> : <Pause className="size-3" aria-hidden />}
