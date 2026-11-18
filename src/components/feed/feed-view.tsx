@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRight, MessageSquareText, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
@@ -15,6 +16,7 @@ import { useLeaderboard, useTrending } from "@/lib/api/queries";
 import { feedItemContent } from "@/lib/api/social";
 import { formatCompactUsd, shortAddress, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { FEED_CARD, FEED_FRAME, FeedHeading, FeedPostsSkeleton, FeedTradersSkeleton } from "./feed-loading";
 
 function Initials({ handle }: { handle: string }) {
   return (
@@ -48,23 +50,144 @@ export function FeedView() {
   }));
 
   return (
-    <div className="mx-auto grid max-w-[1280px] gap-x-6 gap-y-3 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-[auto_1fr]">
-      <div className="lg:col-start-1">
-        <h1 className="font-semibold text-2xl">Your network.</h1>
-        <p className="mt-1 text-muted-foreground">
-          Demo feed · Theses and trades from traders across supported markets.{" "}
-          {auth.configured
-            ? "Following feed unlocks after sign-in."
-            : "Sign-in is not configured in this build, so following is unavailable."}
-        </p>
+    <div className={FEED_FRAME}>
+      <FeedHeading />
+      <div className="min-w-0 space-y-3 lg:col-start-1 lg:row-start-2">
+        <ToggleGroup
+          type="single"
+          value={scope}
+          onValueChange={(v) => v && setScope(v as FeedScope)}
+          variant="outline"
+          aria-label="Feed scope"
+        >
+          {(["global", "following"] as const).map((value) => (
+            <ToggleGroupItem key={value} value={value} className="h-11 px-4 text-xs lg:h-10">
+              {value === "global" ? "Global" : "Following"}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        {scope === "following" && !auth.authenticated ? (
+          <div className={cn(FEED_CARD, "space-y-3 py-8 sm:py-10")}>
+            <Users aria-hidden className="size-5 text-muted-foreground" />
+            <h2 className="font-medium text-sm">Your people, your feed</h2>
+            <p className="text-muted-foreground text-sm">
+              Follow traders to collect their ideas and trades here.
+            </p>
+            <Button variant="outline" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
+              Sign in to see your following feed
+            </Button>
+            {!auth.configured && (
+              <p className="text-muted-foreground text-sm">Sign-in is not configured in this build.</p>
+            )}
+          </div>
+        ) : (
+          <>
+            {feed.isPending && <FeedPostsSkeleton />}
+            {feed.isError && !feed.isFetchNextPageError && (
+              <div
+                role="alert"
+                className={cn(
+                  FEED_CARD,
+                  "flex flex-wrap items-center justify-between gap-3 text-muted-foreground text-sm",
+                )}
+              >
+                <p>
+                  {posts.length ? "Couldn’t update the feed." : "Feed unavailable."} {feed.error.message}
+                </p>
+                <Button variant="outline" size="sm" disabled={feed.isFetching} onClick={() => feed.refetch()}>
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!feed.isPending && !feed.isError && posts.length === 0 && (
+              <div className={cn(FEED_CARD, "space-y-2 py-10 sm:py-12")}>
+                <MessageSquareText aria-hidden className="mb-3 size-5 text-muted-foreground" />
+                <h2 className="font-medium text-sm">No posts yet.</h2>
+                <p className="text-muted-foreground text-sm">
+                  {scope === "following"
+                    ? "Ideas from traders you follow will appear here."
+                    : "Market ideas and trades will appear here as traders share them."}
+                </p>
+                <Link
+                  href="/leaderboard"
+                  className="inline-flex min-h-11 items-center gap-1 text-primary text-sm hover:underline focus-visible:outline-2 focus-visible:outline-foreground"
+                >
+                  Discover traders <ArrowUpRight aria-hidden className="size-3.5" />
+                </Link>
+              </div>
+            )}
+            {posts.map((p) => (
+              <article key={p.id} className={FEED_CARD}>
+                <header className="flex items-start gap-3">
+                  <Initials handle={p.handle} />
+                  <div className="min-w-0 flex-1">
+                    <TraderLink wallet={p.wallet} handle={p.handle} className="block truncate text-[13px]" />
+                    <div className={cn("text-xs", p.content.tone)}>
+                      {p.kind === "trade"
+                        ? p.content.label
+                        : p.position === "long"
+                          ? "Thesis · holding"
+                          : p.position === "short"
+                            ? "Thesis · exited"
+                            : "Thesis"}
+                    </div>
+                  </div>
+                  <time
+                    dateTime={new Date(p.createdAt * 1000).toISOString()}
+                    className="tabular shrink-0 pt-0.5 text-[11px] text-muted-foreground"
+                  >
+                    {now ? timeAgo(p.createdAt, now) : ""}
+                  </time>
+                </header>
+                <p className="mt-3 min-h-12 wrap-anywhere text-[13px] leading-6">
+                  {p.content.body ?? p.content.attachment}
+                </p>
+                <Link
+                  href={`/trade/${p.token.mint}`}
+                  className="mt-3 flex min-h-[66px] items-center gap-3 rounded-md border border-border/50 bg-background px-3 py-2.5 transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground"
+                >
+                  <AssetAvatar mint={p.token.mint} symbol={p.token.symbol} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium text-xs">{p.token.symbol}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {p.kind === "thesis" ? p.content.attachment : "Execution · demo data"}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 text-[11px] text-primary">
+                    View market <ArrowUpRight aria-hidden className="size-3" />
+                  </span>
+                </Link>
+              </article>
+            ))}
+            {feed.isFetchingNextPage && <FeedPostsSkeleton count={1} />}
+            {feed.hasNextPage && (
+              <div className="space-y-3">
+                {feed.isFetchNextPageError && (
+                  <p role="alert" className="text-muted-foreground text-sm">
+                    Couldn’t load more posts. {feed.error.message}
+                  </p>
+                )}
+                <Button variant="outline" disabled={feed.isFetching} onClick={() => feed.fetchNextPage()}>
+                  {feed.isFetchingNextPage ? "Loading…" : feed.isFetchNextPageError ? "Retry" : "Load more"}
+                </Button>
+              </div>
+            )}
+            {!feed.isError && !feed.hasNextPage && posts.length > 0 && (
+              <p className="py-2 text-center text-muted-foreground text-sm">You're all caught up.</p>
+            )}
+          </>
+        )}
       </div>
-      <aside className="space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:pt-16">
-        <section className="rounded-lg border bg-card p-4">
-          <h2 className="font-semibold text-[15px]">Worth a closer look</h2>
-          <p className="mt-1 text-muted-foreground text-xs">
-            {board?.dataSource === "demo" && "Demo fixtures · "}Discover traders by process, not hype.
+      <aside className="min-w-0 self-start lg:col-start-2 lg:row-start-2">
+        <section className="rounded-md border bg-card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-medium text-sm">Traders to watch</h2>
+            <span className="text-[10px] text-muted-foreground">7D</span>
+          </div>
+          <p className="mt-1 mb-2 text-muted-foreground text-xs">
+            {board?.dataSource === "demo" ? "Demo leaderboard" : "7-day leaderboard"}
           </p>
-          {boardPending && <p className="mt-3 text-muted-foreground text-sm">Loading traders…</p>}
+          {boardPending && <FeedTradersSkeleton />}
           {boardError && (
             <p role="alert" className="mt-3 text-muted-foreground text-sm">
               Traders unavailable.{" "}
@@ -73,19 +196,20 @@ export function FeedView() {
               </Button>
             </p>
           )}
-          <ul className="mt-3 space-y-3">
+          <ul className="divide-y">
             {board?.entries.slice(0, 4).map((e) => (
-              <li key={e.wallet} className="flex items-center gap-3">
+              <li key={e.wallet} className="flex min-h-[68px] items-center gap-2.5 py-2">
                 <Initials handle={e.handle} />
                 <div className="min-w-0 flex-1">
-                  <TraderLink wallet={e.wallet} handle={e.handle} />
-                  <div className="text-muted-foreground text-xs">
+                  <TraderLink wallet={e.wallet} handle={e.handle} className="block truncate text-[13px]" />
+                  <div className="tabular truncate text-[10px] text-muted-foreground">
                     {e.trades} trades · {formatCompactUsd(e.volumeUsd)} volume
                   </div>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
+                  className="min-h-10 min-w-14 px-2 text-[11px] pointer-coarse:min-h-11"
                   disabled={!auth.authenticated || follow.isPending || e.wallet === auth.walletAddress}
                   onClick={() => follow.mutate({ wallet: e.wallet, isFollowing: !e.isFollowing })}
                 >
@@ -94,6 +218,9 @@ export function FeedView() {
               </li>
             ))}
           </ul>
+          {!boardPending && !boardError && !board?.entries.length && (
+            <p className="py-5 text-muted-foreground text-xs">No ranked traders yet.</p>
+          )}
           {!auth.authenticated && !boardError && (
             <p className="mt-3 text-muted-foreground text-xs">
               {auth.configured
@@ -106,96 +233,14 @@ export function FeedView() {
               {follow.error.message}
             </p>
           )}
+          <Link
+            href="/leaderboard"
+            className="mt-3 flex min-h-10 items-center justify-between border-t pt-2 text-primary text-xs hover:underline focus-visible:outline-2 focus-visible:outline-foreground"
+          >
+            View leaderboard <ArrowUpRight aria-hidden className="size-3.5" />
+          </Link>
         </section>
       </aside>
-      <div className="space-y-3 lg:col-start-1">
-        <ToggleGroup
-          type="single"
-          value={scope}
-          onValueChange={(v) => v && setScope(v as FeedScope)}
-          variant="outline"
-          aria-label="Feed scope"
-        >
-          {(["global", "following"] as const).map((value) => (
-            <ToggleGroupItem key={value} value={value} className="h-10 px-4 lg:h-8 lg:px-3">
-              {value === "global" ? "Global" : "Following"}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        {scope === "following" && !auth.authenticated ? (
-          <div className="space-y-2">
-            <Button variant="outline" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
-              Sign in to see your following feed
-            </Button>
-            {!auth.configured && (
-              <p className="text-muted-foreground text-sm">Sign-in is not configured in this build.</p>
-            )}
-          </div>
-        ) : (
-          <>
-            {feed.isPending && <p className="text-muted-foreground">Loading feed…</p>}
-            {feed.isError && (
-              <p role="alert" className="text-muted-foreground">
-                Feed unavailable. {feed.error.message}{" "}
-                <Button variant="outline" size="sm" onClick={() => feed.refetch()}>
-                  Retry
-                </Button>
-              </p>
-            )}
-            {!feed.isPending && !feed.isError && posts.length === 0 && (
-              <p className="text-muted-foreground">No posts yet.</p>
-            )}
-            {posts.map((p) => (
-              <article key={p.id} className="rounded-lg border bg-card p-4">
-                <header className="flex items-start gap-3">
-                  <Initials handle={p.handle} />
-                  <div className="min-w-0 flex-1">
-                    <TraderLink wallet={p.wallet} handle={p.handle} />
-                    <div className={cn("text-xs", p.content.tone)}>
-                      {p.kind === "trade"
-                        ? p.content.label
-                        : p.position === "long"
-                          ? "Thesis · holding"
-                          : p.position === "short"
-                            ? "Thesis · exited"
-                            : "Thesis"}
-                    </div>
-                  </div>
-                  <span className="text-muted-foreground text-xs">
-                    {now ? timeAgo(p.createdAt, now) : ""}
-                  </span>
-                </header>
-                <p className="mt-3">{p.content.body ?? p.content.attachment}</p>
-                <Link
-                  href={`/trade/${p.token.mint}`}
-                  className="mt-3 flex items-center gap-3 rounded-md bg-background p-3 hover:bg-surface-hover"
-                >
-                  <AssetAvatar mint={p.token.mint} symbol={p.token.symbol} />
-                  <span className="flex-1">
-                    <span className="block font-medium">{p.token.symbol}</span>
-                    <span className="block text-muted-foreground text-xs">
-                      {p.kind === "thesis" ? p.content.attachment : "Execution · demo data"}
-                    </span>
-                  </span>
-                  <span className="text-primary text-xs">View market</span>
-                </Link>
-              </article>
-            ))}
-            {feed.hasNextPage && (
-              <Button
-                variant="outline"
-                disabled={feed.isFetchingNextPage}
-                onClick={() => feed.fetchNextPage()}
-              >
-                {feed.isFetchingNextPage ? "Loading…" : "Load more"}
-              </Button>
-            )}
-            {!feed.isError && !feed.hasNextPage && posts.length > 0 && (
-              <p className="py-2 text-center text-muted-foreground text-sm">You're all caught up.</p>
-            )}
-          </>
-        )}
-      </div>
     </div>
   );
 }

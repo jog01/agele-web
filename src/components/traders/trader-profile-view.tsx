@@ -19,20 +19,10 @@ import { traderProfileQuery, traderTradesQuery } from "@/lib/api/traders";
 import { changeTone, formatAmount, formatPct, formatUsd, utcTimestamp } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
+import { PROFILE_FRAME, TraderProfileLoading, TraderTableSkeleton } from "./trader-profile-loading";
 
 const COUNT = new Intl.NumberFormat("en-US");
-const FRAME = "mx-auto max-w-[1000px] space-y-4 px-4 py-6 sm:px-6";
 const LINK = "font-medium text-primary hover:underline focus-visible:underline";
-
-export function TraderProfileLoading() {
-  return (
-    <div className={FRAME}>
-      <p role="status" className="text-muted-foreground">
-        Loading trader profile…
-      </p>
-    </div>
-  );
-}
 
 function ProfileAnnouncement({ handle }: { handle: string }) {
   const [message, setMessage] = useState("");
@@ -50,9 +40,9 @@ function ProfileAnnouncement({ handle }: { handle: string }) {
 
 function Metric({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className="min-w-0 rounded-md bg-background px-3 py-2">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className={cn("tabular wrap-anywhere font-medium", className)}>{value}</dd>
+    <div className="min-w-0 rounded bg-background px-3 py-2.5">
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className={cn("tabular mt-1 wrap-anywhere font-medium text-[15px]", className)}>{value}</dd>
     </div>
   );
 }
@@ -67,9 +57,9 @@ function TraderStats({
   const [window, setWindow] = useState(initialWindow);
   const { rank, pnlUsd, pnlPct, volumeUsd, trades, winRatePct } = stats[window];
   return (
-    <section className="space-y-3 rounded-lg border bg-card p-4 sm:p-5">
+    <section className="space-y-4 rounded-md border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Leaderboard performance</h2>
+        <h2 className="font-medium text-sm">Leaderboard performance</h2>
         <ToggleGroup
           type="single"
           variant="outline"
@@ -81,7 +71,7 @@ function TraderStats({
           aria-label="Performance window"
         >
           {LEADERBOARD_WINDOWS.map((w) => (
-            <ToggleGroupItem key={w} value={w} className="h-10 px-4 lg:h-8 lg:px-3">
+            <ToggleGroupItem key={w} value={w} className="h-11 px-4 text-xs lg:h-10 lg:px-3">
               {w}
             </ToggleGroupItem>
           ))}
@@ -108,8 +98,8 @@ function TraderPositions({
 }) {
   const rows = positions.filter((position) => position !== null);
   return (
-    <section className="overflow-hidden rounded-lg border bg-card">
-      <h2 className="p-4 font-semibold sm:px-5">Open positions</h2>
+    <section className="min-w-0 overflow-hidden rounded-md border bg-card">
+      <h2 className="p-4 font-medium text-sm sm:px-5">Open positions</h2>
       {rows.length ? (
         <Table aria-label="Open positions">
           <TableHeader>
@@ -141,7 +131,7 @@ function TraderPositions({
           </TableBody>
         </Table>
       ) : (
-        <p className="px-4 pb-4 text-muted-foreground text-sm sm:px-5">
+        <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">
           {demo ? "Demo profiles don’t include positions." : "No open positions."}
         </p>
       )}
@@ -155,21 +145,22 @@ function TraderTrades({ wallet }: { wallet: string }) {
   const pages = trades.data?.pages ?? [];
   const rows = pages.flatMap(({ trades, dataSource }) => trades.map((trade) => ({ trade, dataSource })));
   return (
-    <section className="overflow-hidden rounded-lg border bg-card">
-      <h2 className="p-4 font-semibold sm:px-5">Recent trades</h2>
-      {trades.isPending && (
-        <p role="status" className="px-4 pb-4 text-muted-foreground text-sm sm:px-5">
-          Loading trades…
-        </p>
-      )}
+    <section className="min-w-0 overflow-hidden rounded-md border bg-card">
+      <h2 className="p-4 font-medium text-sm sm:px-5">Recent trades</h2>
+      {trades.isPending && <TraderTableSkeleton label="Loading trades" />}
       {trades.isError && (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-4 text-muted-foreground text-sm sm:px-5">
           <p role="alert">
-            {trades.isFetchNextPageError ? "Couldn’t load more trades." : "Trades unavailable."}
+            {trades.isFetchNextPageError
+              ? "Couldn’t load more trades."
+              : rows.length
+                ? "Couldn’t update trades."
+                : "Trades unavailable."}
           </p>
           <Button
             variant="outline"
             size="sm"
+            disabled={trades.isFetching}
             onClick={() => (trades.isFetchNextPageError ? trades.fetchNextPage() : trades.refetch())}
           >
             Retry
@@ -177,7 +168,7 @@ function TraderTrades({ wallet }: { wallet: string }) {
         </div>
       )}
       {trades.isSuccess && !rows.length && (
-        <p className="px-4 pb-4 text-muted-foreground text-sm sm:px-5">
+        <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">
           {pages[0]?.dataSource === "demo" ? "Demo profiles don’t include trade history." : "No trades yet."}
         </p>
       )}
@@ -230,6 +221,7 @@ function TraderTrades({ wallet }: { wallet: string }) {
           </TableBody>
         </Table>
       )}
+      {trades.isFetchingNextPage && <TraderTableSkeleton label="Loading more trades" rows={1} />}
       {trades.hasNextPage && !trades.isFetchNextPageError && (
         <div className="border-t p-4 sm:px-5">
           <Button variant="outline" disabled={trades.isFetching} onClick={() => trades.fetchNextPage()}>
@@ -301,14 +293,25 @@ export function TraderProfileView({
 
   const missing = error instanceof ApiError && (error.status === 400 || error.status === 404);
   return (
-    <div className={FRAME}>
+    <div className={PROFILE_FRAME}>
       <Link
         href={`/leaderboard?window=${initialWindow}`}
-        className={cn("inline-flex items-center gap-1.5 text-sm", LINK)}
+        className={cn("inline-flex min-h-10 items-center gap-1.5 text-xs pointer-coarse:min-h-11", LINK)}
       >
         <ArrowLeft aria-hidden className="size-4" />
         Leaderboard
       </Link>
+      {data && error && !missing && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card p-4 text-muted-foreground text-sm"
+        >
+          <p>Couldn’t refresh the profile. Showing the last loaded data.</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      )}
       {missing || !data ? (
         <section className="space-y-2 rounded-lg border bg-card p-5">
           <h1 className="font-semibold text-xl">{missing ? "Trader not found" : "Profile unavailable"}</h1>
@@ -324,76 +327,85 @@ export function TraderProfileView({
       ) : (
         <>
           <ProfileAnnouncement handle={data.handle} />
-          <section className="space-y-4 rounded-lg border bg-card p-4 sm:p-5">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <Avatar aria-hidden className="size-12 sm:size-14">
-                {data.avatarUrl && <AvatarImage src={data.avatarUrl} alt="" referrerPolicy="no-referrer" />}
-                <AvatarFallback className="bg-secondary font-semibold text-primary">
-                  {data.handle.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="min-w-0 wrap-anywhere font-semibold text-2xl">{data.handle}</h1>
-                  <Badge
-                    variant="outline"
-                    className={
-                      data.dataSource === "demo"
-                        ? "border-warning/40 bg-warning-subtle text-warning"
-                        : undefined
-                    }
-                  >
-                    {data.dataSource === "demo"
-                      ? "Demo profile"
-                      : data.dataSource === "indexed"
-                        ? "Indexed trades"
-                        : "Data source unavailable"}
-                  </Badge>
-                  {auth.authenticated && data.isFollowing && <Badge variant="secondary">Following</Badge>}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-2">
-                  <CopyAddress address={data.wallet} label="Copy trader wallet address" />
-                  {data.dataSource === "indexed" && (
-                    <a
-                      href={solanaCluster().explorerAddressUrl(encodeURIComponent(data.wallet))}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={cn("text-xs", LINK)}
+          <section className="overflow-hidden rounded-md border bg-card">
+            <div className="flex flex-wrap items-start justify-between gap-4 p-4 sm:p-5">
+              <div className="flex min-w-0 items-start gap-3">
+                <Avatar aria-hidden className="size-11 shrink-0">
+                  {data.avatarUrl && <AvatarImage src={data.avatarUrl} alt="" referrerPolicy="no-referrer" />}
+                  <AvatarFallback className="bg-secondary font-semibold text-primary">
+                    {data.handle.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="min-w-0 wrap-anywhere font-semibold text-xl tracking-tight">
+                      {data.handle}
+                    </h1>
+                    <Badge
+                      variant="outline"
+                      className={
+                        data.dataSource === "demo"
+                          ? "border-warning/40 bg-warning-subtle text-warning"
+                          : undefined
+                      }
                     >
-                      Solana Explorer <ExternalLink aria-hidden className="inline size-3" />
-                    </a>
-                  )}
+                      {data.dataSource === "demo"
+                        ? "Demo profile"
+                        : data.dataSource === "indexed"
+                          ? "Indexed trades"
+                          : "Data source unavailable"}
+                    </Badge>
+                    {auth.authenticated && data.isFollowing && <Badge variant="secondary">Following</Badge>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-2">
+                    <CopyAddress address={data.wallet} label="Copy trader wallet address" />
+                    {data.dataSource === "indexed" && (
+                      <a
+                        href={solanaCluster().explorerAddressUrl(encodeURIComponent(data.wallet))}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn("text-xs", LINK)}
+                      >
+                        Solana Explorer <ExternalLink aria-hidden className="inline size-3" />
+                      </a>
+                    )}
+                  </div>
+                  <p className="tabular flex flex-wrap gap-x-3 text-muted-foreground text-xs">
+                    <span>
+                      <strong className="text-foreground">{COUNT.format(data.followers)}</strong> followers
+                    </span>
+                    <span>
+                      <strong className="text-foreground">{COUNT.format(data.following)}</strong> following
+                    </span>
+                  </p>
                 </div>
-                <p className="tabular flex flex-wrap gap-x-3 text-muted-foreground text-sm">
-                  <span>
-                    <strong className="text-foreground">{COUNT.format(data.followers)}</strong> followers
-                  </span>
-                  <span>
-                    <strong className="text-foreground">{COUNT.format(data.following)}</strong> following
-                  </span>
-                </p>
+              </div>
+              <div className="max-w-64 text-xs">
+                <FollowTrader wallet={data.wallet} routeWallet={wallet} isFollowing={data.isFollowing} />
+                {data.dataSource === "demo" && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">Performance figures are simulated.</p>
+                )}
               </div>
             </div>
-            <FollowTrader wallet={data.wallet} routeWallet={wallet} isFollowing={data.isFollowing} />
-            {data.dataSource === "demo" && (
-              <p className="text-muted-foreground text-sm">Performance figures are simulated.</p>
-            )}
-            <dl className="grid grid-cols-2 gap-2">
-              <Metric
-                label="Realized PnL"
-                value={formatUsd(data.realizedPnlUsd)}
-                className={changeTone(data.realizedPnlUsd)}
-              />
-              <Metric
-                label="Unrealized PnL"
-                value={formatUsd(data.unrealizedPnlUsd)}
-                className={changeTone(data.unrealizedPnlUsd)}
-              />
+            <dl className="grid grid-cols-2 divide-x border-t bg-background/30">
+              {[
+                { label: "Realized PnL", value: data.realizedPnlUsd },
+                { label: "Unrealized PnL", value: data.unrealizedPnlUsd },
+              ].map(({ label, value }) => (
+                <div key={label} className="min-w-0 px-4 py-3 sm:px-5">
+                  <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                  <dd className={cn("tabular mt-1 wrap-anywhere font-medium text-lg", changeTone(value))}>
+                    {formatUsd(value)}
+                  </dd>
+                </div>
+              ))}
             </dl>
           </section>
           <TraderStats stats={data.stats} initialWindow={initialWindow} />
-          <TraderPositions positions={data.positions} demo={data.dataSource === "demo"} />
-          <TraderTrades wallet={wallet} />
+          <div className="grid items-start gap-4 xl:grid-cols-2">
+            <TraderPositions positions={data.positions} demo={data.dataSource === "demo"} />
+            <TraderTrades wallet={wallet} />
+          </div>
         </>
       )}
     </div>
