@@ -31,13 +31,13 @@ export function Terminal({ mint }: { mint: string }) {
   return (
     <div
       className={cn(
-        "grid min-h-0 grid-cols-1 gap-2 p-2 pb-24 md:h-full md:grid-cols-[minmax(0,1fr)_304px] md:pb-2",
+        "grid min-h-0 grid-cols-1 gap-3 p-3 pb-24 md:h-full md:grid-cols-[minmax(0,1fr)_304px] md:pb-3 lg:p-4 lg:pb-4",
         explorerCollapsed
-          ? "xl:grid-cols-[52px_minmax(0,1fr)_320px]"
-          : "xl:grid-cols-[260px_minmax(0,1fr)_320px]",
+          ? "2xl:grid-cols-[52px_minmax(0,1fr)_320px]"
+          : "2xl:grid-cols-[240px_minmax(0,1fr)_320px]",
       )}
     >
-      <div className="hidden min-h-0 flex-col gap-2 overflow-auto xl:flex">
+      <div className="hidden min-h-0 flex-col gap-3 overflow-auto 2xl:flex">
         <MarketExplorer
           activeMint={mint}
           collapsed={explorerCollapsed}
@@ -45,14 +45,14 @@ export function Terminal({ mint }: { mint: string }) {
         />
         {!explorerCollapsed && <TopTraders />}
       </div>
-      <div className="flex min-h-0 flex-col gap-2 md:overflow-auto">
+      <div className="flex min-h-0 min-w-0 flex-col gap-3 md:overflow-auto">
         <AssetSummary token={token} livePrice={livePrice} />
-        <div className="flex h-[360px] flex-col md:h-auto md:min-h-[360px] md:flex-[3]">
+        <div className="flex h-[400px] shrink-0 flex-col md:h-auto md:min-h-[400px] md:flex-[3]">
           <PriceChart mint={mint} symbol={token?.symbol ?? ""} />
         </div>
         <ActivityPanel mint={mint} />
       </div>
-      <aside className="hidden min-h-0 flex-col gap-2 md:flex md:overflow-auto">
+      <aside className="hidden min-h-0 flex-col gap-3 md:flex md:overflow-auto">
         <OrderTicket key={mint} token={token} price={price} />
         <MarketContext token={token} />
         <PositionCard symbol={token?.symbol ?? "token"} />

@@ -131,6 +131,11 @@ function PrivyBridge({ children }: { children: ReactNode }) {
 /** Privy when configured; otherwise a demo context so the terminal stays browsable signed-out. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const appId = env.NEXT_PUBLIC_PRIVY_APP_ID;
+  const [accentColor, setAccentColor] = useState("#B8DCA5");
+  useEffect(() => {
+    const primary = getComputedStyle(document.documentElement).getPropertyValue("--chart-brand").trim();
+    if (primary) setAccentColor(primary);
+  }, []);
   const solanaRpcs = useMemo(
     () => ({
       [cluster.privyChain]: {
@@ -149,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       config={{
         appearance: {
           theme: "dark",
-          accentColor: "#9ccbff",
+          accentColor,
           walletChainType: "solana-only",
           showWalletLoginFirst: false,
         },

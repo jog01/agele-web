@@ -38,8 +38,15 @@ export function useSwapOverlay(
   useEffect(() => {
     const series = style === "candles" ? candles.current : line.current;
     if (!series) return;
+    const theme = getComputedStyle(document.documentElement);
+    const colors = {
+      buy: theme.getPropertyValue("--chart-positive").trim() || theme.getPropertyValue("--positive").trim(),
+      sell: theme.getPropertyValue("--chart-negative").trim() || theme.getPropertyValue("--negative").trim(),
+    };
     primitive.current?.setMarkers(
-      available && shown && !history.isError ? swapMarkers(history.items, mint, snapshot, interval) : [],
+      available && shown && !history.isError
+        ? swapMarkers(history.items, mint, snapshot, interval, colors)
+        : [],
     );
   }, [available, shown, history.items, history.isError, mint, style, snapshot, candles, line, interval]);
   return {

@@ -57,10 +57,10 @@ function ActivityTable({ mint }: { mint: string }) {
   if (isError) return <p className="p-4 text-muted-foreground">Trades unavailable.</p>;
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b p-2 text-xs">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/60 px-4 py-3 text-xs">
         <select
           aria-label="Trade type"
-          className="bg-card"
+          className="h-9 rounded-md border bg-background/60 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={side}
           onChange={(e) => setSide(e.target.value)}
         >
@@ -71,23 +71,15 @@ function ActivityTable({ mint }: { mint: string }) {
         <label className="inline-flex items-center gap-1">
           Min size (USD)
           <input
-            className="w-24 rounded border bg-background px-2 py-1"
+            className="h-9 w-24 rounded-md border bg-background/60 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             type="number"
             min="0"
             value={minimum}
             onChange={(e) => setMinimum(e.target.value)}
           />
         </label>
-        <button
-          type="button"
-          disabled
-          title="Following filter is unavailable: sign-in and API data are required."
-          className="text-muted-foreground opacity-50"
-        >
-          Following · unavailable
-        </button>
       </div>
-      <Table>
+      <Table className="[&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
         <TableHeader className="sticky top-0 bg-card">
           <TableRow>
             <TableHead>Age</TableHead>
@@ -103,7 +95,10 @@ function ActivityTable({ mint }: { mint: string }) {
           {visible.map((t) => (
             <TableRow
               key={t.signature}
-              className={cn("h-9 transition-colors duration-700", recent[t.signature] && "bg-positive/10")}
+              className={cn(
+                "h-12 border-border/50 transition-colors duration-700",
+                recent[t.signature] && "bg-positive/10",
+              )}
             >
               <TableCell className="tabular text-muted-foreground" title={utcTimestamp(t.time)}>
                 {now ? timeAgo(t.time, now) : ""}
@@ -162,8 +157,8 @@ function ThesisPanel({ mint }: { mint: string }) {
   const [draft, setDraft] = useState("");
   const now = useNow(30_000);
   return (
-    <div className="space-y-3 p-3">
-      <div className="rounded-md border bg-background p-2">
+    <div className="space-y-4 p-4">
+      <div className="rounded-lg border bg-background/60 p-3 focus-within:ring-2 focus-within:ring-ring/60">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, MAX_THESIS))}
@@ -216,11 +211,11 @@ export function ActivityPanel({ mint }: { mint: string }) {
   return (
     <section
       aria-label="Market activity"
-      className="flex min-h-[220px] min-w-0 flex-1 flex-col rounded-lg border bg-card"
+      className="flex min-h-[280px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card"
     >
       <Tabs defaultValue="activity" className="flex min-h-0 min-w-0 flex-1 flex-col gap-0">
         <div className="min-w-0 shrink-0 overflow-x-auto border-b pb-1">
-          <TabsList variant="line" className="h-10 w-max min-w-full justify-start px-2">
+          <TabsList variant="line" className="h-12 w-max min-w-full justify-start gap-3 px-4">
             <TabsTrigger value="activity" className="flex-none">
               Trades
             </TabsTrigger>

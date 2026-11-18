@@ -11,7 +11,9 @@ import {
   PriceScaleMode,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useLiveCandles } from "@/hooks/use-live-candles";
@@ -25,14 +27,25 @@ import { formatCompactUsd, formatPct, formatPrice } from "@/lib/format";
 import { useTerminalStore } from "@/stores/terminal";
 
 const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
-const COLORS = {
-  bg: "#11161d",
-  text: "#94a3b8",
-  grid: "#1b2430",
-  crosshair: "#768ca6",
-  up: "#5de0aa",
-  down: "#ff8195",
-};
+/** Canvas cannot resolve CSS variables, so read the shared brand tokens at mount. */
+function chartPalette(element: HTMLElement) {
+  const style = getComputedStyle(element);
+  const token = (name: string, fallback?: string) =>
+    style.getPropertyValue(name).trim() || (fallback ? style.getPropertyValue(fallback).trim() : "");
+  const up = token("--chart-positive", "--positive");
+  const down = token("--chart-negative", "--negative");
+  return {
+    bg: token("--chart-background", "--card"),
+    text: token("--chart-text", "--muted-foreground"),
+    grid: token("--chart-grid"),
+    crosshair: token("--chart-crosshair"),
+    up,
+    down,
+    volumeUp: `${up}40`,
+    volumeDown: `${down}40`,
+    font: style.fontFamily,
+  };
+}
 
 /** Precision follows price magnitude so memecoins don't render as $0.00. */
 function priceFormat(price: number) {
@@ -48,10 +61,10 @@ const toBar = (c: Candle) => ({
   low: c.low,
   close: c.close,
 });
-const toVol = (c: Candle) => ({
+const toVol = (c: Candle, palette: ReturnType<typeof chartPalette>) => ({
   time: c.time as UTCTimestamp,
   value: c.volume,
-  color: c.close >= c.open ? "rgba(93,224,170,0.35)" : "rgba(255,129,149,0.35)",
+  color: c.close >= c.open ? palette.volumeUp : palette.volumeDown,
 });
 
 export function PriceChart({
@@ -78,6 +91,7 @@ export function PriceChart({
   const hovered = useRef<number | null>(null);
   const fitted = useRef("");
   const [legend, setLegend] = useState<Candle | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { data: rawCandles, isPending, isError, snapshotKey } = useLiveCandles(mint, interval, onLivePrice);
   const { data: token } = useToken(mint);
   const supply = tokenSupply(token);
@@ -95,40 +109,41 @@ export function PriceChart({
   useEffect(() => {
     const el = container.current;
     if (!el) return;
+    const colors = chartPalette(el);
     const c = createChart(el, {
       autoSize: true,
       layout: {
-        background: { type: ColorType.Solid, color: COLORS.bg },
-        textColor: COLORS.text,
-        fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui",
+        background: { type: ColorType.Solid, color: colors.bg },
+        textColor: colors.text,
+        fontFamily: colors.font,
         attributionLogo: true,
       },
-      grid: { vertLines: { color: COLORS.grid }, horzLines: { color: COLORS.grid } },
-      crosshair: { vertLine: { color: COLORS.crosshair }, horzLine: { color: COLORS.crosshair } },
-      rightPriceScale: { borderColor: COLORS.grid },
-      timeScale: { borderColor: COLORS.grid, timeVisible: true, secondsVisible: false },
+      grid: { vertLines: { visible: false }, horzLines: { color: colors.grid } },
+      crosshair: { vertLine: { color: colors.crosshair }, horzLine: { color: colors.crosshair } },
+      rightPriceScale: { borderColor: colors.grid },
+      timeScale: { borderColor: colors.grid, timeVisible: true, secondsVisible: false },
     });
     candleSeries.current = c.addSeries(CandlestickSeries, {
-      upColor: COLORS.up,
-      downColor: COLORS.down,
-      wickUpColor: COLORS.up,
-      wickDownColor: COLORS.down,
+      upColor: colors.up,
+      downColor: colors.down,
+      wickUpColor: colors.up,
+      wickDownColor: colors.down,
       borderVisible: false,
     });
     volumeSeries.current = c.addSeries(HistogramSeries, {
       priceScaleId: "",
       priceFormat: { type: "volume" },
     });
-    lineSeries.current = c.addSeries(LineSeries, { color: COLORS.up, lineWidth: 2, lastValueVisible: false });
+    lineSeries.current = c.addSeries(LineSeries, { color: colors.up, lineWidth: 2, lastValueVisible: false });
     averages.current = [
       c.addSeries(LineSeries, {
-        color: COLORS.text,
+        color: colors.text,
         lineWidth: 1,
         lastValueVisible: false,
         priceLineVisible: false,
       }),
       c.addSeries(LineSeries, {
-        color: COLORS.crosshair,
+        color: colors.crosshair,
         lineWidth: 1,
         lastValueVisible: false,
         priceLineVisible: false,
@@ -186,7 +201,10 @@ export function PriceChart({
             ? PriceScaleMode.Percentage
             : PriceScaleMode.Normal,
     });
-    volumeSeries.current.setData(candles.map(toVol));
+    if (container.current) {
+      const colors = chartPalette(container.current);
+      volumeSeries.current.setData(candles.map((candle) => toVol(candle, colors)));
+    }
     bars.current = candles;
     last.current = candles.at(-1) ?? null;
     setLegend(candles.find((bar) => bar.time === hovered.current) ?? last.current);
@@ -209,9 +227,9 @@ export function PriceChart({
   return (
     <section
       aria-label={`${symbol} price chart`}
-      className="flex min-h-[320px] flex-1 flex-col rounded-lg border bg-card"
+      className="flex min-h-[360px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card"
     >
-      <div className="flex flex-wrap items-center gap-3 border-b p-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
         <ToggleGroup
           type="single"
           size="sm"
@@ -220,7 +238,7 @@ export function PriceChart({
           aria-label="Candle interval"
         >
           {INTERVALS.map((i) => (
-            <ToggleGroupItem key={i} value={i} className="h-7 px-2 text-xs">
+            <ToggleGroupItem key={i} value={i} className="h-9 px-2 text-xs">
               {i}
             </ToggleGroupItem>
           ))}
@@ -235,11 +253,24 @@ export function PriceChart({
           <ToggleGroupItem value="price">Price</ToggleGroupItem>
           <ToggleGroupItem value="mcap">MCap</ToggleGroupItem>
         </ToggleGroup>
-        <span className="text-xs">
-          {symbol} · {interval} · {chartMode === "price" ? "Price" : "MCap"}
-        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-9 text-muted-foreground"
+          aria-expanded={settingsOpen}
+          aria-controls="chart-settings"
+          onClick={() => setSettingsOpen((open) => !open)}
+        >
+          <Settings2 className="size-3.5" aria-hidden />
+          Display
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-3">
         {legend && (
-          <p className="tabular hidden gap-3 text-muted-foreground text-xs md:flex" aria-live="off">
+          <p
+            className="tabular hidden flex-wrap gap-x-3 gap-y-1 font-mono text-muted-foreground text-[11px] lg:flex"
+            aria-live="off"
+          >
             <span>O {format(legend.open)}</span>
             <span>H {format(legend.high)}</span>
             <span>L {format(legend.low)}</span>
@@ -250,13 +281,13 @@ export function PriceChart({
             <span>Vol {formatCompactUsd(legend.volume)}</span>
           </p>
         )}
-        <span className="ml-auto text-muted-foreground text-xs">
+        <span className="text-muted-foreground text-xs">
           {chartMode === "price" ? "Price (USD)" : "Market cap (USD)"}
           {demoMode && " · demo"}
         </span>
         {legend && (
           <p
-            className="tabular flex w-full flex-wrap gap-x-3 gap-y-1 text-muted-foreground text-xs md:hidden"
+            className="tabular flex flex-wrap gap-x-3 gap-y-1 font-mono text-muted-foreground text-[11px] lg:hidden"
             aria-live="off"
           >
             <span className={legend.close >= legend.open ? "text-positive" : "text-negative"}>
@@ -267,73 +298,83 @@ export function PriceChart({
           </p>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-3 border-b px-3 py-1 text-xs text-muted-foreground">
-        <ToggleGroup
-          type="single"
-          size="sm"
-          value={range}
-          onValueChange={(v) => v && setChartOptions({ range: v as typeof range })}
-          aria-label="Visible range"
-        >
-          {(["1D", "5D", "1M", "All"] as const).map((v) => (
-            <ToggleGroupItem key={v} value={v}>
-              {v}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <select
-          aria-label="Price scale"
-          value={scaleMode}
-          onChange={(e) => setChartOptions({ scaleMode: e.target.value as typeof scaleMode })}
-          className="bg-card"
-        >
-          <option value="normal">Normal</option>
-          <option value="log">Log</option>
-          <option value="percent">%</option>
-        </select>
-        <ToggleGroup
-          type="single"
-          size="sm"
-          value={chartStyle}
-          onValueChange={(v) => v && setChartOptions({ chartStyle: v as typeof chartStyle })}
-          aria-label="Chart style"
-        >
-          <ToggleGroupItem value="candles">Candles</ToggleGroupItem>
-          <ToggleGroupItem value="line">Line</ToggleGroupItem>
-        </ToggleGroup>
-        <label>
-          <input type="checkbox" checked={ma7} onChange={(e) => setChartOptions({ ma7: e.target.checked })} />{" "}
-          MA 7
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={ma25}
-            onChange={(e) => setChartOptions({ ma25: e.target.checked })}
-          />{" "}
-          MA 25
-        </label>
-        <button
-          type="button"
-          disabled={swaps.disabled}
-          title={swaps.title}
-          aria-pressed={swaps.shown}
-          onClick={swaps.toggle}
-          className={swaps.disabled ? "opacity-50" : swaps.shown ? "text-positive" : ""}
-        >
-          {swaps.label}
-        </button>
-        <button
-          type="button"
-          disabled
-          title="Thesis overlays need API data; no endpoint is available yet."
-          className="opacity-50"
-        >
-          Thesis
-        </button>
-        <time className="ml-auto tabular">
-          {now ? `${new Date(now).toISOString().slice(11, 19)} UTC` : "UTC"}
-        </time>
+      <div
+        id="chart-settings"
+        hidden={!settingsOpen}
+        className="border-y border-border/60 bg-background/30 px-4 py-3 text-xs text-muted-foreground"
+      >
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={range}
+            onValueChange={(v) => v && setChartOptions({ range: v as typeof range })}
+            aria-label="Visible range"
+          >
+            {(["1D", "5D", "1M", "All"] as const).map((v) => (
+              <ToggleGroupItem key={v} value={v}>
+                {v}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <select
+            aria-label="Price scale"
+            value={scaleMode}
+            onChange={(e) => setChartOptions({ scaleMode: e.target.value as typeof scaleMode })}
+            className="h-9 rounded-md border bg-card px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="normal">Normal</option>
+            <option value="log">Log</option>
+            <option value="percent">%</option>
+          </select>
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={chartStyle}
+            onValueChange={(v) => v && setChartOptions({ chartStyle: v as typeof chartStyle })}
+            aria-label="Chart style"
+          >
+            <ToggleGroupItem value="candles">Candles</ToggleGroupItem>
+            <ToggleGroupItem value="line">Line</ToggleGroupItem>
+          </ToggleGroup>
+          <label className="flex min-h-9 items-center gap-2">
+            <input
+              type="checkbox"
+              checked={ma7}
+              onChange={(e) => setChartOptions({ ma7: e.target.checked })}
+            />{" "}
+            MA 7
+          </label>
+          <label className="flex min-h-9 items-center gap-2">
+            <input
+              type="checkbox"
+              checked={ma25}
+              onChange={(e) => setChartOptions({ ma25: e.target.checked })}
+            />{" "}
+            MA 25
+          </label>
+          <button
+            type="button"
+            disabled={swaps.disabled}
+            title={swaps.title}
+            aria-pressed={swaps.shown}
+            onClick={swaps.toggle}
+            className={`min-h-9 text-left ${swaps.disabled ? "opacity-50" : swaps.shown ? "text-positive" : ""}`}
+          >
+            {swaps.label}
+          </button>
+          <button
+            type="button"
+            disabled
+            title="Thesis overlays need API data; no endpoint is available yet."
+            className="opacity-50"
+          >
+            Thesis
+          </button>
+          <time className="ml-auto tabular">
+            {now ? `${new Date(now).toISOString().slice(11, 19)} UTC` : "UTC"}
+          </time>
+        </div>
       </div>
       <div className="relative min-h-0 flex-1">
         <div

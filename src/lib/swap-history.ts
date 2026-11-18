@@ -97,6 +97,7 @@ export function swapMarkers(
   mint: string,
   snapshot: Pick<Candle, "time">[],
   interval: Interval,
+  colors = { buy: "#72D5AB", sell: "#F18B96" },
 ): SeriesMarker<UTCTimestamp>[] {
   if (!snapshot.length) return [];
   return historyItems([{ items, nextCursor: null }])
@@ -123,7 +124,7 @@ export function swapMarkers(
           id: item.requestId,
           time: candle.time as UTCTimestamp,
           position: side === "buy" ? ("belowBar" as const) : ("aboveBar" as const),
-          color: side === "buy" ? "#5de0aa" : "#ff8195",
+          color: colors[side],
           shape: side === "buy" ? ("arrowUp" as const) : ("arrowDown" as const),
           text: side === "buy" ? "Buy" : "Sell",
         },

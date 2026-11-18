@@ -34,8 +34,8 @@ export function HoldersPanel({ mint }: { mint: string }) {
     );
   const data = query.data;
   return (
-    <div className="space-y-3 py-3">
-      <div className="flex flex-wrap gap-x-6 gap-y-2 px-3">
+    <div className="space-y-4 py-4">
+      <div className="flex flex-wrap gap-x-6 gap-y-2 px-4">
         <p>
           Holders <span className="tabular font-medium">{formatCompact(data.totalHolders)}</span>
         </p>
@@ -64,7 +64,7 @@ export function HoldersPanel({ mint }: { mint: string }) {
           </TableHeader>
           <TableBody>
             {data.holders.map((holder) => (
-              <TableRow key={holder.wallet}>
+              <TableRow key={holder.wallet} className="h-12 border-border/50">
                 <TableCell className="tabular">{holder.rank}</TableCell>
                 <TableCell>
                   <a
@@ -204,8 +204,8 @@ export function TradersPanel({ mint }: { mint: string }) {
   const pages = query.data?.pages ?? [];
   const traders = pages.flatMap((page) => page.traders);
   return (
-    <div className="space-y-3 py-3">
-      <div className="space-y-1 px-3">
+    <div className="space-y-4 py-4">
+      <div className="space-y-1 px-4">
         <Source
           source={
             pages.every((page) => page.dataSource === pages[0]?.dataSource)
@@ -232,7 +232,7 @@ export function TradersPanel({ mint }: { mint: string }) {
           </TableHeader>
           <TableBody>
             {traders.map((trader, index) => (
-              <TableRow key={trader.wallet ?? trader.handle}>
+              <TableRow key={trader.wallet ?? trader.handle} className="h-12 border-border/50">
                 <TableCell className="tabular">{index + 1}</TableCell>
                 <TableCell>
                   {trader.wallet ? (

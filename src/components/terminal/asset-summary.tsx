@@ -1,17 +1,17 @@
 "use client";
 
-import { ExternalLink, Globe } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { ChangeText } from "@/components/common/change-text";
 import { CopyAddress } from "@/components/common/copy-address";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Token } from "@/lib/api/client";
-import { DASH, formatCompact, formatCompactUsd, formatPrice } from "@/lib/format";
+import { formatCompact, formatCompactUsd, formatPrice } from "@/lib/format";
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="min-w-0 px-3 py-2" title={note}>
+    <div className="min-w-0 px-4 py-3" title={note}>
       <dt className="whitespace-nowrap text-muted-foreground text-xs">{label}</dt>
       <dd className="tabular mt-0.5 truncate font-medium">{value}</dd>
     </div>
@@ -26,7 +26,7 @@ export function AssetSummary({ token, livePrice }: { token: Token | undefined; l
       aria-label={`${token.symbol} summary`}
       className="shrink-0 overflow-hidden rounded-lg border bg-card"
     >
-      <div className="flex min-h-[76px] items-center gap-3 px-3 py-2">
+      <div className="flex min-h-[88px] items-center gap-3 px-4 py-3">
         <AssetAvatar mint={token.mint} symbol={token.symbol} className="size-10" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -47,15 +47,6 @@ export function AssetSummary({ token, livePrice }: { token: Token | undefined; l
             >
               <ExternalLink className="size-3.5" aria-hidden />
             </a>
-            <span
-              className="hidden items-center gap-2 border-l pl-3 text-muted-foreground/60 sm:inline-flex"
-              title="Website and X links are not provided by the market data source."
-            >
-              <Globe className="size-3.5" aria-label="Website unavailable" />
-              <span role="img" aria-label="X profile unavailable">
-                𝕏
-              </span>
-            </span>
           </div>
         </div>
         <div className="shrink-0 text-right">
@@ -64,16 +55,11 @@ export function AssetSummary({ token, livePrice }: { token: Token | undefined; l
           <span className="ml-1 text-muted-foreground text-[10px]">24h</span>
         </div>
       </div>
-      <dl className="grid grid-cols-3 divide-x divide-border/60 border-t bg-background/30 sm:grid-cols-5">
+      <dl className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60 sm:grid-cols-4">
         <Stat label="Market cap" value={formatCompactUsd(token.marketCapUsd)} />
         <Stat label="24h volume" value={formatCompactUsd(token.volume24hUsd)} />
         <Stat label="Liquidity" value={formatCompactUsd(token.liquidityUsd)} />
         <Stat label="Holders" value={formatCompact(token.holders)} />
-        <Stat
-          label="Top 10 holders"
-          value={DASH}
-          note="Holder concentration is unavailable from this data source."
-        />
       </dl>
     </section>
   );

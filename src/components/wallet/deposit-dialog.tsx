@@ -44,7 +44,7 @@ export function DepositDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="gap-6 sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Deposit USDC</DialogTitle>
           <DialogDescription>
@@ -65,8 +65,8 @@ export function DepositDialog() {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="rounded-md border bg-background p-3">
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-background/60 p-4">
               <div className="mb-1 text-muted-foreground text-xs">
                 Your Solana address{cluster.cluster === "devnet" ? " (devnet)" : ""}
               </div>
@@ -86,7 +86,7 @@ export function DepositDialog() {
               </div>
             </div>
 
-            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-subtle p-3 text-warning text-xs">
+            <div className="flex items-start gap-3 rounded-lg bg-warning-subtle p-4 text-warning text-xs leading-relaxed">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
                 Only send USDC (mint {cluster.usdcMint.slice(0, 4)}…{cluster.usdcMint.slice(-4)}) on the
@@ -94,7 +94,7 @@ export function DepositDialog() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between rounded-md border p-3">
+            <div className="flex items-center justify-between rounded-lg border p-4">
               <span className="text-muted-foreground">USDC balance</span>
               <span className="tabular flex items-center gap-1.5 font-medium">
                 {balance.isPending ? (
