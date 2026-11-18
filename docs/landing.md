@@ -2,16 +2,16 @@
 
 ## Direction
 
-Jogeshwar rejected the first copy-left / chart-right direction as dull. The revision follows his ElevenLabs reference structurally: headline and actions above a wide, original image. Arbital informs the restraint and emphasis on the visual, not copied artwork.
+The hero follows Jogeshwar's latest Arbital-inspired direction: centered headline and actions over a low-opacity moving chart background. It is not a copy-left / chart-right split, nor a foreground coin scene. The composition is original rather than copied reference artwork.
 
-“Markets move. People matter.” sits above a colorful isometric crypto scene. Real BTC, ETH, SOL, USDC, JUP, BONK and PENGU artwork surrounds the Agele meeting point; people and crossing trajectories communicate independent perspectives connecting. There is no chart, miniature UI, fabricated price, trader identity, return, usage count or implied live feed. Token artwork is conceptual crypto imagery, not a list of supported trading pairs; the copy identifies the product as Solana trading.
+“Markets move. People matter.” remains the foreground. A faint candlestick trace moves slowly behind it, with stronger masking under the text for readability. Real BTC, ETH, SOL, USDC, JUP, BONK and PENGU artwork adds color at the edges. Every image is clipped by an equal-width/height, overflow-hidden circular wrapper and a second circular crop on the image—square source corners cannot protrude. The chart is decorative, not live: no prices, axes, returns, trader identities or implied performance. Token artwork is conceptual imagery, not a list of supported pairs; the copy identifies the product as Solana trading.
 
 Only one short section follows the hero. It connects the trading desk and trader discovery. Feed and terminal entry remain direct.
 
 ```mermaid
 flowchart TD
-  H[Headline + primary trade / secondary feed actions] --> I[Wide colorful crypto illustration]
-  I --> S[One short context section]
+  B[Faint moving chart + circular token accents] -. decorative background .-> H[Centered headline + trade / feed actions]
+  H --> S[One short context section]
   S --> T[Trade terminal]
   S --> L[Trader leaderboard]
   H --> F[Social feed]
@@ -19,9 +19,9 @@ flowchart TD
 
 ## Implementation
 
-`src/app/page.tsx` and `src/components/landing/crypto-scene.tsx` are Server Components. Deterministic SVG geometry uses semantic surface colors and token-derived brand colors only inside the illustration. The Agele identity and actions remain pastel green on graphite. There is no gradient, glow, canvas, animation loop, market request or client state. Static artwork respects reduced motion without additional code.
+`src/app/page.tsx` stays a Server Component. `src/components/landing/market-backdrop.tsx` is a small Client Component solely for the pause/resume control. Hardcoded illustrative SVG geometry is deterministic; no market API, canvas, JavaScript frame loop or new animation dependency is involved. Candles use semantic primary/negative colors; local token art supplies its own brand colors. The Agele UI remains pastel green on graphite. The radial gradient is an SVG opacity mask, not a colored surface or glow.
 
-The mobile scene is recomposed rather than cropped or shrunk from desktop. Both variants reserve their aspect ratio, use the same cached local artwork, and contain no tiny SVG text. The figure has an accessible summary and is non-interactive. Keyboard focus, a skip link, native scrolling and 44px targets remain. Terminal, wallet, API and execution behavior are untouched.
+The chart drifts at constant speed across a seamless 200-second CSS transform loop. `motion-safe` enables it only when reduced motion is not requested; a keyboard-accessible 44px pause/resume control freezes and continues the same position. The control is hidden when reduced motion makes the background static. Decorative layers are `aria-hidden` and `pointer-events-none`, except the actual pause control. A center-cropped background fills mobile without changing the foreground layout; mobile keeps four token accents at safe outer positions and desktop shows seven. Image dimensions are explicit. Keyboard focus, skip link and native scrolling remain; terminal, wallet, API and execution behavior are untouched.
 
 ## Artwork provenance
 

@@ -165,6 +165,15 @@
   }
 }
 
+@keyframes agele-hero-market-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-1440px);
+  }
+}
+
 @media (forced-colors: none) {
   :where(
     .workspace-scrollbars *,

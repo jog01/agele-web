@@ -2,7 +2,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Brand } from "@/components/common/brand";
-import { CryptoScene } from "@/components/landing/crypto-scene";
+import { MarketBackdrop } from "@/components/landing/market-backdrop";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -43,8 +43,12 @@ export default function Home() {
         </nav>
       </header>
       <main id="main">
-        <section aria-labelledby="hero-heading" className="relative pt-12 pb-6 sm:pt-16 sm:pb-8 lg:pt-20">
-          <div className="relative z-1 mx-auto flex max-w-6xl flex-col items-center text-center">
+        <section
+          aria-labelledby="hero-heading"
+          className="relative isolate -mx-5 flex min-h-[650px] items-center justify-center overflow-hidden py-24 sm:-mx-8 sm:min-h-[670px] lg:-mx-14 lg:min-h-[690px]"
+        >
+          <MarketBackdrop />
+          <div className="relative z-1 mx-auto flex max-w-6xl flex-col items-center px-5 text-center sm:px-8">
             <p className="mb-5 font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase sm:text-xs">
               Solana trading. Wider perspectives.
             </p>
@@ -72,7 +76,6 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <CryptoScene />
         </section>
         <section
           aria-labelledby="perspective-heading"
