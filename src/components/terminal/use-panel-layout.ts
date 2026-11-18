@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "agele-panel-layout-v1";
 export const DEFAULT_LAYOUT = { markets: 248, ticket: 304, chart: 0.68, order: 0.66 };
@@ -48,16 +48,15 @@ export function usePanelLayout() {
 }
 
 export function usePanelSize() {
-  const ref = useRef<HTMLDivElement>(null);
+  const [element, ref] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
-    const element = ref.current;
     if (!element) return;
     const observer = new ResizeObserver(([entry]) => {
       setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [element]);
   return { ref, ...size };
 }
