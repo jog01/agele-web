@@ -83,9 +83,9 @@ export function MarketExplorer({
                   {formatCompactUsd(token.marketCapUsd)} MC
                 </span>
               </span>
-              <span className="shrink-0 text-right">
+              <span className="flex shrink-0 flex-col items-end text-right">
                 <span className="tabular block text-xs">{formatPrice(token.priceUsd)}</span>
-                <ChangeText value={token.priceChange24hPct} className="mt-1 block text-xs" />
+                <ChangeText value={token.priceChange24hPct} className="mt-1 whitespace-nowrap text-xs" />
               </span>
             </>
           )}

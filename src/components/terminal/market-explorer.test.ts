@@ -39,4 +39,29 @@ describe("MarketExplorer hydration", () => {
     expect(await screen.findByRole("link", { name: /SOL/ })).toBeTruthy();
     expect(onRecoverableError).not.toHaveBeenCalled();
   });
+
+  it("keeps the change icon inline beside its percentage on the second price row", async () => {
+    useTrending.mockReturnValue({
+      isPending: false,
+      isError: false,
+      data: [
+        {
+          mint: "sol-mint",
+          symbol: "SOL",
+          name: "Solana",
+          priceUsd: 100,
+          priceChange24hPct: 2,
+          marketCapUsd: 1000,
+          holders: 10,
+        },
+      ],
+    });
+    render(createElement(MarketExplorer, { activeMint: "sol-mint" }));
+
+    const change = await screen.findByText("+2.00%");
+    expect(change.querySelector("svg")).not.toBeNull();
+    expect(change.classList.contains("inline-flex")).toBe(true);
+    expect(change.classList.contains("block")).toBe(false);
+    expect(change.parentElement?.classList.contains("flex-col")).toBe(true);
+  });
 });
