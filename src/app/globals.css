@@ -48,60 +48,60 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Sage / Ink. Brand contract: docs/brand.md. */
+/* Pastel green on neutral black / grey. Brand contract: docs/brand.md. */
 :root,
 .dark {
   color-scheme: dark;
-  --radius: 0.625rem;
-  --background: oklch(0.177 0.004 106.804);
-  --foreground: oklch(0.956 0.011 84.579);
-  --card: oklch(0.213 0.004 106.723);
-  --card-foreground: oklch(0.956 0.011 84.579);
-  --popover: oklch(0.251 0.006 106.792);
-  --popover-foreground: oklch(0.956 0.011 84.579);
+  --radius: 0.375rem;
+  --background: oklch(0.144 0.007 256.877);
+  --foreground: oklch(0.945 0.005 258.325);
+  --card: oklch(0.177 0.011 260.635);
+  --card-foreground: oklch(0.945 0.005 258.325);
+  --popover: oklch(0.221 0.015 261.624);
+  --popover-foreground: oklch(0.945 0.005 258.325);
   --primary: oklch(0.854 0.083 134.964);
-  --primary-foreground: oklch(0.231 0.026 137.997);
-  --secondary: oklch(0.285 0.011 122.123);
-  --secondary-foreground: oklch(0.912 0.014 115.851);
-  --muted: oklch(0.251 0.006 106.792);
-  --muted-foreground: oklch(0.723 0.014 102.107);
-  --accent: oklch(0.313 0.031 139.437);
-  --accent-foreground: oklch(0.917 0.053 134.798);
-  --destructive: oklch(0.748 0.124 13.612);
-  --destructive-foreground: oklch(0.237 0.044 11.605);
-  --border: oklch(0.323 0.01 106.965);
-  --input: oklch(0.553 0.021 127.38);
+  --primary-foreground: oklch(0.194 0.021 138.797);
+  --secondary: oklch(0.263 0.018 262.178);
+  --secondary-foreground: oklch(0.945 0.005 258.325);
+  --muted: oklch(0.221 0.015 261.624);
+  --muted-foreground: oklch(0.686 0.022 257.492);
+  --accent: oklch(0.275 0.016 259.783);
+  --accent-foreground: oklch(0.945 0.005 258.325);
+  --destructive: oklch(0.702 0.192 15.283);
+  --destructive-foreground: oklch(0.187 0.038 7.137);
+  --border: oklch(0.307 0.021 257.273);
+  --input: oklch(0.5 0.029 257.677);
   --ring: oklch(0.854 0.083 134.964);
   --chart-1: oklch(0.854 0.083 134.964);
-  --chart-2: oklch(0.801 0.112 164.262);
-  --chart-3: oklch(0.748 0.124 13.612);
+  --chart-2: oklch(0.792 0.165 161.571);
+  --chart-3: oklch(0.702 0.192 15.283);
   --chart-4: oklch(0.828 0.098 82.575);
-  --chart-5: oklch(0.774 0.06 296.969);
-  --sidebar: oklch(0.198 0.006 121.989);
-  --sidebar-foreground: oklch(0.956 0.011 84.579);
+  --chart-5: oklch(0.746 0.08 298.617);
+  --sidebar: oklch(0.162 0.01 255.662);
+  --sidebar-foreground: oklch(0.945 0.005 258.325);
   --sidebar-primary: oklch(0.854 0.083 134.964);
-  --sidebar-primary-foreground: oklch(0.231 0.026 137.997);
-  --sidebar-accent: oklch(0.313 0.031 139.437);
-  --sidebar-accent-foreground: oklch(0.917 0.053 134.798);
-  --sidebar-border: oklch(0.323 0.01 106.965);
+  --sidebar-primary-foreground: oklch(0.194 0.021 138.797);
+  --sidebar-accent: oklch(0.275 0.016 259.783);
+  --sidebar-accent-foreground: oklch(0.945 0.005 258.325);
+  --sidebar-border: oklch(0.307 0.021 257.273);
   --sidebar-ring: oklch(0.854 0.083 134.964);
-  --positive: oklch(0.801 0.112 164.262);
-  --positive-foreground: oklch(0.244 0.031 167.118);
-  --positive-subtle: oklch(0.292 0.033 166.315);
-  --negative: oklch(0.748 0.124 13.612);
-  --negative-foreground: oklch(0.237 0.044 11.605);
-  --negative-subtle: oklch(0.281 0.03 5.293);
+  --positive: oklch(0.792 0.165 161.571);
+  --positive-foreground: oklch(0.206 0.033 163.304);
+  --positive-subtle: oklch(0.251 0.033 168.839);
+  --negative: oklch(0.702 0.192 15.283);
+  --negative-foreground: oklch(0.187 0.038 7.137);
+  --negative-subtle: oklch(0.24 0.043 1.199);
   --warning: oklch(0.828 0.098 82.575);
-  --warning-foreground: oklch(0.26 0.035 88.113);
-  --warning-subtle: oklch(0.302 0.025 90.714);
-  --surface-hover: oklch(0.285 0.011 122.123);
+  --warning-foreground: oklch(0.236 0.029 82.289);
+  --warning-subtle: oklch(0.281 0.029 84.087);
+  --surface-hover: oklch(0.263 0.018 262.178);
   /* Canvas consumers require sRGB strings, not OKLCH. */
-  --chart-background: #191917;
-  --chart-text: #a7a69c;
-  --chart-grid: #292d27;
-  --chart-crosshair: #7e8978;
-  --chart-positive: #72d5ab;
-  --chart-negative: #f18b96;
+  --chart-background: #0e1116;
+  --chart-text: #929ba8;
+  --chart-grid: #1c222b;
+  --chart-crosshair: #596474;
+  --chart-positive: #2cdb99;
+  --chart-negative: #ff6177;
   --chart-brand: #b8dca5;
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -134,7 +134,7 @@
 }
 @layer base {
   body {
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.5;
   }
   .tabular {

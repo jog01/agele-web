@@ -1,0 +1,63 @@
+/* The Tailwind Turbopack loader treats CSS as global; namespace every selector. */
+.agele-ticker-viewport {
+  container-type: inline-size;
+  overflow: hidden;
+}
+
+.agele-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: agele-ticker-left 60s linear infinite;
+}
+
+.agele-ticker-group {
+  display: flex;
+  min-width: 100cqw;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-around;
+  gap: 20px;
+  padding-inline: 12px;
+}
+
+@keyframes agele-ticker-left {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (hover: hover) {
+  .agele-ticker-viewport:hover .agele-ticker-track {
+    animation-play-state: paused;
+  }
+}
+
+/* Keyboard focus uses native scrolling; no link can drift out from under it. */
+.agele-ticker-viewport:has(:focus-visible),
+.agele-ticker-viewport[data-paused="true"] {
+  overflow-x: auto;
+}
+
+.agele-ticker-viewport:has(:focus-visible) .agele-ticker-track,
+.agele-ticker-viewport[data-paused="true"] .agele-ticker-track {
+  animation: none;
+}
+
+.agele-ticker-viewport:has(:focus-visible) .agele-ticker-copy,
+.agele-ticker-viewport[data-paused="true"] .agele-ticker-copy {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agele-ticker-viewport {
+    overflow-x: auto;
+  }
+
+  .agele-ticker-track {
+    animation: none;
+  }
+
+  .agele-ticker-copy {
+    display: none;
+  }
+}
