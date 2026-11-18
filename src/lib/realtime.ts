@@ -5,6 +5,13 @@ import { useRealtimeStore } from "@/stores/realtime";
 
 type Listener = (data: unknown) => void;
 
+/** Resolves a same-origin path (`/ws`) to a `ws:`/`wss:` URL on the page's host; absolute URLs pass through. */
+export function resolveWsUrl(url: string, location: Pick<Location, "protocol" | "host">): string {
+  if (!url.startsWith("/")) return url;
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${location.host}${url}`;
+}
+
 /**
  * Single multiplexed WebSocket for the app. Topics mirror the API (`token:<mint>:trades`, ...).
  * Reconnects with backoff and re-subscribes; callers should re-snapshot over REST after a reconnect.
@@ -20,7 +27,7 @@ class RealtimeClient {
     if (typeof window === "undefined" || this.ws) return;
     const store = useRealtimeStore.getState();
     store.setStatus("connecting");
-    const ws = new WebSocket(env.NEXT_PUBLIC_WS_URL);
+    const ws = new WebSocket(resolveWsUrl(env.NEXT_PUBLIC_WS_URL, window.location));
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 0;
