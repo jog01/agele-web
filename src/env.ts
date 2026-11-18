@@ -8,7 +8,7 @@ const urlOrPath = (protocols: RegExp) =>
 export const env = createEnv({
   client: {
     NEXT_PUBLIC_API_URL: urlOrPath(/^https?$/).default("http://localhost:4000"),
-    NEXT_PUBLIC_WS_URL: urlOrPath(/^wss?$/).default("ws://localhost:4000/ws"),
+    NEXT_PUBLIC_WS_URL: urlOrPath(/^wss?$/).default("ws://localhost:4001/ws"),
     NEXT_PUBLIC_PRIVY_APP_ID: z.string().min(1).optional(),
     /** Optional Privy client id for a specific app client (dashboard > App settings > Clients). */
     NEXT_PUBLIC_PRIVY_CLIENT_ID: z.string().min(1).optional(),

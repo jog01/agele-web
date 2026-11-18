@@ -90,15 +90,14 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Transactions processed; skipped includes duplicates and non-trades */
-                200: {
+                /** @description Transactions queued for asynchronous indexing */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            indexed: number;
-                            skipped: number;
+                            queued: number;
                         };
                     };
                 };
@@ -120,7 +119,7 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
-                /** @description Webhook or SOL pricing unavailable */
+                /** @description Webhook unavailable */
                 503: {
                     headers: {
                         [name: string]: unknown;
