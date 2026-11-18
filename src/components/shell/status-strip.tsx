@@ -72,6 +72,7 @@ export function StatusStrip() {
                     href={`/trade/${token.mint}`}
                     key={token.mint}
                     tabIndex={-1}
+                    onMouseDown={(event) => event.preventDefault()}
                     className="tabular flex h-6 shrink-0 items-center gap-1.5 px-1 hover:text-foreground"
                   >
                     <AssetAvatar mint={token.mint} symbol={token.symbol} className="size-4" />
