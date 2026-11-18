@@ -40,7 +40,7 @@ function PortfolioMetrics({ data, loading = false }: { data?: Portfolio; loading
 
 export function PortfolioLoading() {
   return (
-    <div role="status" aria-label="Loading portfolio" aria-busy="true" className={PAGE}>
+    <div role="status" aria-label="Loading portfolio" className={PAGE}>
       <span className="sr-only">Loading portfolio</span>
       <div aria-hidden className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -59,6 +59,8 @@ afterEach(cleanup);
 it("shows structured reduced-motion rows while keeping ranking-window controls usable", () => {
   const { getByRole, container, queryByText } = renderBoard();
   expect(getByRole("status").textContent).toBe("Loading rankings");
+  expect(getByRole("status").closest('[aria-busy="true"]')).toBeNull();
+  expect(getByRole("table", { name: "Trader rankings" }).getAttribute("aria-busy")).toBe("true");
   expect(container.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(8);
   for (const block of container.querySelectorAll('[data-slot="skeleton"]'))
     expect(block.className).toContain("motion-reduce:animate-none");

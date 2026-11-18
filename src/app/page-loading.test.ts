@@ -29,7 +29,8 @@ it.each([
     expect(boundary.props.fallback.type).toBe(Loading);
     const html = renderToString(createElement(RouteLoading));
     expect(html).toContain(`aria-label="Loading ${name}"`);
-    expect(html).toContain('aria-busy="true"');
+    const markup = new DOMParser().parseFromString(html, "text/html");
+    expect(markup.querySelector('[role="status"]')?.closest('[aria-busy="true"]')).toBeNull();
     expect(html).toContain('data-slot="skeleton"');
     expect(html).toContain("motion-reduce:animate-none");
     expect(html).not.toContain("$0");

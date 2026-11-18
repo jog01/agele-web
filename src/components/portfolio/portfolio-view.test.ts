@@ -38,7 +38,7 @@ function renderPortfolio(auth = signedIn) {
 describe("PortfolioView loading", () => {
   it("uses the matched skeleton while auth initializes, without showing a sign-in gate", () => {
     const { getByRole, queryByRole } = renderPortfolio({ ...demoAuth, ready: false, configured: true });
-    expect(getByRole("status", { name: "Loading portfolio" }).getAttribute("aria-busy")).toBe("true");
+    expect(getByRole("status", { name: "Loading portfolio" }).getAttribute("aria-busy")).toBeNull();
     expect(queryByRole("button", { name: "Sign in" })).toBeNull();
   });
 

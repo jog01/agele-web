@@ -61,7 +61,7 @@ function RankingRowsSkeleton() {
 
 export function LeaderboardLoading() {
   return (
-    <div role="status" aria-label="Loading leaderboard" aria-busy="true" className={PAGE}>
+    <div role="status" aria-label="Loading leaderboard" className={PAGE}>
       <span className="sr-only">Loading leaderboard</span>
       <div aria-hidden className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -131,7 +131,7 @@ export function LeaderboardView() {
           ))}
         </ToggleGroup>
       </div>
-      <div className="overflow-hidden rounded-md border bg-card" aria-busy={isPending || isFetching}>
+      <div className="overflow-hidden rounded-md border bg-card">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-3 py-2 text-xs">
           <span className="rounded border bg-secondary px-1.5 py-0.5 font-medium text-primary">
             {data?.dataSource === "demo"
@@ -155,7 +155,7 @@ export function LeaderboardView() {
             </span>
           ) : null}
         </div>
-        <Table aria-label="Trader rankings">
+        <Table aria-label="Trader rankings" aria-busy={isPending || isFetching}>
           <RankingTableHeader />
           <TableBody>
             {isPending && <RankingRowsSkeleton />}
