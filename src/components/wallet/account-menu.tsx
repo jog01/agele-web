@@ -31,13 +31,18 @@ export function AccountMenu() {
       <Tooltip>
         <TooltipTrigger asChild>
           <span>
-            <Button size="sm" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
+            <Button
+              size="sm"
+              className="h-10 px-4 font-semibold"
+              disabled={!auth.configured || !auth.ready}
+              onClick={auth.login}
+            >
               {auth.configured && !auth.ready && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Sign in
             </Button>
           </span>
         </TooltipTrigger>
-        {!auth.configured && <TooltipContent>Set NEXT_PUBLIC_PRIVY_APP_ID to enable sign-in.</TooltipContent>}
+        {!auth.configured && <TooltipContent>Sign-in is unavailable in this demo.</TooltipContent>}
       </Tooltip>
     );
   }
@@ -46,7 +51,7 @@ export function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2" aria-label="Account and wallet">
+        <Button variant="outline" size="sm" className="h-10 gap-2 px-3" aria-label="Account and wallet">
           {wallet.creating ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (
@@ -57,7 +62,10 @@ export function AccountMenu() {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
+      <DropdownMenuContent
+        align="end"
+        className="w-64 p-2 [&_[data-slot=dropdown-menu-item]]:min-h-10 [&_[data-slot=dropdown-menu-item]]:px-3"
+      >
         <DropdownMenuLabel className="space-y-0.5">
           {label && <div className="truncate font-medium">{label}</div>}
           {wallet.address && (

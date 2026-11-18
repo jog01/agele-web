@@ -34,9 +34,9 @@ interface Props {
 
 function Line({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1">
+    <div className="flex items-start justify-between gap-4 py-2">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="tabular min-w-0 break-all text-right">{value}</span>
+      <span className="tabular min-w-0 break-all text-right font-mono text-xs">{value}</span>
     </div>
   );
 }

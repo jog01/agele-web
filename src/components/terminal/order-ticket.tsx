@@ -39,9 +39,9 @@ export function estimate(side: Side, amount: number, price: number) {
 
 function Row({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="flex items-center justify-between py-1">
+    <div className="flex items-start justify-between gap-4 py-1.5">
       <span className="text-muted-foreground">{label}</span>
-      <span className={cn("tabular", tone)}>{value}</span>
+      <span className={cn("tabular min-w-0 break-words text-right font-mono text-xs", tone)}>{value}</span>
     </div>
   );
 }
@@ -68,9 +68,9 @@ export function OrderTicket({
   const est = swap.validAmount && price ? estimate(side, amount, price) : null;
 
   return (
-    <section aria-label="Order ticket" className="rounded-lg border bg-card p-3">
-      <div className="mb-2 flex h-8 items-center justify-between">
-        <h2 className="font-semibold">
+    <section aria-label="Order ticket" className="rounded-lg border bg-card p-4">
+      <div className="mb-4 flex h-8 items-center justify-between">
+        <h2 className="font-semibold text-base tracking-tight">
           Trade <span className="text-muted-foreground">{symbol}</span>
         </h2>
         <Dialog>
@@ -107,13 +107,13 @@ export function OrderTicket({
       >
         <ToggleGroupItem
           value="buy"
-          className="h-10 data-[state=on]:bg-positive-subtle data-[state=on]:text-positive"
+          className="h-11 data-[state=on]:bg-positive-subtle data-[state=on]:text-positive"
         >
           Buy
         </ToggleGroupItem>
         <ToggleGroupItem
           value="sell"
-          className="h-10 data-[state=on]:bg-negative-subtle data-[state=on]:text-negative"
+          className="h-11 data-[state=on]:bg-negative-subtle data-[state=on]:text-negative"
         >
           Sell
         </ToggleGroupItem>
@@ -143,10 +143,10 @@ export function OrderTicket({
             setReviewOpen(true);
         }}
       >
-        <div className="relative rounded-md border border-input/70 bg-background px-3 py-3 focus-within:ring-2 focus-within:ring-foreground/50">
+        <div className="relative rounded-lg border border-border bg-background/60 p-4 focus-within:ring-2 focus-within:ring-ring/60">
           {side === "buy" && (
             <span
-              className="pointer-events-none absolute top-3.5 left-3 text-2xl text-muted-foreground"
+              className="pointer-events-none absolute top-4.5 left-4 text-2xl text-muted-foreground"
               aria-hidden
             >
               $
@@ -162,7 +162,7 @@ export function OrderTicket({
             aria-invalid={!!swap.validation}
             aria-describedby={`${amountId}-balance ${amountId}-validation`}
             className={cn(
-              "tabular w-full bg-transparent font-medium text-[32px] leading-10 outline-none placeholder:text-muted-foreground/50",
+              "tabular w-full bg-transparent font-mono text-[30px] leading-10 tracking-tight outline-none placeholder:text-muted-foreground/50",
               side === "buy" && "pl-5",
             )}
           />
@@ -186,7 +186,7 @@ export function OrderTicket({
               onClick={() => setRaw(String(p))}
               className={cn(
                 "tabular h-10 px-1 text-xs",
-                side === "buy" && Number(raw) === p && "bg-accent text-accent-foreground",
+                side === "buy" && Number(raw) === p && "bg-accent text-primary ring-1 ring-primary/30",
               )}
             >
               {side === "buy" ? `$${p}` : `${p}%`}
@@ -197,7 +197,7 @@ export function OrderTicket({
         <p id={`${amountId}-validation`} className="mt-1 text-warning text-xs">
           {swap.validation}
         </p>
-        <Separator className="my-3" />
+        <Separator className="my-4" />
         <div className="text-[13px]">
           <Row
             label="Estimated receive"
@@ -220,16 +220,21 @@ export function OrderTicket({
             }
           />
           <Row label="Slippage" value={`${(swap.quote?.slippageBps ?? 50) / 100}%`} />
-          <Row label="Price impact" value={swap.reviewValues.priceImpact} />
-          <Row label="Route fee" value={swap.reviewValues.routeFee} />
-          <Row label="Platform fee" value={swap.reviewValues.platformFee} />
-          <Row label="Network fee" value="Not quoted" />
+          <details className="mt-2 border-t border-border/60 pt-2">
+            <summary className="cursor-pointer py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+              Fees &amp; price impact
+            </summary>
+            <Row label="Price impact" value={swap.reviewValues.priceImpact} />
+            <Row label="Route fee" value={swap.reviewValues.routeFee} />
+            <Row label="Platform fee" value={swap.reviewValues.platformFee} />
+            <Row label="Network fee" value="Not quoted" />
+          </details>
         </div>
 
         <Button
           type="submit"
           className={cn(
-            "mt-3 h-11 w-full font-semibold",
+            "mt-4 h-12 w-full font-semibold",
             side === "buy"
               ? "bg-positive text-positive-foreground hover:bg-positive/90"
               : "bg-negative text-negative-foreground hover:bg-negative/90",
@@ -305,8 +310,8 @@ export function OrderTicket({
 export function PositionCard({ symbol }: { symbol: string }) {
   const auth = useAuth();
   return (
-    <section aria-label="Your positions" className="rounded-lg border bg-card p-3">
-      <h2 className="mb-2 font-semibold">Your positions</h2>
+    <section aria-label="Your positions" className="rounded-lg border bg-card p-4">
+      <h2 className="mb-4 font-semibold text-sm">Your positions</h2>
       <Tabs defaultValue="open">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="open">Open</TabsTrigger>
@@ -330,51 +335,56 @@ export function PositionCard({ symbol }: { symbol: string }) {
 
 export function MarketContext({ token }: { token: Token | undefined }) {
   return (
-    <section aria-label="About this market" className="rounded-lg border bg-card p-3 text-xs">
+    <section aria-label="About this market" className="rounded-lg border bg-card p-4 text-xs">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-semibold text-[13px]">About {token?.symbol ?? "this market"}</h2>
         <span className="text-muted-foreground">Solana spot</span>
       </div>
       <p className="leading-relaxed text-muted-foreground">
-        {token?.name ?? "Token"} market overview. Descriptions and social links are not provided by this data
-        source.
+        AMM pool liquidity, not order-book depth. Review the quote before every trade.
       </p>
-      <div className="mt-3 grid grid-cols-4 divide-x rounded-md border py-2 text-center">
-        {["5m", "1h", "4h", "24h"].map((range) => (
-          <div key={range}>
-            <div className="mb-1 text-muted-foreground">{range}</div>
-            {range === "24h" ? (
-              <ChangeText value={token?.priceChange24hPct} />
-            ) : (
-              <span title="Intraday change unavailable">{DASH}</span>
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="mt-3">
-        <Row label="Pool liquidity" value={formatCompactUsd(token?.liquidityUsd)} />
-        <Row label="Top 10 holders" value="Unavailable" />
-        <Row label="Order-book depth" value="Unavailable" />
-      </div>
-      <p className="mt-1 text-muted-foreground leading-relaxed">
-        AMM liquidity is not an order book. No depth ladder is available.
-      </p>
-      <div className="mt-3 space-y-3 border-t pt-3">
-        {["Buys / sells", "Buyers / sellers"].map((label) => (
-          <div key={label}>
-            <div className="mb-1.5 flex justify-between">
-              <span className="text-muted-foreground">{label}</span>
-              <span className="tabular">
-                {DASH} / {DASH}
-              </span>
+      <details className="mt-3">
+        <summary className="cursor-pointer py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          Market details
+        </summary>
+        <div className="mt-3 grid grid-cols-4 divide-x rounded-md border py-3 text-center">
+          {["5m", "1h", "4h", "24h"].map((range) => (
+            <div key={range}>
+              <div className="mb-1 text-muted-foreground">{range}</div>
+              {range === "24h" ? (
+                <ChangeText value={token?.priceChange24hPct} />
+              ) : (
+                <span title="Intraday change unavailable">{DASH}</span>
+              )}
             </div>
-            <div className="h-1 rounded-full bg-secondary" aria-hidden />
-          </div>
-        ))}
-      </div>
-      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
-        Intraday changes, concentration and flow ratios are unavailable. Prices can move before confirmation.
-      </p>
+          ))}
+        </div>
+        <div className="mt-3">
+          <Row label="Pool liquidity" value={formatCompactUsd(token?.liquidityUsd)} />
+          <Row label="Top 10 holders" value="Unavailable" />
+          <Row label="Order-book depth" value="Unavailable" />
+        </div>
+        <p className="mt-1 text-muted-foreground leading-relaxed">
+          AMM liquidity is not an order book. No depth ladder is available.
+        </p>
+        <div className="mt-3 space-y-3 border-t pt-3">
+          {["Buys / sells", "Buyers / sellers"].map((label) => (
+            <div key={label}>
+              <div className="mb-1.5 flex justify-between">
+                <span className="text-muted-foreground">{label}</span>
+                <span className="tabular">
+                  {DASH} / {DASH}
+                </span>
+              </div>
+              <div className="h-1 rounded-full bg-secondary" aria-hidden />
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+          Intraday changes, concentration and flow ratios are unavailable. Prices can move before
+          confirmation.
+        </p>
+      </details>
     </section>
   );
 }

@@ -40,7 +40,7 @@ export function SwapHistoryPanel({ mint }: { mint: string }) {
         </TableHeader>
         <TableBody>
           {history.items.map((item) => (
-            <TableRow key={item.requestId}>
+            <TableRow key={item.requestId} className="h-12 border-border/50">
               <TableCell
                 className={
                   historySide(item, mint) === "buy"
