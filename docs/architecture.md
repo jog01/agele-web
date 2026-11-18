@@ -93,7 +93,7 @@ See [live data flow](live-data.md) for price/leaderboard subscriptions, cache re
 ```mermaid
 flowchart LR
   API[(Agele API<br/>REST /v1)] -- "openapi-fetch<br/>typed by schema.d.ts" --> Q[TanStack Query cache]
-  WS[(API /ws)] -- "token:&lt;mint&gt;:trades" --> RT[lib/realtime.ts<br/>one socket, backoff, resubscribe]
+  WS[(WS gateway process<br/>:4001/ws)] -- "token:&lt;mint&gt;:trades" --> RT[lib/realtime.ts<br/>one socket, backoff, resubscribe]
   RT -- "useLiveTrades: prepend, dedupe by signature" --> Q
   RT -- "onTrade: update last candle" --> CH[PriceChart]
   RT -- status --> RS[stores/realtime<br/>Zustand]

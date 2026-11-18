@@ -6,7 +6,7 @@ Stack: Next.js 16 (App Router, Turbopack, Cache Components), shadcn/ui, Tailwind
 
 ## Run locally
 
-Requires Bun 1.4+ and the API from jog01/agele running on `:4000`.
+Requires Bun 1.4+ and the backend from jog01/agele with the REST API running on `:4000` and the separate WebSocket gateway on `:4001` (`/ws`).
 
 ```bash
 bun install
