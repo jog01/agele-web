@@ -147,7 +147,7 @@ export function MarketExplorer({
               aria-label="Filter markets"
               autoComplete="off"
               spellCheck={false}
-              className="h-8 rounded border-border bg-muted/60 pl-7 text-xs pointer-fine:text-xs"
+              className="h-8 rounded border-border bg-muted/60 pl-7 text-base pointer-fine:text-xs"
             />
           </div>
           <fieldset className="grid grid-cols-2 gap-1" aria-label="Market ranking">

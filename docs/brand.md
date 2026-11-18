@@ -50,7 +50,7 @@ flowchart LR
 
 Keep the landing page and the workspace's outer page scrollbar native. The `workspace-scrollbars` scope styles only descendants of the main viewport: internal panels, tables and tab rows. Portalled shadcn dialogs/sheets get the same treatment; `panel-scrollbars` opts in isolated scrollers such as the footer ticker.
 
-Use the neutral input-edge token for visible thumbs on transparent tracks, with native `scrollbar-width: thin` and `scrollbar-color`. Older WebKit gets an 8px fallback. Forced-colors mode retains system scrollbars. Do not hide bars to make a screenshot cleaner. The ticker is the sole moving scroller: its duplicate is inert and hidden from assistive technology; hover pauses movement. Keyboard focus, explicit pause and reduced-motion preferences use one static, natively scrollable token list.
+Use the neutral input-edge token for visible thumbs on transparent tracks, with native `scrollbar-width: thin` and `scrollbar-color`. Older WebKit gets an 8px fallback. Forced-colors mode retains system scrollbars. Do not hide bars to make a screenshot cleaner. The ticker is the sole moving scroller: its duplicate is hidden from assistive technology and tab order but supports pointer clicks; hover pauses movement. Keyboard-visible focus, explicit pause and reduced-motion preferences use one static, natively scrollable token list.
 
 ## Ownership
 
