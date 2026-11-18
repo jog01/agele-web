@@ -34,7 +34,7 @@ export function TraderTableSkeleton({ label, rows = 3 }: { label: string; rows?:
 export function TraderProfileLoading() {
   return (
     <div className={PROFILE_FRAME}>
-      <div role="status" aria-label="Loading trader profile" aria-busy="true">
+      <div role="status" aria-label="Loading trader profile">
         <span className="sr-only">Loading trader profile…</span>
         <div aria-hidden className="space-y-4">
           <div className="flex h-10 items-center">
