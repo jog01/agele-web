@@ -21,7 +21,7 @@ flowchart LR
   SEARCH{{"Cmd/Ctrl+K or /<br/>search dialog"}} --> MINT
 ```
 
-Every page renders inside `AppShell` (top bar, status strip, mobile bottom nav, search dialog). Static shells prerender; `/trade/[mint]` streams the terminal under `<Suspense>` because it reads route params.
+Product routes render inside `AppShell` (top bar, status strip, mobile bottom nav, search dialog); the static landing page has its own marketing header and footer. Static shells prerender; `/trade/[mint]` streams the terminal under `<Suspense>` because it reads route params.
 
 ## Trader profile
 
@@ -62,6 +62,32 @@ Profile caches are keyed by wallet and viewer so signed-in following state stays
 | Feed | Leaderboard | Portfolio |
 | --- | --- | --- |
 | ![Feed](images/feed.png) | ![Leaderboard](images/leaderboard.png) | ![Portfolio](images/portfolio.png) |
+
+## Page loading boundaries
+
+Route navigation and client queries are separate loading phases. Portfolio and Leaderboard each provide `loading.tsx` (including `AppShell`) and an explicit page-level Suspense fallback (inside the shell). They reuse the same skeletons for initial navigation and data loading; no fabricated balances, ranks or PnL appear while pending. Both use the shared theme and disable pulse animation for reduced-motion preferences.
+
+```mermaid
+flowchart LR
+  NAV[Open Portfolio / Leaderboard] --> ROUTE[Route loading.tsx + shell]
+  ROUTE --> PAGE[Page Suspense boundary]
+  PAGE --> AUTH{Portfolio auth ready?}
+  AUTH -- no --> PS[Portfolio metric / overview skeleton]
+  AUTH -- signed out --> GATE[Honest demo or sign-in guidance]
+  AUTH -- signed in --> PQ[Portfolio query]
+  PQ -- pending --> PS
+  PAGE --> LQ[Leaderboard query + active window controls]
+  LQ -- pending --> LS[Ranking row skeletons]
+  PQ -- success --> DATA[Actual snapshot or empty state]
+  LQ -- success --> DATA
+  PQ -- error --> RETRY[Error guidance + Retry]
+  LQ -- error --> RETRY
+  DATA -- background refetch --> KEEP[Keep loaded content + updating status]
+```
+
+- Portfolio waits for authentication before revealing user data. A disabled signed-out query is not mistaken for loading. Its metric grid and overview placeholders match the compact loaded layout; authenticated failures retain a Retry action.
+- Leaderboard keeps 24h / 7d / 30d controls interactive while its eight skeleton rows load, with one screen-reader status. Background refreshes keep the last rows visible; failed refreshes explicitly label that snapshot. Ranking-window links, follow gates and source labels remain unchanged.
+- Route audit: `/` is a static landing page with no blocking data query; `/trade/[mint]` already has the persistent layout and full workspace/panel fallbacks. Feed and trader profile loading/polish are owned by Design's parallel follow-up; the existing profile route already has a structured Suspense fallback.
 
 ## Terminal component tree
 
