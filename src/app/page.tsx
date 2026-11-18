@@ -47,7 +47,6 @@ export default function Home() {
           aria-labelledby="hero-heading"
           className="relative isolate -mx-5 flex min-h-[650px] items-center justify-center overflow-hidden py-24 sm:-mx-8 sm:min-h-[670px] lg:-mx-14 lg:min-h-[690px]"
         >
-          <MarketBackdrop />
           <div className="relative z-1 mx-auto flex max-w-6xl flex-col items-center px-5 text-center sm:px-8">
             <p className="mb-5 font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase sm:text-xs">
               Solana trading. Wider perspectives.
@@ -76,6 +75,7 @@ export default function Home() {
               </Link>
             </div>
           </div>
+          <MarketBackdrop />
         </section>
         <section
           aria-labelledby="perspective-heading"
