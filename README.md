@@ -2,7 +2,25 @@
 
 Next.js 16 frontend for Agele, a social trading terminal for Solana spot markets. The backend (REST, WebSocket, jobs) lives in [jog01/agele](https://github.com/jog01/agele). Frontend diagrams (routes, component tree, data flow): [docs/architecture.md](docs/architecture.md). Sign-in, embedded wallet and deposit: [docs/auth-wallet.md](docs/auth-wallet.md). Gasless swap quotes, signing and submission: [docs/swaps.md](docs/swaps.md).
 
-Stack: Next.js 16 (App Router, Turbopack, Cache Components), shadcn/ui, Tailwind v4, TradingView `lightweight-charts`, TanStack Query + `openapi-fetch`, Zustand, Privy, Biome, Vitest.
+## Screenshots
+
+Demo-mode previews. Market data and rankings shown here are fixtures, not live trading performance; Portfolio remains signed out.
+
+| Landing | Trading terminal |
+| --- | --- |
+| [![Agele landing page](docs/images/landing.png)](docs/images/landing.png) | [![Resizable trading terminal](docs/images/terminal-desktop.png)](docs/images/terminal-desktop.png) |
+
+| Feed | Trader profile |
+| --- | --- |
+| [![Social trading feed](docs/images/feed.png)](docs/images/feed.png) | [![Public trader profile](docs/images/trader-profile.png)](docs/images/trader-profile.png) |
+
+| Leaderboard | Portfolio |
+| --- | --- |
+| [![Trader leaderboard](docs/images/leaderboard.png)](docs/images/leaderboard.png) | [![Signed-out portfolio](docs/images/portfolio.png)](docs/images/portfolio.png) |
+
+## Stack
+
+Next.js 16 (App Router, Turbopack, Cache Components), shadcn/ui, Tailwind v4, TradingView `lightweight-charts`, TanStack Query + `openapi-fetch`, Zustand, Privy, Biome, Vitest.
 
 ## Run locally
 
