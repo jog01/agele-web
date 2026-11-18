@@ -165,6 +165,25 @@
   }
 }
 
+@keyframes agele-hero-market-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-1440px);
+  }
+}
+
+@keyframes agele-hero-token-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
 @media (forced-colors: none) {
   :where(
     .workspace-scrollbars *,
