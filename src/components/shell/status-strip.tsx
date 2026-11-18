@@ -37,7 +37,7 @@ export function StatusStrip() {
         {source === "mock" ? " · demo fixtures" : " · live"}
       </span>
       <nav
-        className="flex min-w-0 flex-1 items-center gap-5 overflow-x-auto overscroll-contain border-x px-3"
+        className="panel-scrollbars flex min-w-0 flex-1 items-center gap-5 overflow-x-auto overscroll-contain border-x px-3"
         aria-label="Market ticker"
       >
         {tokens.length ? (

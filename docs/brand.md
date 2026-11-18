@@ -46,6 +46,12 @@ flowchart LR
 - Keep the chart visually dominant. Secondary metrics, settings and history belong behind purposeful tabs or disclosure, not permanent extra cards.
 - Selection must also have a shape cue (`aria-current`, underline or edge). Financial direction keeps Buy/Sell labels and +/- signs because brand green is not a profit signal.
 
+## Scrolling
+
+Keep the landing page and the workspace's outer page scrollbar native. The `workspace-scrollbars` scope styles only descendants of the main viewport: internal panels, tables and tab rows. Portalled shadcn dialogs/sheets get the same treatment; `panel-scrollbars` opts in isolated scrollers such as the footer ticker.
+
+Use the neutral input-edge token for visible thumbs on transparent tracks, with native `scrollbar-width: thin` and `scrollbar-color`. Older WebKit gets an 8px fallback. Forced-colors mode retains system scrollbars. Do not hide bars, remove overflow, or change wheel, keyboard or touch scrolling to make a screenshot look cleaner.
+
 ## Ownership
 
 Design owns tokens, fonts, identity, navigation, explorer and landing. Staff Frontend owns chart, under-chart panels, terminal grid, order entry and wallet. Both use this contract; chart-specific restyling ships separately to avoid overlapping file edits.
