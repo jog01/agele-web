@@ -1,10 +1,14 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+/** An absolute URL, or a same-origin path such as `/__devin/port/4000` when the API sits behind the web origin. */
+const urlOrPath = (protocols: RegExp) =>
+  z.union([z.url({ protocol: protocols }), z.string().regex(/^\/\S*$/)]);
+
 export const env = createEnv({
   client: {
-    NEXT_PUBLIC_API_URL: z.url().default("http://localhost:4000"),
-    NEXT_PUBLIC_WS_URL: z.url().default("ws://localhost:4000/ws"),
+    NEXT_PUBLIC_API_URL: urlOrPath(/^https?$/).default("http://localhost:4000"),
+    NEXT_PUBLIC_WS_URL: urlOrPath(/^wss?$/).default("ws://localhost:4000/ws"),
     NEXT_PUBLIC_PRIVY_APP_ID: z.string().min(1).optional(),
     /** Optional Privy client id for a specific app client (dashboard > App settings > Clients). */
     NEXT_PUBLIC_PRIVY_CLIENT_ID: z.string().min(1).optional(),
