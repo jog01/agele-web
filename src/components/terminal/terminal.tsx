@@ -169,7 +169,12 @@ export function Terminal({ mint }: { mint: string }) {
             <SheetDescription>Every order is reviewed before signing.</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-4">
-            <OrderTicket key={sheetSide} token={token} price={price} initialSide={sheetSide ?? "buy"} />
+            <OrderTicket
+              key={`${mint}-${sheetSide}`}
+              token={token}
+              price={price}
+              initialSide={sheetSide ?? "buy"}
+            />
           </div>
         </SheetContent>
       </Sheet>
