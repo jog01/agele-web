@@ -66,14 +66,19 @@ export function StatusStrip() {
                   </Link>
                 ))}
               </div>
-              <div className={cn(styles.group, styles.copy)} aria-hidden inert>
+              <div className={cn(styles.group, styles.copy)} aria-hidden>
                 {tokens.map((token) => (
-                  <span key={token.mint} className="tabular flex h-6 shrink-0 items-center gap-1.5 px-1">
+                  <Link
+                    href={`/trade/${token.mint}`}
+                    key={token.mint}
+                    tabIndex={-1}
+                    className="tabular flex h-6 shrink-0 items-center gap-1.5 px-1 hover:text-foreground"
+                  >
                     <AssetAvatar mint={token.mint} symbol={token.symbol} className="size-4" />
                     <span className="font-semibold text-foreground">{token.symbol}</span>
                     <span>{formatPrice(token.priceUsd)}</span>
                     <ChangeText value={token.priceChange24hPct} />
-                  </span>
+                  </Link>
                 ))}
               </div>
             </div>

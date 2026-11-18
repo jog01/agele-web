@@ -32,17 +32,17 @@
 }
 
 /* Keyboard focus uses native scrolling; no link can drift out from under it. */
-.viewport:focus-within,
+.viewport:has(:focus-visible),
 .viewport[data-paused="true"] {
   overflow-x: auto;
 }
 
-.viewport:focus-within .track,
+.viewport:has(:focus-visible) .track,
 .viewport[data-paused="true"] .track {
   animation: none;
 }
 
-.viewport:focus-within .copy,
+.viewport:has(:focus-visible) .copy,
 .viewport[data-paused="true"] .copy {
   display: none;
 }

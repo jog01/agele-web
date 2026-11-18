@@ -25,10 +25,10 @@ flowchart LR
   A -->|Reduced| S[Single static scrollable group]
   M -->|Focus or Pause| S
   S -->|Token link| R[Open selected market]
-  M --> D[Duplicate is inert and aria-hidden]
+  M --> D[Duplicate supports pointer clicks only]
 ```
 
-Movement is CSS transform-only and linear, not a React render loop. The accessible link set is not duplicated. Hover pauses; explicit pause, keyboard focus and reduced-motion preferences use native horizontal scrolling. The footer stays hidden on mobile, where the existing safe-area bottom navigation takes priority. Demo and connection labels remain separate from prices.
+Movement is CSS transform-only and linear, not a React render loop. The visual duplicate is aria-hidden and excluded from tab order, but remains clickable with a pointer. Hover pauses in place without resetting links on pointer focus; explicit pause, keyboard-visible focus and reduced-motion preferences use native horizontal scrolling. The footer stays hidden on mobile, where the existing safe-area bottom navigation takes priority. Demo and connection labels remain separate from prices.
 
 ## Ownership and verification
 
