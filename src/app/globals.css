@@ -164,3 +164,36 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+@media (forced-colors: none) {
+  :where(
+    .workspace-scrollbars *,
+    .panel-scrollbars,
+    [data-slot="dialog-content"],
+    [data-slot="dialog-content"] *,
+    [data-slot="sheet-content"],
+    [data-slot="sheet-content"] *
+  ) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--input) transparent;
+
+    @supports not (scrollbar-color: auto) {
+      &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      &::-webkit-scrollbar-track,
+      &::-webkit-scrollbar-corner {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background: var(--input);
+        background-clip: padding-box;
+      }
+    }
+  }
+}
