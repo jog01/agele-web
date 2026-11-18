@@ -63,7 +63,7 @@ describe("PortfolioView loading", () => {
     const { queryByRole, getByRole } = renderPortfolio({ ...demoAuth, configured: true });
     expect(queryByRole("status", { name: "Loading portfolio" })).toBeNull();
     expect(getByRole("button", { name: "Sign in" })).toBeDefined();
-    expect(getByRole("button", { name: "Deposit", exact: true }).hasAttribute("disabled")).toBe(true);
+    expect(getByRole("button", { name: "Deposit" }).hasAttribute("disabled")).toBe(true);
   });
 
   it("keeps the last loaded metrics visible during background refresh", () => {
