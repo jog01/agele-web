@@ -47,7 +47,7 @@ export function Terminal({ mint }: { mint: string }) {
       </div>
       <div className="flex min-h-0 min-w-0 flex-col gap-3 md:overflow-auto">
         <AssetSummary token={token} livePrice={livePrice} />
-        <div className="flex h-[400px] shrink-0 flex-col md:h-auto md:min-h-[400px] md:flex-[3]">
+        <div className="flex h-[400px] shrink-0 flex-col md:h-auto md:min-h-[360px] md:flex-[3]">
           <PriceChart mint={mint} symbol={token?.symbol ?? ""} />
         </div>
         <ActivityPanel mint={mint} />
