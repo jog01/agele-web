@@ -83,7 +83,7 @@ export function FeedView() {
         ) : (
           <>
             {feed.isPending && <FeedPostsSkeleton />}
-            {feed.isError && (
+            {feed.isError && !feed.isFetchNextPageError && (
               <div
                 role="alert"
                 className={cn(
@@ -92,19 +92,9 @@ export function FeedView() {
                 )}
               >
                 <p>
-                  {feed.isFetchNextPageError
-                    ? "Couldn’t load more posts."
-                    : posts.length
-                      ? "Couldn’t update the feed."
-                      : "Feed unavailable."}{" "}
-                  {feed.error.message}
+                  {posts.length ? "Couldn’t update the feed." : "Feed unavailable."} {feed.error.message}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={feed.isFetching}
-                  onClick={() => (feed.isFetchNextPageError ? feed.fetchNextPage() : feed.refetch())}
-                >
+                <Button variant="outline" size="sm" disabled={feed.isFetching} onClick={() => feed.refetch()}>
                   Retry
                 </Button>
               </div>
@@ -170,14 +160,17 @@ export function FeedView() {
               </article>
             ))}
             {feed.isFetchingNextPage && <FeedPostsSkeleton count={1} />}
-            {feed.hasNextPage && !feed.isFetchNextPageError && (
-              <Button
-                variant="outline"
-                disabled={feed.isFetchingNextPage}
-                onClick={() => feed.fetchNextPage()}
-              >
-                {feed.isFetchingNextPage ? "Loading…" : "Load more"}
-              </Button>
+            {feed.hasNextPage && (
+              <div className="space-y-3">
+                {feed.isFetchNextPageError && (
+                  <p role="alert" className="text-muted-foreground text-sm">
+                    Couldn’t load more posts. {feed.error.message}
+                  </p>
+                )}
+                <Button variant="outline" disabled={feed.isFetching} onClick={() => feed.fetchNextPage()}>
+                  {feed.isFetchingNextPage ? "Loading…" : feed.isFetchNextPageError ? "Retry" : "Load more"}
+                </Button>
+              </div>
             )}
             {!feed.isError && !feed.hasNextPage && posts.length > 0 && (
               <p className="py-2 text-center text-muted-foreground text-sm">You're all caught up.</p>

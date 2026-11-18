@@ -133,7 +133,11 @@ it("retries the failed cursor rather than refetching the already-loaded feed", a
   fireEvent.click(screen.getByRole("button", { name: "Load more" }));
   expect((await screen.findByRole("alert")).textContent).toContain("Couldn’t load more posts.");
   expect(screen.getByText(post.body)).toBeDefined();
-  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  const retry = screen.getByRole("button", { name: "Retry" });
+  expect(
+    retry.compareDocumentPosition(screen.getByText(post.body)) & Node.DOCUMENT_POSITION_PRECEDING,
+  ).toBeTruthy();
+  fireEvent.click(retry);
   expect(await screen.findByText("Recovered page.")).toBeDefined();
   expect(get.mock.calls.map(([, options]) => options.params.query.cursor)).toEqual([
     undefined,
