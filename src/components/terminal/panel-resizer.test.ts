@@ -37,6 +37,7 @@ it("exposes a named, bounded keyboard-operable window splitter", () => {
   const handle = screen.getByRole("separator", { name: "Resize markets" });
   expect(handle.getAttribute("aria-controls")).toBe("markets");
   expect(handle.getAttribute("aria-valuenow")).toBe("248");
+  expect(handle.classList.contains("h-full")).toBe(true);
   fireEvent.keyDown(handle, { key: "ArrowRight" });
   expect(onChange).toHaveBeenLastCalledWith(258);
   fireEvent.keyDown(handle, { key: "ArrowLeft", shiftKey: true });

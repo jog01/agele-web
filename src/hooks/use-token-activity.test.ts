@@ -136,7 +136,7 @@ describe("token position queries", () => {
     );
     const { wrapper, qc } = setup();
     const view = render(createElement(PositionsPanel, { mint: "mint" }), { wrapper });
-    expect(view.getByText("Loading position…")).toBeTruthy();
+    expect(view.getByRole("status", { name: "Loading position" })).toBeTruthy();
     await act(async () => resolve(ok({ position })));
     await waitFor(() => expect(view.getByText("+$20.00")).toBeTruthy());
     expect(view.getByText("-$5.00").className).toBe("text-negative");
@@ -186,7 +186,7 @@ describe("token traders", () => {
     get.mockResolvedValueOnce(ok({ traders: [trader], nextCursor: "next" }));
     const { wrapper } = setup(demoAuth);
     const view = render(createElement(TradersPanel, { mint: "mint" }), { wrapper });
-    expect(view.getByText("Loading traders…")).toBeTruthy();
+    expect(view.getByRole("status", { name: "Loading traders" })).toBeTruthy();
     await waitFor(() => expect(view.getByText("Indexed data")).toBeTruthy());
     expect(view.getByRole("link", { name: /alice/ }).getAttribute("href")).toBe(
       "https://solscan.io/account/wallet-a",
@@ -262,7 +262,7 @@ describe("holders", () => {
     get.mockResolvedValue(ok(holders));
     const { wrapper } = setup(demoAuth);
     const view = render(createElement(HoldersPanel, { mint: "mint" }), { wrapper });
-    expect(view.getByText("Loading holders…")).toBeTruthy();
+    expect(view.getByRole("status", { name: "Loading holders" })).toBeTruthy();
     await waitFor(() => expect(view.getByText("23.50%")).toBeTruthy());
     expect(view.getAllByText("Pool · Raydium")).toHaveLength(1);
     expect(view.getByText("1K")).toBeTruthy();

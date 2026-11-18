@@ -78,7 +78,7 @@ export function PanelResizer({
         "group relative z-10 m-0 shrink-0 touch-none select-none border-0 outline-none",
         "after:absolute after:rounded-full after:bg-border after:transition-colors hover:after:bg-primary focus-visible:after:bg-primary",
         vertical
-          ? "w-1.5 cursor-col-resize after:inset-y-1/3 after:left-0.5 after:w-0.5"
+          ? "h-full w-1.5 self-stretch cursor-col-resize after:inset-y-1/3 after:left-0.5 after:w-0.5"
           : "h-1.5 cursor-row-resize after:inset-x-[45%] after:top-0.5 after:h-0.5",
         className,
       )}

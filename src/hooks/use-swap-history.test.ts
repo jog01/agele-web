@@ -139,14 +139,16 @@ it.each(["empty", "loading", "error", "signed-out"])("renders the %s history sta
   );
   const { wrapper } = setup(state === "signed-out" ? demoAuth : auth);
   render(createElement(SwapHistoryPanel, { mint: "token" }), { wrapper });
+  if (state === "loading") {
+    expect(screen.getByRole("status", { name: "Loading your swaps" })).toBeDefined();
+    return;
+  }
   const message =
     state === "empty"
       ? "No swaps yet."
-      : state === "loading"
-        ? "Loading your swaps…"
-        : state === "error"
-          ? /Swap history unavailable/
-          : "Sign in to view your swap history.";
+      : state === "error"
+        ? /Swap history unavailable/
+        : "Sign in to view your swap history.";
   await waitFor(() => expect(screen.getByText(message)).toBeDefined());
 });
 
