@@ -5,13 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useSwapHistory, useSwapHistoryTokens } from "@/hooks/use-swap-history";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { historySide, swapAmount } from "@/lib/swap-history";
+import { TableSkeleton } from "./panel-skeleton";
 
 export function SwapHistoryPanel({ mint }: { mint: string }) {
   const history = useSwapHistory();
   const tokens = useSwapHistoryTokens(history.items.flatMap((item) => [item.inputMint, item.outputMint]));
   if (!history.authenticated)
     return <p className="p-4 text-muted-foreground">Sign in to view your swap history.</p>;
-  if (history.isPending) return <p className="p-4 text-muted-foreground">Loading your swaps…</p>;
+  if (history.isPending) return <TableSkeleton label="Loading your swaps" />;
   if (history.isError && !history.items.length)
     return (
       <div className="p-4">

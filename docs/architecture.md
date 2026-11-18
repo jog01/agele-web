@@ -72,19 +72,35 @@ flowchart TB
   SHELL --> STRIP[StatusStrip]
   SHELL --> SD[SearchDialog]
   PAGE --> TERM[Terminal]
-  TERM --> L[Left 264px]
+  TERM --> L[Markets 200–380px, collapsible]
   TERM --> M[Center, flexible]
-  TERM --> R[Right 320px]
+  TERM --> R[Order rail 260–440px]
   L --> EXP[MarketExplorer<br/>filter, Supported / Watchlist]
-  L --> TT[TopTraders]
   M --> SUM[AssetSummary]
   M --> CH[PriceChart<br/>lightweight-charts]
-  M --> ACT[ActivityPanel<br/>Activity / Thesis]
+  M --> ACT[ActivityPanel<br/>Trades / Holders / Positions / My swaps / Traders / Top traders / Thesis]
+  ACT --> TT[TopTraders]
   R --> OT[OrderTicket] --> QR[QuoteReviewDialog]
-  R --> POS[PositionCard]
   R --> MC[MarketContext]
   TERM -. "below md" .-> SHEET[Buy / Sell bar → bottom sheet with OrderTicket]
 ```
+
+### Resizable terminal
+
+At desktop widths the explorer uses the full left column; global Top traders lives in the lower tab strip, separate from token-specific Traders. The chart/activity and order/context pairs have independent vertical splitters. Below 1024px the explorer is hidden; below 768px the chart and activity stack with Buy/Sell sheets instead of a rail. Inner panels scroll without moving the chart or footer. Market identity/stats share one row on wide screens.
+
+```mermaid
+flowchart LR
+  INPUT["Drag / arrow keys / Shift+arrow"] --> LIMIT["Clamp to viewport and panel minimums"]
+  LIMIT --> GRID["Resize columns or chart/activity and order/context split"]
+  LIMIT --> SAVE["Local panel preferences"]
+  SAVE --> LOAD["Validate on next visit"] --> LIMIT
+  RESET["Double-click / Enter"] --> DEFAULT["Restore split default"] --> GRID
+  QUERY["Panel request pending"] --> SKEL["Named summary / chart / order / table skeleton"]
+  SKEL --> RESULT["Real data, empty state or explicit error"]
+```
+
+Splitters expose `separator` roles, names, controlled regions, orientation and bounded pixel values. Home/End move to the limits; Enter/double-click resets that split. Preference storage is optional and malformed saved values are ignored or bounded. Layout has no new dependency. Skeletons reserve structure, announce loading to assistive technology and respect reduced motion; no synthetic chart or balance values are presented as data. Existing demo and wallet-signing gates remain unchanged.
 
 ## Data flow
 

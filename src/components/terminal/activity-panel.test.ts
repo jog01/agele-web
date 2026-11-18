@@ -5,9 +5,9 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { Trade } from "@/lib/api/client";
 import { ActivityPanel } from "./activity-panel";
 
-const state = vi.hoisted(() => ({ source: "mock", trades: [] as Trade[], isError: false }));
+const state = vi.hoisted(() => ({ source: "mock", trades: [] as Trade[], isError: false, isPending: false }));
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: state.trades, isPending: false, isError: state.isError }),
+  useQuery: () => ({ data: state.trades, isPending: state.isPending, isError: state.isError }),
 }));
 vi.mock("@/lib/api/queries", () => ({
   tokenQueries: { trades: () => ({ queryKey: ["trades"] }) },
@@ -33,6 +33,14 @@ afterEach(() => {
   state.source = "mock";
   state.trades = [];
   state.isError = false;
+  state.isPending = false;
+});
+
+it("shows table skeletons while trades are pending", () => {
+  state.isPending = true;
+  render(createElement(ActivityPanel, { mint: "mint" }));
+  expect(screen.getByRole("status", { name: "Loading activity" })).toBeDefined();
+  expect(screen.queryByText("No trades match these filters.")).toBeNull();
 });
 
 it("labels fixture transactions as demo without an explorer link", () => {

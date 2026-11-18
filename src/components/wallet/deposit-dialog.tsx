@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUsdcBalance } from "@/hooks/use-usdc-balance";
 import { formatUsd } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
@@ -98,10 +99,9 @@ export function DepositDialog() {
               <span className="text-muted-foreground">USDC balance</span>
               <span className="tabular flex items-center gap-1.5 font-medium">
                 {balance.isPending ? (
-                  <Loader2
-                    className="size-4 animate-spin text-muted-foreground"
-                    aria-label="Loading balance"
-                  />
+                  <span role="status" aria-label="Loading balance">
+                    <Skeleton className="h-4 w-20 motion-reduce:animate-none" />
+                  </span>
                 ) : balance.isError ? (
                   <span className="text-muted-foreground text-xs">Unavailable (RPC error)</span>
                 ) : (

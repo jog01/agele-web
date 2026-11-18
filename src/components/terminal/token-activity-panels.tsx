@@ -15,10 +15,11 @@ import {
   shortAddress,
   utcTimestamp,
 } from "@/lib/format";
+import { TableSkeleton } from "./panel-skeleton";
 
 export function HoldersPanel({ mint }: { mint: string }) {
   const query = useTokenHolders(mint);
-  if (query.isPending) return <p className="p-4 text-muted-foreground">Loading holders…</p>;
+  if (query.isPending) return <TableSkeleton label="Loading holders" columns={5} />;
   if (query.isError)
     return (
       <div className="space-y-2 p-4">
@@ -34,8 +35,8 @@ export function HoldersPanel({ mint }: { mint: string }) {
     );
   const data = query.data;
   return (
-    <div className="space-y-4 py-4">
-      <div className="flex flex-wrap gap-x-6 gap-y-2 px-4">
+    <div className="space-y-2 py-2">
+      <div className="flex flex-wrap gap-x-5 gap-y-1 px-3">
         <p>
           Holders <span className="tabular font-medium">{formatCompact(data.totalHolders)}</span>
         </p>
@@ -115,7 +116,7 @@ function Source({ source }: { source: string }) {
 export function PositionsPanel({ mint }: { mint: string }) {
   const auth = useAuth();
   const query = useTokenPosition(mint);
-  if (!auth.ready) return <p className="p-4 text-muted-foreground">Loading sign-in…</p>;
+  if (!auth.ready) return <TableSkeleton label="Loading sign-in" columns={4} />;
   if (!auth.authenticated)
     return (
       <div className="space-y-3 p-4">
@@ -127,7 +128,7 @@ export function PositionsPanel({ mint }: { mint: string }) {
         )}
       </div>
     );
-  if (query.isPending) return <p className="p-4 text-muted-foreground">Loading position…</p>;
+  if (query.isPending) return <TableSkeleton label="Loading position" columns={4} />;
   if (query.isError)
     return (
       <div className="space-y-2 p-4">
@@ -187,7 +188,7 @@ export function PositionsPanel({ mint }: { mint: string }) {
 
 export function TradersPanel({ mint }: { mint: string }) {
   const query = useTokenTraders(mint);
-  if (query.isPending) return <p className="p-4 text-muted-foreground">Loading traders…</p>;
+  if (query.isPending) return <TableSkeleton label="Loading traders" />;
   if (query.isError && !query.data)
     return (
       <div className="space-y-2 p-4">

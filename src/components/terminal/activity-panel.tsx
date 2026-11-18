@@ -25,8 +25,10 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
+import { TableSkeleton } from "./panel-skeleton";
 import { SwapHistoryPanel } from "./swap-history-panel";
 import { HoldersPanel, PositionsPanel, TradersPanel } from "./token-activity-panels";
+import { TopTraders } from "./top-traders";
 
 function ActivityTable({ mint }: { mint: string }) {
   const source = useMarketDataSource();
@@ -53,14 +55,14 @@ function ActivityTable({ mint }: { mint: string }) {
     (trade) =>
       (side === "all" || trade.side === side) && trade.amountUsd >= Math.max(0, Number(minimum) || 0),
   );
-  if (isPending) return <p className="p-4 text-muted-foreground">Loading activity…</p>;
+  if (isPending) return <TableSkeleton label="Loading activity" />;
   if (isError) return <p className="p-4 text-muted-foreground">Trades unavailable.</p>;
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/60 px-4 py-3 text-xs">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/60 px-3 py-1 text-[11px]">
         <select
           aria-label="Trade type"
-          className="h-9 rounded-md border bg-background/60 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-6 rounded border bg-background/60 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={side}
           onChange={(e) => setSide(e.target.value)}
         >
@@ -71,7 +73,7 @@ function ActivityTable({ mint }: { mint: string }) {
         <label className="inline-flex items-center gap-1">
           Min size (USD)
           <input
-            className="h-9 w-24 rounded-md border bg-background/60 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-6 w-20 rounded border bg-background/60 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             type="number"
             min="0"
             value={minimum}
@@ -176,7 +178,7 @@ function ThesisPanel({ mint }: { mint: string }) {
           </Button>
         </div>
       </div>
-      {isPending && <p className="text-muted-foreground">Loading theses…</p>}
+      {isPending && <TableSkeleton label="Loading theses" columns={3} />}
       <ul className="space-y-2">
         {comments.map((c) => (
           <li key={c.id} className="rounded-md border p-3">
@@ -211,11 +213,14 @@ export function ActivityPanel({ mint }: { mint: string }) {
   return (
     <section
       aria-label="Market activity"
-      className="flex min-h-[280px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border bg-card text-xs"
     >
       <Tabs defaultValue="activity" className="flex min-h-0 min-w-0 flex-1 flex-col gap-0">
-        <div className="min-w-0 shrink-0 overflow-x-auto border-b pb-1">
-          <TabsList variant="line" className="h-12 w-max min-w-full justify-start gap-3 px-4">
+        <div className="min-w-0 shrink-0 overflow-x-auto border-b">
+          <TabsList
+            variant="line"
+            className="h-8 w-max min-w-full justify-start gap-1 px-2 [&_button]:px-2 [&_button]:text-[11px]"
+          >
             <TabsTrigger value="activity" className="flex-none">
               Trades
             </TabsTrigger>
@@ -230,6 +235,9 @@ export function ActivityPanel({ mint }: { mint: string }) {
             </TabsTrigger>
             <TabsTrigger value="traders" className="flex-none">
               Traders
+            </TabsTrigger>
+            <TabsTrigger value="top-traders" className="flex-none">
+              Top traders
             </TabsTrigger>
             <TabsTrigger value="thesis" className="flex-none gap-1.5">
               <MessageSquareText className="size-3.5" aria-hidden />
@@ -251,6 +259,9 @@ export function ActivityPanel({ mint }: { mint: string }) {
         </TabsContent>
         <TabsContent value="traders" className="min-h-0 flex-1 overflow-auto">
           <TradersPanel key={mint} mint={mint} />
+        </TabsContent>
+        <TabsContent value="top-traders" className="min-h-0 flex-1 overflow-auto">
+          <TopTraders />
         </TabsContent>
         <TabsContent value="thesis" className="min-h-0 flex-1 overflow-auto">
           <ThesisPanel mint={mint} />

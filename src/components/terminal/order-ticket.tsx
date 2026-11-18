@@ -21,6 +21,7 @@ import { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
 import { DASH, formatAmount, formatCompactUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { OrderSkeleton } from "./panel-skeleton";
 import { QuoteReviewDialog } from "./quote-review-dialog";
 
 export type Side = "buy" | "sell";
@@ -39,7 +40,7 @@ export function estimate(side: Side, amount: number, price: number) {
 
 function Row({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1.5">
+    <div className="flex items-start justify-between gap-3 py-1">
       <span className="text-muted-foreground">{label}</span>
       <span className={cn("tabular min-w-0 break-words text-right font-mono text-xs", tone)}>{value}</span>
     </div>
@@ -66,17 +67,23 @@ export function OrderTicket({
   const unit = side === "buy" ? "USDC" : symbol;
   const swap = useSwap(token, side, raw, price);
   const est = swap.validAmount && price ? estimate(side, amount, price) : null;
+  if (!token) return <OrderSkeleton />;
 
   return (
-    <section aria-label="Order ticket" className="rounded-lg border bg-card p-4">
-      <div className="mb-4 flex h-8 items-center justify-between">
-        <h2 className="font-semibold text-base tracking-tight">
+    <section aria-label="Order ticket" className="rounded-md bg-card p-2.5">
+      <div className="mb-1.5 flex h-6 items-center justify-between">
+        <h2 className="font-semibold text-xs tracking-tight">
           Trade <span className="text-muted-foreground">{symbol}</span>
         </h2>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-10" aria-label="Trade settings">
-              <Settings2 className="size-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6 pointer-coarse:size-8"
+              aria-label="Trade settings"
+            >
+              <Settings2 className="size-3.5" />
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -107,20 +114,20 @@ export function OrderTicket({
       >
         <ToggleGroupItem
           value="buy"
-          className="h-11 data-[state=on]:bg-positive-subtle data-[state=on]:text-positive"
+          className="h-8 rounded text-xs data-[state=on]:bg-positive-subtle data-[state=on]:text-positive"
         >
           Buy
         </ToggleGroupItem>
         <ToggleGroupItem
           value="sell"
-          className="h-11 data-[state=on]:bg-negative-subtle data-[state=on]:text-negative"
+          className="h-8 rounded text-xs data-[state=on]:bg-negative-subtle data-[state=on]:text-negative"
         >
           Sell
         </ToggleGroupItem>
       </ToggleGroup>
 
       <label
-        className="mt-4 mb-1.5 flex items-center justify-between text-muted-foreground text-xs"
+        className="mt-2 mb-1 flex items-center justify-between text-muted-foreground text-[10px]"
         htmlFor={amountId}
       >
         {side === "buy" ? "You pay" : "You sell"}
@@ -143,10 +150,10 @@ export function OrderTicket({
             setReviewOpen(true);
         }}
       >
-        <div className="relative rounded-lg border border-border bg-background/60 p-4 focus-within:ring-2 focus-within:ring-ring/60">
+        <div className="relative rounded-md border border-border bg-input/50 p-2.5 focus-within:ring-2 focus-within:ring-ring/60">
           {side === "buy" && (
             <span
-              className="pointer-events-none absolute top-4.5 left-4 text-2xl text-muted-foreground"
+              className="pointer-events-none absolute top-3 left-2.5 text-2xl text-muted-foreground"
               aria-hidden
             >
               $
@@ -162,13 +169,13 @@ export function OrderTicket({
             aria-invalid={!!swap.validation}
             aria-describedby={`${amountId}-balance ${amountId}-validation`}
             className={cn(
-              "tabular w-full bg-transparent font-mono text-[30px] leading-10 tracking-tight outline-none placeholder:text-muted-foreground/50",
+              "tabular w-full bg-transparent font-mono text-[28px] leading-9 tracking-tight outline-none placeholder:text-muted-foreground/50",
               side === "buy" && "pl-5",
             )}
           />
           <div
             id={`${amountId}-balance`}
-            className="mt-1 flex items-center gap-1.5 text-muted-foreground text-xs"
+            className="mt-1 flex flex-wrap items-center gap-1 text-muted-foreground text-[10px]"
           >
             <Wallet className="size-3" aria-hidden />
             Balance {DASH}
@@ -185,7 +192,7 @@ export function OrderTicket({
               disabled={side === "sell"}
               onClick={() => setRaw(String(p))}
               className={cn(
-                "tabular h-10 px-1 text-xs",
+                "tabular h-7 rounded px-1 text-[11px]",
                 side === "buy" && Number(raw) === p && "bg-accent text-primary ring-1 ring-primary/30",
               )}
             >
@@ -197,8 +204,8 @@ export function OrderTicket({
         <p id={`${amountId}-validation`} className="mt-1 text-warning text-xs">
           {swap.validation}
         </p>
-        <Separator className="my-4" />
-        <div className="text-[13px]">
+        <Separator className="my-2" />
+        <div className="text-[11px]">
           <Row
             label="Estimated receive"
             value={
@@ -220,8 +227,8 @@ export function OrderTicket({
             }
           />
           <Row label="Slippage" value={`${(swap.quote?.slippageBps ?? 50) / 100}%`} />
-          <details className="mt-2 border-t border-border/60 pt-2">
-            <summary className="cursor-pointer py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          <details className="mt-1 border-t border-border/60 pt-1">
+            <summary className="cursor-pointer py-1 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
               Fees &amp; price impact
             </summary>
             <Row label="Price impact" value={swap.reviewValues.priceImpact} />
@@ -234,7 +241,7 @@ export function OrderTicket({
         <Button
           type="submit"
           className={cn(
-            "mt-4 h-12 w-full font-semibold",
+            "mt-2 h-9 w-full rounded-md font-semibold text-xs",
             side === "buy"
               ? "bg-positive text-positive-foreground hover:bg-positive/90"
               : "bg-negative text-negative-foreground hover:bg-negative/90",
@@ -264,12 +271,12 @@ export function OrderTicket({
             <Button
               type="submit"
               variant="ghost"
-              className="mt-1 h-10 w-full text-xs"
+              className="mt-1 h-7 w-full text-[10px]"
               disabled={!swap.validAmount || (!est && !swap.quote) || !token || swap.busy}
             >
               Preview {side} {symbol}
             </Button>
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-warning text-xs">
+            <p className="mt-1 flex items-center justify-center gap-1.5 text-warning text-[10px]">
               <LockKeyhole className="size-3" aria-hidden />
               Demo market data
             </p>
@@ -335,7 +342,7 @@ export function PositionCard({ symbol }: { symbol: string }) {
 
 export function MarketContext({ token }: { token: Token | undefined }) {
   return (
-    <section aria-label="About this market" className="rounded-lg border bg-card p-4 text-xs">
+    <section aria-label="About this market" className="rounded-md bg-card p-2.5 text-[11px]">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-semibold text-[13px]">About {token?.symbol ?? "this market"}</h2>
         <span className="text-muted-foreground">Solana spot</span>
