@@ -2,7 +2,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Brand } from "@/components/common/brand";
-import { SignalMap } from "@/components/landing/signal-map";
+import { CryptoScene } from "@/components/landing/crypto-scene";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -43,28 +43,22 @@ export default function Home() {
         </nav>
       </header>
       <main id="main">
-        <section
-          aria-labelledby="hero-heading"
-          className="relative grid items-center gap-2 pt-14 pb-10 sm:pt-20 sm:pb-14 lg:min-h-[680px] lg:grid-cols-[1.02fr_1fr] lg:gap-0 lg:py-16 xl:min-h-[750px]"
-        >
-          <div className="relative z-1">
-            <p className="mb-7 flex items-center gap-3 font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase sm:text-xs">
-              <span className="h-px w-7 bg-primary" aria-hidden />
-              Solana markets. A shared perspective.
+        <section aria-labelledby="hero-heading" className="relative pt-12 pb-6 sm:pt-16 sm:pb-8 lg:pt-20">
+          <div className="relative z-1 mx-auto flex max-w-6xl flex-col items-center text-center">
+            <p className="mb-5 font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase sm:text-xs">
+              Solana trading. Wider perspectives.
             </p>
             <h1
               id="hero-heading"
-              className="max-w-[12ch] font-medium text-[clamp(3rem,5.4vw,5.4rem)] leading-[1.06] tracking-[-0.055em]"
+              className="font-medium text-[clamp(2.5rem,5.5vw,5rem)] leading-[1.08] tracking-[-0.055em]"
             >
-              Markets move.
-              <br />
-              <span className="text-primary">People matter.</span>
+              <span className="inline-block">Markets move.</span>{" "}
+              <span className="inline-block text-primary">People matter.</span>
             </h1>
-            <p className="mt-7 max-w-[390px] text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg lg:mt-8">
-              There’s a story behind every trade. See the market, follow the traders, and find your own point
-              of view.
+            <p className="mt-5 max-w-[530px] text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Crypto is more than a chart. Find your market, connect with traders, and make your own move.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-3">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
               <Button asChild size="lg" className="h-12 gap-5 rounded px-5 text-sm">
                 <Link href="/trade">
                   Find your market <ArrowRight className="size-4" aria-hidden />
@@ -77,11 +71,8 @@ export default function Home() {
                 Explore the feed <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden />
               </Link>
             </div>
-            <p className="mt-6 font-mono text-[10px] tracking-wide text-muted-foreground sm:text-[11px]">
-              YOUR WALLET. YOUR DECISIONS.
-            </p>
           </div>
-          <SignalMap />
+          <CryptoScene />
         </section>
         <section
           aria-labelledby="perspective-heading"
