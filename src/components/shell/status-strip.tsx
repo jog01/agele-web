@@ -20,7 +20,7 @@ export function StatusStrip() {
   const { data: tokens = [] } = useQuery(tokenQueries.trending());
   const ago = lastMessageAt && now ? Math.max(0, Math.round((now - lastMessageAt) / 1000)) : null;
   return (
-    <footer className="hidden h-8 shrink-0 items-center gap-3 border-t bg-sidebar px-3 text-[10px] text-muted-foreground lg:flex">
+    <footer className="hidden h-10 shrink-0 items-center gap-4 border-t border-border/60 bg-sidebar px-6 text-xs text-muted-foreground lg:flex">
       <span
         className="inline-flex shrink-0 items-center gap-1.5"
         aria-live="polite"
@@ -65,9 +65,6 @@ export function StatusStrip() {
       >
         Docs
       </a>
-      <span title="Terms have not been published yet" className="cursor-default text-muted-foreground/70">
-        Terms unavailable
-      </span>
       <a
         href="https://www.tradingview.com"
         target="_blank"

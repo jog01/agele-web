@@ -143,4 +143,4 @@ Below the `md` breakpoint the terminal is one column; the top nav moves to a bot
 
 ## Theme
 
-Graphite/Ice, dark only: shell `#0B0E13`, panel `#11161D`, floating `#171E28`, primary `#9CCBFF`, buy `#5DE0AA`, sell `#FF8195`, warning `#F1C981`. Geist / Geist Mono, data text at least 12px, colour never the only signal. Tokens live in `src/app/globals.css`.
+[Sage / Ink](brand.md), dark only: warm ink workspace, pastel-green identity, Manrope UI and Geist Mono data. Semantic tokens live in `src/app/globals.css`; dedicated sRGB aliases feed the chart canvas. Direction and selection never rely on colour alone. Existing screenshots above predate the brand refresh.

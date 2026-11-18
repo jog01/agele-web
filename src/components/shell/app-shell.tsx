@@ -23,7 +23,9 @@ export function AppShell({ section, children }: { section?: NavSection; children
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <TopBar section={section} onSearch={() => setSearchOpen(true)} />
-      <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+      <main id="main-content" className="min-h-0 flex-1 overflow-auto">
+        {children}
+      </main>
       <StatusStrip />
       <nav
         aria-label="Primary"
@@ -35,8 +37,8 @@ export function AppShell({ section, children }: { section?: NavSection; children
             href={item.href}
             aria-current={item.section === section ? "page" : undefined}
             className={cn(
-              "flex min-h-11 items-center justify-center text-xs text-muted-foreground transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
-              item.section === section && "font-medium text-primary",
+              "flex min-h-11 items-center justify-center border-t-2 border-transparent font-medium text-xs text-muted-foreground transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
+              item.section === section && "border-primary text-primary",
             )}
           >
             {item.label}
