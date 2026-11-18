@@ -72,3 +72,49 @@ export function OrderSkeleton() {
     </section>
   );
 }
+
+export function TerminalSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading trading workspace"
+      aria-busy="true"
+      className="grid min-w-0 gap-1.5 p-1 md:h-full md:min-h-[480px] md:grid-cols-[minmax(0,1fr)_304px] lg:grid-cols-[248px_minmax(0,1fr)_304px]"
+    >
+      <span className="sr-only">Loading trading workspace</span>
+      <div aria-hidden className="hidden min-h-0 overflow-hidden rounded-md border bg-card lg:block">
+        <div className="border-b p-3">
+          <Skeleton className="h-3 w-20 motion-reduce:animate-none" />
+          <Skeleton className="mt-4 h-8 motion-reduce:animate-none" />
+        </div>
+        <TableSkeleton label="Loading markets" columns={2} />
+      </div>
+      <div aria-hidden className="flex min-h-0 min-w-0 flex-col gap-1.5">
+        <div className="flex h-[66px] shrink-0 items-center gap-3 rounded-md border bg-card px-3">
+          <Skeleton className="size-8 shrink-0 rounded-full motion-reduce:animate-none" />
+          <Skeleton className="h-7 w-24 motion-reduce:animate-none" />
+          <Skeleton className="ml-auto h-7 w-1/2 motion-reduce:animate-none" />
+        </div>
+        <div className="relative h-[360px] overflow-hidden rounded-md border bg-card md:h-auto md:min-h-[220px] md:flex-[2]">
+          <ChartSkeleton />
+        </div>
+        <div className="min-h-[160px] overflow-hidden rounded-md border bg-card md:flex-1">
+          <div className="flex h-9 items-center gap-4 border-b px-3">
+            {[0, 1, 2].map((key) => (
+              <Skeleton key={key} className="h-3 w-12 motion-reduce:animate-none" />
+            ))}
+          </div>
+          <TableSkeleton label="Loading activity" columns={5} />
+        </div>
+      </div>
+      <aside aria-hidden className="hidden min-h-0 flex-col gap-1.5 md:flex">
+        <div className="min-h-0 flex-[2] overflow-hidden rounded-md border bg-card">
+          <OrderSkeleton />
+        </div>
+        <div className="min-h-[106px] flex-1 overflow-hidden rounded-md border bg-card">
+          <TableSkeleton label="Loading market details" columns={2} />
+        </div>
+      </aside>
+    </div>
+  );
+}

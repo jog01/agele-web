@@ -67,11 +67,12 @@ Profile caches are keyed by wallet and viewer so signed-in following state stays
 
 ```mermaid
 flowchart TB
-  PAGE["app/trade/[mint]/page.tsx"] --> SHELL[AppShell]
+  LAYOUT["app/trade/layout.tsx (persistent)"] --> SHELL[AppShell]
   SHELL --> TOP[TopBar]
   SHELL --> STRIP[StatusStrip]
   SHELL --> SD[SearchDialog]
-  PAGE --> TERM[Terminal]
+  LAYOUT --> INITIAL["Suspense → terminal skeleton"]
+  INITIAL --> ROUTE["TerminalRoute / useParams"] --> TERM[Terminal]
   TERM --> L[Markets 200–380px, collapsible]
   TERM --> M[Center, flexible]
   TERM --> R[Order rail 260–440px]
@@ -101,6 +102,8 @@ flowchart LR
 ```
 
 Splitters expose `separator` roles, names, controlled regions, orientation and bounded pixel values. Home/End move to the limits; Enter/double-click resets that split. Column limits reserve at least 360px for the center using the active viewport breakpoint and the opposite column’s width, including at exactly 1024px. Preference storage is optional and malformed saved values are ignored or bounded. Layout has no new dependency. Skeletons reserve structure, announce loading to assistive technology and respect reduced motion; no synthetic chart or balance values are presented as data. Existing demo and wallet-signing gates remain unchanged.
+
+The shared `/trade` layout owns the shell and terminal across mint routes. It server-renders a responsive workspace skeleton until hydration, then reads `useParams` in the client-only workspace. Its Suspense boundary uses the same skeleton. Client-side token navigation updates the mint without remounting the workspace, keeping explorer filters/collapse, splitters, chart instance and activity tabs in place. Token-specific query keys refresh the summary, chart, activity and order context; order forms are keyed by mint so old amounts/reviews cannot carry into a different token.
 
 ## Data flow
 
