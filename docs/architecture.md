@@ -100,7 +100,7 @@ flowchart LR
   SKEL --> RESULT["Real data, empty state or explicit error"]
 ```
 
-Splitters expose `separator` roles, names, controlled regions, orientation and bounded pixel values. Home/End move to the limits; Enter/double-click resets that split. Preference storage is optional and malformed saved values are ignored or bounded. Layout has no new dependency. Skeletons reserve structure, announce loading to assistive technology and respect reduced motion; no synthetic chart or balance values are presented as data. Existing demo and wallet-signing gates remain unchanged.
+Splitters expose `separator` roles, names, controlled regions, orientation and bounded pixel values. Home/End move to the limits; Enter/double-click resets that split. Column limits reserve at least 360px for the center using the active viewport breakpoint and the opposite column’s width, including at exactly 1024px. Preference storage is optional and malformed saved values are ignored or bounded. Layout has no new dependency. Skeletons reserve structure, announce loading to assistive technology and respect reduced motion; no synthetic chart or balance values are presented as data. Existing demo and wallet-signing gates remain unchanged.
 
 ## Data flow
 

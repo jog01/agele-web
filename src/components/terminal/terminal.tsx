@@ -12,7 +12,14 @@ import { MarketExplorer } from "./market-explorer";
 import { MarketContext, OrderTicket, type Side } from "./order-ticket";
 import { PanelResizer } from "./panel-resizer";
 import { PriceChart } from "./price-chart";
-import { clamp, DEFAULT_LAYOUT, usePanelLayout, usePanelSize } from "./use-panel-layout";
+import {
+  clamp,
+  DEFAULT_LAYOUT,
+  panelWidths,
+  useDesktopTerminal,
+  usePanelLayout,
+  usePanelSize,
+} from "./use-panel-layout";
 import "./terminal.css";
 
 export function Terminal({ mint }: { mint: string }) {
@@ -26,14 +33,13 @@ export function Terminal({ mint }: { mint: string }) {
   const workspace = usePanelSize();
   const center = usePanelSize();
   const rail = usePanelSize();
-  const marketsMax = clamp((workspace.width || 1440) - 660, 200, 380);
-  const markets = explorerCollapsed ? 48 : clamp(layout.markets, 200, marketsMax);
-  const ticketMax = clamp(
-    (workspace.width || 1440) - (workspace.width >= 1024 ? markets + 12 : 6) - 360,
-    260,
-    440,
+  const desktop = useDesktopTerminal();
+  const { markets, marketsMax, ticket, ticketMax } = panelWidths(
+    workspace.width || 1440,
+    desktop,
+    explorerCollapsed,
+    layout,
   );
-  const ticket = clamp(layout.ticket, 260, ticketMax);
   const chartMax = Math.max(220, center.height - 166);
   const chart = clamp((center.height - 6) * layout.chart, 220, chartMax);
   const orderMax = Math.max(230, rail.height - 106);

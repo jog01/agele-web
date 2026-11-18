@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { PanelResizer } from "./panel-resizer";
-import { clamp, DEFAULT_LAYOUT, parseLayout } from "./use-panel-layout";
+import { clamp, DEFAULT_LAYOUT, panelWidths, parseLayout } from "./use-panel-layout";
 
 afterEach(cleanup);
 
@@ -31,6 +31,29 @@ it.each([480, 960, 2400])("round-trips height limits for a %ipx panel", (height)
     const order = pixels / space;
     expect(parseLayout(JSON.stringify({ order })).order).toBe(order);
   }
+});
+
+it.each([1016, 1024, 1272, 1432, 1899])("reserves center space in a %ipx desktop workspace", (width) => {
+  for (const collapsed of [false, true]) {
+    for (const layout of [{ markets: 380, ticket: 440 }, DEFAULT_LAYOUT]) {
+      const sizes = panelWidths(width, true, collapsed, layout);
+      expect(width - sizes.markets - sizes.ticket - 12).toBeGreaterThanOrEqual(360);
+      expect(sizes.markets).toBeLessThanOrEqual(sizes.marketsMax);
+      expect(sizes.ticket).toBeLessThanOrEqual(sizes.ticketMax);
+      const marketsFirst = panelWidths(width, true, collapsed, { ...layout, markets: sizes.marketsMax });
+      const railFirst = panelWidths(width, true, collapsed, { ...layout, ticket: sizes.ticketMax });
+      expect(width - marketsFirst.markets - marketsFirst.ticket - 12).toBeGreaterThanOrEqual(360);
+      expect(width - railFirst.markets - railFirst.ticket - 12).toBeGreaterThanOrEqual(360);
+    }
+  }
+});
+
+it("uses viewport layout rather than padded content width at the lg breakpoint", () => {
+  const desktop = panelWidths(1016, true, false, { markets: 380, ticket: 440 });
+  expect(desktop).toMatchObject({ markets: 204, marketsMax: 204, ticket: 440 });
+  const tablet = panelWidths(760, false, false, { markets: 380, ticket: 440 });
+  expect(tablet.ticket).toBe(394);
+  expect(760 - tablet.ticket - 6).toBe(360);
 });
 
 it("exposes a named, bounded keyboard-operable window splitter", () => {

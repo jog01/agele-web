@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "agele-panel-layout-v1";
 export const DEFAULT_LAYOUT = { markets: 248, ticket: 304, chart: 0.68, order: 0.66 };
@@ -8,6 +8,34 @@ type Layout = typeof DEFAULT_LAYOUT;
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), Math.max(min, max));
+}
+
+const DESKTOP_QUERY = "(min-width: 1024px)";
+function subscribeDesktop(onChange: () => void) {
+  const query = window.matchMedia(DESKTOP_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+export function useDesktopTerminal() {
+  return useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
+}
+
+export function panelWidths(
+  width: number,
+  desktop: boolean,
+  collapsed: boolean,
+  layout: Pick<Layout, "markets" | "ticket">,
+) {
+  const gutters = desktop ? 12 : 6;
+  const marketsMax = collapsed ? 48 : clamp(width - 360 - gutters - clamp(layout.ticket, 260, 440), 200, 380);
+  const markets = collapsed ? 48 : clamp(layout.markets, 200, marketsMax);
+  const ticketMax = clamp(width - 360 - gutters - (desktop ? markets : 0), 260, 440);
+  return { markets, marketsMax, ticket: clamp(layout.ticket, 260, ticketMax), ticketMax };
 }
 
 export function parseLayout(raw: string | null): Layout {
