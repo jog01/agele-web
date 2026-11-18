@@ -21,7 +21,7 @@ flowchart LR
   SEARCH{{"Cmd/Ctrl+K or /<br/>search dialog"}} --> MINT
 ```
 
-Every page renders inside `AppShell` (top bar, status strip, mobile bottom nav, search dialog). Static shells prerender; `/trade/[mint]` streams the terminal under `<Suspense>` because it reads route params.
+Product routes render inside `AppShell` (top bar, status strip, mobile bottom nav, search dialog); the static landing page has its own marketing header and footer. Static shells prerender; `/trade/[mint]` streams the terminal under `<Suspense>` because it reads route params.
 
 ## Trader profile
 
