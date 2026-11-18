@@ -40,7 +40,7 @@ function contrast(foreground: string, background: string) {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-describe("Sage / Ink brand contract", () => {
+describe("Pastel green / neutral terminal brand contract", () => {
   it.each([
     ["foreground", "background"],
     ["card-foreground", "card"],

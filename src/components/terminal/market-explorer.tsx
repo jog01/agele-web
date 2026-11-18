@@ -60,7 +60,7 @@ export function MarketExplorer({
       <li
         key={token.mint}
         className={cn(
-          "mx-2 flex items-center rounded-md border-l-2 border-transparent",
+          "mx-1 flex items-center rounded border-l-2 border-transparent",
           active && "border-primary bg-accent",
         )}
       >
@@ -70,22 +70,25 @@ export function MarketExplorer({
           aria-label={collapsed ? token.symbol : undefined}
           title={`${token.symbol} · ${token.name}`}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2.5 rounded-md transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
-            collapsed ? "h-12 justify-center" : "min-h-16 py-3 pl-2",
+            "flex min-w-0 flex-1 items-center gap-2 rounded transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground",
+            collapsed ? "h-11 justify-center" : "min-h-11 py-1.5 pl-1.5",
           )}
         >
-          <AssetAvatar mint={token.mint} symbol={token.symbol} className={compact ? "size-7" : "size-8"} />
+          <AssetAvatar mint={token.mint} symbol={token.symbol} className={compact ? "size-6" : "size-7"} />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-sm">{token.symbol}</span>
-                <span className="mt-1 block truncate text-muted-foreground text-xs">
+                <span className="block truncate font-semibold text-xs">{token.symbol}</span>
+                <span className="mt-0.5 block truncate text-muted-foreground text-[11px]">
                   {formatCompactUsd(token.marketCapUsd)} MC
                 </span>
               </span>
               <span className="flex shrink-0 flex-col items-end text-right">
                 <span className="tabular block text-xs">{formatPrice(token.priceUsd)}</span>
-                <ChangeText value={token.priceChange24hPct} className="mt-1 whitespace-nowrap text-xs" />
+                <ChangeText
+                  value={token.priceChange24hPct}
+                  className="mt-0.5 whitespace-nowrap text-[11px]"
+                />
               </span>
             </>
           )}
@@ -98,7 +101,7 @@ export function MarketExplorer({
             }
             aria-pressed={isWatched}
             onClick={() => toggleWatch(token.mint)}
-            className="flex h-16 w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground"
+            className="flex h-11 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground"
           >
             <Star className={cn("size-3.5", isWatched && "fill-warning text-warning")} aria-hidden />
           </button>
@@ -107,18 +110,21 @@ export function MarketExplorer({
     );
   };
   return (
-    <section aria-label="Markets" className="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card">
+    <section
+      aria-label="Markets"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border/60 bg-card"
+    >
       <div
         className={cn(
-          "flex h-16 shrink-0 items-center",
-          collapsed ? "justify-center" : "justify-between pl-4 pr-2",
+          "flex h-9 shrink-0 items-center border-b border-border/60",
+          collapsed ? "justify-center" : "justify-between pl-2.5 pr-1",
         )}
       >
-        {!collapsed && <h2 className="font-semibold text-base tracking-tight">Markets</h2>}
+        {!collapsed && <h2 className="font-semibold text-xs">Markets</h2>}
         <Button
           variant="ghost"
           size="icon"
-          className="size-10"
+          className="size-8"
           onClick={onToggle}
           aria-label={collapsed ? "Expand markets" : "Collapse markets"}
           aria-expanded={!collapsed}
@@ -127,10 +133,10 @@ export function MarketExplorer({
         </Button>
       </div>
       {!collapsed && (
-        <div className="space-y-3 px-4 pb-3">
+        <div className="space-y-2 px-2 py-2">
           <div className="relative">
             <Search
-              className="pointer-events-none absolute top-3 left-2.5 size-4 text-muted-foreground"
+              className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground"
               aria-hidden
             />
             <Input
@@ -141,16 +147,13 @@ export function MarketExplorer({
               aria-label="Filter markets"
               autoComplete="off"
               spellCheck={false}
-              className="h-11 bg-background/50 pl-8 text-base pointer-fine:text-sm"
+              className="h-8 rounded border-border bg-muted/60 pl-7 text-xs pointer-fine:text-xs"
             />
           </div>
-          <fieldset
-            className="grid grid-cols-2 gap-1 rounded-lg bg-background p-1"
-            aria-label="Market ranking"
-          >
+          <fieldset className="grid grid-cols-2 gap-1" aria-label="Market ranking">
             <Button
               variant={sort === "trending" ? "secondary" : "ghost"}
-              className="h-10 px-1 text-xs"
+              className="h-7 rounded px-1 text-[11px]"
               aria-pressed={sort === "trending"}
               onClick={() => setSort("trending")}
             >
@@ -158,14 +161,14 @@ export function MarketExplorer({
             </Button>
             <Button
               variant={sort === "holders" ? "secondary" : "ghost"}
-              className="h-10 px-1 text-xs"
+              className="h-7 rounded px-1 text-[11px]"
               aria-pressed={sort === "holders"}
               onClick={() => setSort("holders")}
             >
               <ArrowDownWideNarrow className="size-3" /> Most held
             </Button>
           </fieldset>
-          <div className="flex justify-between pt-1 text-xs text-muted-foreground">
+          <div className="flex justify-between px-1 pt-1 text-[10px] text-muted-foreground">
             <span>Asset</span>
             <span>Price · 24h</span>
           </div>
@@ -176,7 +179,7 @@ export function MarketExplorer({
           {isPending &&
             Array.from({ length: 8 }, (_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-              <li key={i} className="flex h-16 items-center gap-2 px-3">
+              <li key={i} className="flex h-11 items-center gap-2 px-3">
                 <Skeleton className="size-7 shrink-0 rounded-full" />
                 {!collapsed && <Skeleton className="h-5 flex-1" />}
               </li>
@@ -197,8 +200,8 @@ export function MarketExplorer({
           {rows.map((t) => row(t))}
         </ul>
         {!collapsed && (
-          <details aria-label="Watchlist" className="group mt-3 border-t border-border/60">
-            <summary className="flex min-h-12 cursor-pointer items-center gap-2 rounded-md px-4 font-medium text-sm transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground">
+          <details aria-label="Watchlist" className="group mt-2 border-t border-border/60">
+            <summary className="flex min-h-9 cursor-pointer items-center gap-2 rounded px-3 font-medium text-xs transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground">
               <Star className="size-3 text-warning" aria-hidden /> Watchlist{" "}
               <span className="tabular ml-auto text-muted-foreground">{watched.length}</span>
               <ChevronDown
