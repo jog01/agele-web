@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { AuthContext, type AuthState, demoAuth } from "@/components/auth/auth-context";
@@ -66,7 +66,7 @@ function renderProfile(auth = demoAuth, initialWindow?: LeaderboardWindow) {
       createElement(AuthContext, { value }, createElement(TraderProfileView, { wallet, initialWindow })),
     );
   const rendered = render(tree(auth));
-  return { setAuth: (value: AuthState) => rendered.rerender(tree(value)) };
+  return { client, setAuth: (value: AuthState) => rendered.rerender(tree(value)) };
 }
 
 afterEach(() => {
@@ -76,6 +76,49 @@ afterEach(() => {
   get.mockReset();
   put.mockReset();
   del.mockReset();
+});
+
+it("replaces the profile skeleton before independently resolving trade history", async () => {
+  let resolveProfile!: (value: ReturnType<typeof ok>) => void;
+  let resolveTrades!: (value: ReturnType<typeof ok>) => void;
+  const profileRequest = new Promise<ReturnType<typeof ok>>((resolve) => {
+    resolveProfile = resolve;
+  });
+  const tradesRequest = new Promise<ReturnType<typeof ok>>((resolve) => {
+    resolveTrades = resolve;
+  });
+  get.mockImplementation((path) => (path === profilePath ? profileRequest : tradesRequest));
+  renderProfile();
+  expect(screen.getByRole("status", { name: "Loading trader profile" })).toBeDefined();
+  expect(screen.queryByRole("heading", { name: "Orca" })).toBeNull();
+  await act(async () => resolveProfile(ok(profile, "demo")));
+  expect(await screen.findByRole("heading", { name: "Orca" })).toBeDefined();
+  expect(screen.queryByRole("status", { name: "Loading trader profile" })).toBeNull();
+  expect(screen.getByRole("status", { name: "Loading trades" })).toBeDefined();
+  await act(async () => resolveTrades(ok({ trades: [], nextCursor: null }, "demo")));
+  expect(await screen.findByText("Demo profiles don’t include trade history.")).toBeDefined();
+  expect(screen.queryByRole("status", { name: "Loading trades" })).toBeNull();
+});
+
+it("retains profile content rather than returning to a full skeleton on background refresh", async () => {
+  let resolveRefresh!: (value: ReturnType<typeof ok>) => void;
+  const refresh = new Promise<ReturnType<typeof ok>>((resolve) => {
+    resolveRefresh = resolve;
+  });
+  get
+    .mockResolvedValueOnce(ok(profile, "demo"))
+    .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "demo"))
+    .mockReturnValueOnce(refresh);
+  const { client } = renderProfile();
+  await screen.findByText("Demo profiles don’t include trade history.");
+  act(() => {
+    void client.invalidateQueries({ queryKey: ["trader"] });
+  });
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(3));
+  expect(screen.getByRole("heading", { name: "Orca" })).toBeDefined();
+  expect(screen.queryByRole("status", { name: "Loading trader profile" })).toBeNull();
+  await act(async () => resolveRefresh(ok({ ...profile, followers: 31 }, "demo")));
+  expect(await screen.findByText("31")).toBeDefined();
 });
 
 it("links names by wallet and preserves the source ranking window", () => {

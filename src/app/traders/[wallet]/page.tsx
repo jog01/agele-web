@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
-import { TraderProfileLoading, TraderProfileView } from "@/components/traders/trader-profile-view";
+import { TraderProfileLoading } from "@/components/traders/trader-profile-loading";
+import { TraderProfileView } from "@/components/traders/trader-profile-view";
 import { parseLeaderboardWindow } from "@/lib/api/leaderboard";
 import { shortAddress } from "@/lib/format";
 
