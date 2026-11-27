@@ -34,8 +34,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: tag
         run: echo "sha=${{ matrix.environment }}-sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      # A rerun must not replace an image that is already published under this tag.
+      - id: exists
+        run: |
+          if docker buildx imagetools inspect "ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.sha }}" >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
       # Tags never move; jog01/agele-infra pins image.webTag to <environment>-sha-<commit>.
       - uses: docker/build-push-action@v6
+        if: steps.exists.outputs.published == 'false'
         with:
           context: .
           push: true
