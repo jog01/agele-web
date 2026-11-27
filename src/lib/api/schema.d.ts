@@ -289,6 +289,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Token and public trader matches */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            tokens: components["schemas"]["Token"][];
+                            /** @description Token provider unavailable; indexed token matches may still be returned. */
+                            tokensUnavailable: boolean;
+                            traders: {
+                                wallet: string;
+                                handle: string;
+                                displayName: string | null;
+                                avatarUrl: string | null;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Invalid query */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/pulse": {
         parameters: {
             query?: never;
@@ -852,6 +908,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/traders/{wallet}/positions/{mint}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Newest fills first, optionally filtered by minimum USD size (inclusive). Total invested is for the whole position. */
+        get: {
+            parameters: {
+                query?: {
+                    positionId?: string;
+                    page?: number;
+                    limit?: number;
+                    minSizeUsd?: number | null;
+                };
+                header?: never;
+                path: {
+                    wallet: string;
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Page of position transactions */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PositionTransactions"];
+                    };
+                };
+                /** @description Invalid input */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader or position */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/traders/{wallet}/followers": {
         parameters: {
             query?: never;
@@ -1024,13 +1160,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Stored daily value of public positions, oldest first. Excludes cash and linked-wallet balances. */
+                /** @description Stored public position value, hourly for 24h and daily otherwise, oldest first. Excludes cash and linked-wallet balances. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PortfolioHistory"];
+                        "application/json": components["schemas"]["PublicPortfolioHistory"];
                     };
                 };
                 /** @description Invalid input */
@@ -2813,6 +2949,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tokens/{mint}/theses/{thesisId}/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Count a thesis open once per viewer per 24 hours. Anonymous requests are rate-limited. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mint: string;
+                    thesisId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated view count */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            viewCount: number;
+                        };
+                    };
+                };
+                /** @description Invalid mint or thesis ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown thesis */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Anonymous thesis view limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication or view rate limiting temporarily unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/posts/{id}/reaction": {
         parameters: {
             query?: never;
@@ -3238,6 +3460,22 @@ export interface components {
             positions: (components["schemas"]["TokenPosition"] & {
                 imageUrl: string | null;
             })[];
+            topTrades: {
+                /** Format: uuid */
+                positionId: string;
+                mint: string;
+                symbol: string;
+                imageUrl: string | null;
+                closedAt: number;
+                realizedPnlUsd: number;
+                realizedPnlPct: number;
+            }[];
+            mostLikedThesis: {
+                /** Format: uuid */
+                positionId: string;
+                newerVersionCount: number;
+                post: components["schemas"]["Comment"];
+            } | null;
         };
         TraderWindowStats: {
             pnlUsd: number;
@@ -3246,6 +3484,35 @@ export interface components {
             trades: number;
             winRatePct: number;
             rank: number | null;
+        };
+        Comment: {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
+            id: string;
+            mint: string;
+            symbol: string;
+            imageUrl: string | null;
+            /** @enum {string} */
+            position: "long" | "short" | "none";
+            /** @description Unix seconds */
+            createdAt: number;
+            /** @enum {string} */
+            kind: "thesis" | "comment";
+            wallet: string | null;
+            /** Format: uuid */
+            thesisId: string | null;
+            viewCount: number | null;
+            discussionKey: string | null;
+            /** Format: uuid */
+            parentId: string | null;
+            pinned: boolean;
+            body: string;
+            likes: number;
+            replyCount: number;
+            likedByMe?: boolean;
         };
         UserTrade: {
             id: string;
@@ -3272,13 +3539,29 @@ export interface components {
             closedAt: number | null;
             quantity: number;
             avgEntryUsd: number;
+            avgEntryMarketCapUsd: number | null;
+            avgExitMarketCapUsd: number | null;
+            totalInvestedUsd: number;
+            pnlPct: number;
             avgCostUsd: number;
             priceUsd: number;
             priceSinceFirstBuyPct: number | null;
             valueUsd: number;
             realizedPnlUsd: number;
             unrealizedPnlUsd: number;
-            fills: components["schemas"]["UserTrade"][];
+            fills: (components["schemas"]["UserTrade"] & {
+                marketCapUsd: number | null;
+            })[];
+        };
+        PositionTransactions: {
+            /** Format: uuid */
+            positionId: string;
+            total: number;
+            totalInvestedUsd: number;
+            nextPage: number | null;
+            transactions: (components["schemas"]["UserTrade"] & {
+                marketCapUsd: number | null;
+            })[];
         };
         TraderConnections: {
             users: {
@@ -3289,6 +3572,10 @@ export interface components {
                 isFollowing?: boolean;
             }[];
             nextCursor: string | null;
+        };
+        PublicPortfolioHistory: components["schemas"]["PortfolioHistory"] & {
+            changeUsd?: number | null;
+            changePct?: number | null;
         };
         PortfolioHistory: {
             points: {
@@ -3362,6 +3649,7 @@ export interface components {
             body: string;
             /** Format: uuid */
             thesisId: string;
+            viewCount: number;
             /** Format: uuid */
             positionId: string;
             pinned: boolean;
@@ -3488,34 +3776,6 @@ export interface components {
             wallet: string;
             marketCapUsd: number | null;
         };
-        Comment: {
-            handle: string;
-            avatarUrl: string | null;
-            /** @enum {string} */
-            source: "demo" | "indexed";
-            /** Format: uuid */
-            id: string;
-            mint: string;
-            symbol: string;
-            imageUrl: string | null;
-            /** @enum {string} */
-            position: "long" | "short" | "none";
-            /** @description Unix seconds */
-            createdAt: number;
-            /** @enum {string} */
-            kind: "thesis" | "comment";
-            wallet: string | null;
-            /** Format: uuid */
-            thesisId: string | null;
-            discussionKey: string | null;
-            /** Format: uuid */
-            parentId: string | null;
-            pinned: boolean;
-            body: string;
-            likes: number;
-            replyCount: number;
-            likedByMe?: boolean;
-        };
         ThesisThread: {
             comments: components["schemas"]["Comment"][];
             nextCursor: string | null;
@@ -3525,6 +3785,7 @@ export interface components {
             mint: string;
             /** Format: uuid */
             positionId: string;
+            viewCount: number;
             pinned: components["schemas"]["Comment"] | null;
         };
     };
