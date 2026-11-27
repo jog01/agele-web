@@ -1,5 +1,7 @@
 # Feed and trader-profile loading
 
+The [v0.2 social design handoff](design/social-v0.2/README.md) extends this foundation with feed, position theses, profiles, replay/share, Pulse and supporting social layouts. It is a design specification, not a claim that those features are implemented by this loading change.
+
 The social pages use the terminal’s green/graphite tokens, existing shadcn skeleton primitive, and compact typography. No APIs, authentication, follow semantics, trade execution, shell or terminal behavior change.
 
 ## Layout
