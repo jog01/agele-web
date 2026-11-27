@@ -1,5 +1,6 @@
 .position-replay[data-slot="dialog-content"] {
-  --position-accent: var(--primary);
+  /* Lightweight Charts' canvas color parser does not accept OKLCH theme tokens. */
+  --position-accent: #b8dca5;
   display: flex;
   flex-direction: column;
   gap: 0;
