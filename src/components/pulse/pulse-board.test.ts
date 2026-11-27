@@ -63,7 +63,7 @@ it("renders exact lifecycle rows and lets mobile readers select a lane", () => {
   expect(lane.getByRole("progressbar", { name: "Bonding curve" }).getAttribute("value")).toBe("15");
   expect(lane.getByText("29s")).toBeDefined();
   expect(lane.getByText("Vol 24h")).toBeDefined();
-  expect(screen.getByText("Demo")).toBeDefined();
+  expect(screen.queryByText("Demo")).toBeNull();
 
   fireEvent.click(screen.getByRole("button", { name: /migrated/i }));
   const migratedLane = within(container.querySelector('[data-selected="true"]') as HTMLElement);

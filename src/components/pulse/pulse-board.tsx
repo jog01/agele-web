@@ -200,16 +200,9 @@ function Board({ snapshot, loading = false, error = false, retry, lastUpdated }:
       aria-busy={loading}
     >
       <header className="shrink-0">
-        <div className="flex items-center justify-between gap-3">
-          <h1 id={`${id}-title`} className="font-semibold text-[26px] tracking-tight">
-            Pulse
-          </h1>
-          {snapshot?.source === "demo" && (
-            <span className="rounded-sm border border-warning/30 px-1.5 py-0.5 font-mono text-[10px] text-warning">
-              Demo
-            </span>
-          )}
-        </div>
+        <h1 id={`${id}-title`} className="font-semibold text-[26px] tracking-tight">
+          Pulse
+        </h1>
         <p className="text-muted-foreground text-sm">Follow the lifecycle. Find your next trade.</p>
         <div className="mt-4 flex items-center justify-between gap-3">
           <label>
