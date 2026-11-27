@@ -163,6 +163,8 @@ stateDiagram-v2
 
 ## Order flow
 
+Manual orders use the review flow below. [Instant buy](swaps.md#instant-buy) is an opt-in shortcut for buy presets, not for wallet signing.
+
 ![Explicit review before signing](images/trade-review.png)
 
 ```mermaid

@@ -21,6 +21,7 @@ export interface PendingSwap {
 
 export type SwapPhase =
   | "idle"
+  | "quoting"
   | "creating"
   | "requote"
   | "signing"

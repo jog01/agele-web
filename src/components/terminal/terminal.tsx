@@ -166,7 +166,9 @@ export function Terminal({ mint }: { mint: string }) {
         <SheetContent side="bottom" className="max-h-[90dvh] overflow-auto">
           <SheetHeader>
             <SheetTitle>Trade {token?.symbol}</SheetTitle>
-            <SheetDescription>Every order is reviewed before signing.</SheetDescription>
+            <SheetDescription>
+              Choose an amount or use a preset. Live orders require wallet signing.
+            </SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-4">
             <OrderTicket

@@ -6,6 +6,12 @@ export function toBaseUnits(value: string, decimals: number): string {
   return BigInt(whole + fraction.padEnd(decimals, "0")).toString();
 }
 
+export function toSwapBaseUnits(value: string, decimals: number): string {
+  const amount = toBaseUnits(value.startsWith(".") ? `0${value}` : value, decimals);
+  if (amount.length > 78) throw new Error("Amount is too large. Use at most 78 base-unit digits.");
+  return amount;
+}
+
 export function fromBaseUnits(value: string, decimals: number): string {
   if (!/^\d+$/.test(value) || !Number.isInteger(decimals) || decimals < 0 || decimals > 255)
     throw new Error("Invalid base-unit amount");

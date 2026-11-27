@@ -5,14 +5,7 @@ import { useId, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { ChangeText } from "@/components/common/change-text";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -21,13 +14,12 @@ import { useSwap } from "@/hooks/use-swap";
 import type { Token } from "@/lib/api/client";
 import { DASH, formatAmount, formatCompactUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { OrderPresetSettings, orderPresetSlots, useOrderPresets } from "./order-preset-settings";
 import { OrderSkeleton } from "./panel-skeleton";
 import { QuoteReviewDialog } from "./quote-review-dialog";
 
 export type Side = "buy" | "sell";
 
-const BUY_PRESETS = [10, 100, 500, 1000];
-const SELL_PRESETS = [25, 50, 75, 100];
 export const SLIPPAGE_PCT = 0.5;
 
 /** Client-side estimate for display only; the server quote (Jupiter order) is authoritative. */
@@ -62,10 +54,17 @@ export function OrderTicket({
   const { demoMode: DEMO_MODE } = useMarketDataMode();
   const [raw, setRaw] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [presets, savePresets] = useOrderPresets();
+  const [instantFor, setInstantFor] = useState<string | null>(null);
   const symbol = token?.symbol ?? "";
   const amount = Number(raw);
   const unit = side === "buy" ? "USDC" : symbol;
   const swap = useSwap(token, side, raw, price);
+  const instantScope = swap.instantBuyAvailable ? `wallet:${auth.walletAddress}` : "preview";
+  const instant = instantFor === instantScope;
+  const instantPreset = side === "buy" && instant;
+  const presetAction = swap.instantBuyAvailable ? "Buy" : "Preview";
   const status = !auth.configured && swap.status === swap.availabilityMessage ? "" : swap.status;
   const est = swap.validAmount && price ? estimate(side, amount, price) : null;
   if (!token) return <OrderSkeleton />;
@@ -77,7 +76,7 @@ export function OrderTicket({
           Trade <span className="text-muted-foreground">{symbol}</span>
           {DEMO_MODE && <span className="ml-1.5 font-normal text-[10px] text-muted-foreground">Demo</span>}
         </h2>
-        <Dialog>
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
           <DialogTrigger asChild>
             <Button
               variant="ghost"
@@ -88,24 +87,26 @@ export function OrderTicket({
               <Settings2 className="size-3.5" />
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Trade settings</DialogTitle>
-              <DialogDescription>
-                Settings are read-only in this preview. The server quote is authoritative.
-              </DialogDescription>
-            </DialogHeader>
-            <Row label="Slippage tolerance" value={`${SLIPPAGE_PCT}%`} />
-            <p className="text-muted-foreground text-xs">
-              Every quote must be reviewed before wallet signing. No transaction can be submitted in demo
-              mode.
-            </p>
-          </DialogContent>
+          {settingsOpen && (
+            <OrderPresetSettings
+              key={instantScope}
+              presets={presets}
+              instant={instant}
+              live={swap.instantBuyAvailable}
+              slippage={SLIPPAGE_PCT}
+              onSave={(next, enabled) => {
+                savePresets(next);
+                setInstantFor(enabled ? instantScope : null);
+                setSettingsOpen(false);
+              }}
+            />
+          )}
         </Dialog>
       </div>
       <ToggleGroup
         type="single"
         value={side}
+        disabled={swap.busy}
         onValueChange={(v) => {
           if (!v) return;
           setSide(v as Side);
@@ -167,6 +168,7 @@ export function OrderTicket({
             autoComplete="off"
             placeholder="0.00"
             value={raw}
+            disabled={swap.busy}
             onChange={(e) => setRaw(e.target.value)}
             aria-invalid={!!swap.validation}
             aria-describedby={`${amountId}-balance ${amountId}-validation`}
@@ -184,23 +186,37 @@ export function OrderTicket({
             <span className="ml-auto">{auth.authenticated ? "Not available" : "Sign in to view"}</span>
           </div>
         </div>
-        <div className="mt-2 grid grid-cols-4 gap-1.5">
-          {(side === "buy" ? BUY_PRESETS : SELL_PRESETS).map((p) => (
-            <Button
-              key={p}
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={side === "sell"}
-              onClick={() => setRaw(String(p))}
-              className={cn(
-                "tabular h-7 rounded px-1 text-[11px]",
-                side === "buy" && Number(raw) === p && "bg-accent text-primary ring-1 ring-primary/30",
-              )}
-            >
-              {side === "buy" ? `$${p}` : `${p}%`}
-            </Button>
-          ))}
+        {instantPreset && (
+          <p className="mt-2 font-medium text-[10px] text-primary">
+            Instant buy{swap.instantBuyAvailable ? " on" : " preview"}
+          </p>
+        )}
+        <div className={cn("grid grid-cols-4 gap-1.5", instantPreset ? "mt-1" : "mt-2")}>
+          {orderPresetSlots.map((index) => {
+            const p = presets[side][index];
+            return (
+              <Button
+                key={`${side}-${index}`}
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={side === "sell" || swap.busy || (instantPreset && swap.instantBuyBlocked)}
+                aria-label={instantPreset ? `${presetAction} ${symbol} with $${p}` : undefined}
+                onClick={async () => {
+                  setRaw(p);
+                  if (!instantPreset) return;
+                  if (!swap.instantBuyAvailable || (await swap.instantBuy(p)) === "requote")
+                    setReviewOpen(true);
+                }}
+                className={cn(
+                  "tabular h-auto min-h-7 whitespace-normal break-all rounded px-1 text-[11px]",
+                  side === "buy" && swap.inputAmount === p && "bg-accent text-primary ring-1 ring-primary/30",
+                )}
+              >
+                {side === "buy" ? `${instantPreset ? `${presetAction} ` : ""}$${p}` : `${p}%`}
+              </Button>
+            );
+          })}
         </div>
 
         <p id={`${amountId}-validation`} className="mt-1 text-warning text-xs">
@@ -343,9 +359,7 @@ export function MarketContext({ token }: { token: Token | undefined }) {
         <h2 className="font-semibold text-[13px]">About {token?.symbol ?? "this market"}</h2>
         <span className="text-muted-foreground">Solana spot</span>
       </div>
-      <p className="leading-relaxed text-muted-foreground">
-        AMM pool liquidity, not order-book depth. Review the quote before every trade.
-      </p>
+      <p className="leading-relaxed text-muted-foreground">AMM pool liquidity, not order-book depth.</p>
       <details className="mt-3">
         <summary className="cursor-pointer py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
           Market details
