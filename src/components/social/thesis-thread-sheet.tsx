@@ -35,13 +35,23 @@ export function ThesisThreadSheet({
   thread: ActiveThesisThread | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  return (
+    <Sheet open={Boolean(thread)} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+        {thread ? <ThesisThreadBody key={`${thread.mint}:${thread.thesisId}`} thread={thread} /> : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ThesisThreadBody({ thread }: { thread: ActiveThesisThread }) {
   const auth = useAuth();
   const now = useNow(30_000);
   const [replyTarget, setReplyTarget] = useState<{ id: string; handle: string } | null>(null);
   const [draft, setDraft] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const query = useInfiniteQuery(thesisThreadQuery(thread?.mint ?? "", thread?.thesisId ?? null, auth));
+  const query = useInfiniteQuery(thesisThreadQuery(thread.mint, thread.thesisId, auth));
   const postComment = usePostComment();
   const reactToPost = useReactToPost();
   const pinThesis = usePinThesisVersion();
@@ -74,13 +84,12 @@ export function ThesisThreadSheet({
   }
 
   async function submitReply() {
-    if (!thread) return;
     if (!auth.authenticated) {
       auth.login();
       return;
     }
     const body = draft.trim();
-    if (!body) return;
+    if (!body || !activeParentId) return;
     setActionError(null);
     try {
       await postComment.mutateAsync({
@@ -221,115 +230,112 @@ export function ThesisThreadSheet({
   }
 
   return (
-    <Sheet open={Boolean(thread)} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
-        <SheetHeader className="border-b px-5 py-4">
-          <div className="flex items-center gap-2.5 pr-8">
-            <AssetAvatar imageUrl={thread?.imageUrl} className="size-7" />
-            <div className="min-w-0">
-              <SheetTitle className="truncate text-sm">
-                {thread?.symbol ? `${thread.symbol} thesis thread` : "Thesis thread"}
-              </SheetTitle>
-              <SheetDescription className="text-xs">Versions, pinned update, and replies</SheetDescription>
-            </div>
-            {thread?.mint && (
-              <Link
-                href={`/trade/${thread.mint}`}
-                className="ml-auto inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
-              >
-                Trade
-                <ArrowUpRight className="size-3.5" />
-              </Link>
+    <>
+      <SheetHeader className="border-b px-5 py-4">
+        <div className="flex items-center gap-2.5 pr-8">
+          <AssetAvatar imageUrl={thread.imageUrl} className="size-7" />
+          <div className="min-w-0">
+            <SheetTitle className="truncate text-sm">
+              {thread.symbol ? `${thread.symbol} thesis thread` : "Thesis thread"}
+            </SheetTitle>
+            <SheetDescription className="text-xs">Versions, pinned update, and replies</SheetDescription>
+          </div>
+          <Link
+            href={`/trade/${thread.mint}`}
+            className="ml-auto inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
+          >
+            Trade
+            <ArrowUpRight className="size-3.5" />
+          </Link>
+        </div>
+      </SheetHeader>
+
+      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        {query.isPending ? (
+          <TableSkeleton label="Loading thesis thread" columns={3} />
+        ) : query.isError ? (
+          <div role="alert" className="rounded-lg border p-4 text-center">
+            <p className="text-sm">{query.error.message}</p>
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => query.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <>
+            {pinned ? renderPost(pinned, { highlight: true }) : null}
+            {topLevel.length === 0 && !pinned ? (
+              <p className="py-8 text-center text-muted-foreground text-sm">No entries in this thread yet.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {topLevel.map((post) => (
+                  <div key={post.id} className="space-y-2">
+                    {renderPost(post)}
+                    {(byParent.get(post.id) ?? []).map((child) => renderPost(child, { nested: true }))}
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-        </SheetHeader>
+            {query.hasNextPage && (
+              <div className="flex justify-center pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={query.isFetchingNextPage}
+                  onClick={() => query.fetchNextPage()}
+                >
+                  {query.isFetchingNextPage ? "Loading…" : "Load more"}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-          {query.isPending ? (
-            <TableSkeleton label="Loading thesis thread" columns={3} />
-          ) : query.isError ? (
-            <div role="alert" className="rounded-lg border p-4 text-center">
-              <p className="text-sm">{query.error.message}</p>
-              <Button size="sm" variant="outline" className="mt-3" onClick={() => query.refetch()}>
-                Retry
-              </Button>
-            </div>
-          ) : (
-            <>
-              {pinned ? renderPost(pinned, { highlight: true }) : null}
-              {topLevel.length === 0 && !pinned ? (
-                <p className="py-8 text-center text-muted-foreground text-sm">
-                  No entries in this thread yet.
-                </p>
+      <div className="border-t bg-background/80 px-5 py-3.5">
+        {replyTarget && (
+          <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
+            <span>Replying to @{replyTarget.handle}</span>
+            <button type="button" onClick={() => setReplyTarget(null)} className="hover:text-foreground">
+              Cancel
+            </button>
+          </div>
+        )}
+        {actionError && (
+          <p role="alert" className="mb-2 text-negative text-xs">
+            {actionError}
+          </p>
+        )}
+        <div className="rounded-lg border bg-card/60 p-2.5 focus-within:ring-2 focus-within:ring-ring/60">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value.slice(0, MAX_COMMENT))}
+            placeholder={auth.authenticated ? "Add a reply…" : "Sign in to reply to this thesis"}
+            aria-label="Thread reply"
+            rows={2}
+            className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <div className="mt-1.5 flex items-center justify-between">
+            <span className="tabular text-muted-foreground text-xs">
+              {draft.length}/{MAX_COMMENT}
+            </span>
+            <Button
+              size="sm"
+              disabled={
+                postComment.isPending ||
+                (auth.authenticated ? !draft.trim() || !activeParentId : !auth.configured)
+              }
+              onClick={submitReply}
+            >
+              {postComment.isPending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
               ) : (
-                <div className="space-y-2.5">
-                  {topLevel.map((post) => (
-                    <div key={post.id} className="space-y-2">
-                      {renderPost(post)}
-                      {(byParent.get(post.id) ?? []).map((child) => renderPost(child, { nested: true }))}
-                    </div>
-                  ))}
-                </div>
+                <Send className="mr-1.5 size-3.5" />
               )}
-              {query.hasNextPage && (
-                <div className="flex justify-center pt-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={query.isFetchingNextPage}
-                    onClick={() => query.fetchNextPage()}
-                  >
-                    {query.isFetchingNextPage ? "Loading…" : "Load more"}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="border-t bg-background/80 px-5 py-3.5">
-          {replyTarget && (
-            <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
-              <span>Replying to @{replyTarget.handle}</span>
-              <button type="button" onClick={() => setReplyTarget(null)} className="hover:text-foreground">
-                Cancel
-              </button>
-            </div>
-          )}
-          {actionError && (
-            <p role="alert" className="mb-2 text-negative text-xs">
-              {actionError}
-            </p>
-          )}
-          <div className="rounded-lg border bg-card/60 p-2.5 focus-within:ring-2 focus-within:ring-ring/60">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value.slice(0, MAX_COMMENT))}
-              placeholder={auth.authenticated ? "Add a reply…" : "Sign in to reply to this thesis"}
-              aria-label="Thread reply"
-              rows={2}
-              className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-            <div className="mt-1.5 flex items-center justify-between">
-              <span className="tabular text-muted-foreground text-xs">
-                {draft.length}/{MAX_COMMENT}
-              </span>
-              <Button
-                size="sm"
-                disabled={postComment.isPending || (auth.authenticated ? !draft.trim() : !auth.configured)}
-                onClick={submitReply}
-              >
-                {postComment.isPending ? (
-                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-                ) : (
-                  <Send className="mr-1.5 size-3.5" />
-                )}
-                {auth.authenticated ? "Reply" : "Sign in"}
-              </Button>
-            </div>
+              {auth.authenticated ? "Reply" : "Sign in"}
+            </Button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   );
 }
