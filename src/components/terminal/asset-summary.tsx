@@ -39,7 +39,7 @@ export function AssetSummary({ token, livePrice }: { token: Token | undefined; l
       className="flex shrink-0 flex-col overflow-hidden rounded-md border bg-card xl:flex-row xl:items-center"
     >
       <div className="flex min-h-[62px] min-w-0 items-center gap-2 px-3 py-1 xl:flex-1">
-        <AssetAvatar mint={token.mint} symbol={token.symbol} className="size-8" />
+        <AssetAvatar imageUrl={token.imageUrl} className="size-8" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="font-semibold text-sm">{token.symbol}</h1>

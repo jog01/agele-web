@@ -74,7 +74,7 @@ export function MarketExplorer({
             collapsed ? "h-11 justify-center" : "min-h-11 py-1.5 pl-1.5",
           )}
         >
-          <AssetAvatar mint={token.mint} symbol={token.symbol} className={compact ? "size-6" : "size-7"} />
+          <AssetAvatar imageUrl={token.imageUrl} className={compact ? "size-6" : "size-7"} />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">

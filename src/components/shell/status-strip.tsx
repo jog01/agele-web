@@ -59,7 +59,7 @@ export function StatusStrip() {
                     key={token.mint}
                     className="tabular flex h-6 shrink-0 items-center gap-1.5 px-1 hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground"
                   >
-                    <AssetAvatar mint={token.mint} symbol={token.symbol} className="size-4" />
+                    <AssetAvatar imageUrl={token.imageUrl} className="size-4" />
                     <span className="font-semibold text-foreground">{token.symbol}</span>
                     <span>{formatPrice(token.priceUsd)}</span>
                     <ChangeText value={token.priceChange24hPct} />
@@ -75,7 +75,7 @@ export function StatusStrip() {
                     onMouseDown={(event) => event.preventDefault()}
                     className="tabular flex h-6 shrink-0 items-center gap-1.5 px-1 hover:text-foreground"
                   >
-                    <AssetAvatar mint={token.mint} symbol={token.symbol} className="size-4" />
+                    <AssetAvatar imageUrl={token.imageUrl} className="size-4" />
                     <span className="font-semibold text-foreground">{token.symbol}</span>
                     <span>{formatPrice(token.priceUsd)}</span>
                     <ChangeText value={token.priceChange24hPct} />

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { CopyAddress } from "@/components/common/copy-address";
+import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,7 +114,11 @@ function TraderPositions({
             {rows.map((position) => (
               <TableRow key={position.mint}>
                 <TableCell className="pl-4 sm:pl-5">
-                  <Link href={`/trade/${encodeURIComponent(position.mint)}`} className={LINK}>
+                  <Link
+                    href={`/trade/${encodeURIComponent(position.mint)}`}
+                    className={cn(LINK, "inline-flex items-center gap-1.5")}
+                  >
+                    <TokenAssetAvatar mint={position.mint} className="size-4" />
                     {position.symbol}
                   </Link>
                   <div className="tabular text-muted-foreground text-xs">
@@ -185,12 +190,18 @@ function TraderTrades({ wallet }: { wallet: string }) {
             {rows.map(({ trade, dataSource }) => (
               <TableRow key={trade.id}>
                 <TableCell className="whitespace-normal pl-4 sm:pl-5">
-                  <span className={trade.side === "buy" ? "text-positive" : "text-negative"}>
-                    {trade.side === "buy" ? "Buy" : "Sell"}
-                  </span>{" "}
-                  <Link href={`/trade/${encodeURIComponent(trade.mint)}`} className={LINK}>
-                    {trade.symbol}
-                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    <span className={trade.side === "buy" ? "text-positive" : "text-negative"}>
+                      {trade.side === "buy" ? "Buy" : "Sell"}
+                    </span>
+                    <Link
+                      href={`/trade/${encodeURIComponent(trade.mint)}`}
+                      className={cn(LINK, "inline-flex items-center gap-1.5")}
+                    >
+                      <TokenAssetAvatar mint={trade.mint} className="size-4" />
+                      {trade.symbol}
+                    </Link>
+                  </div>
                   <div className="tabular mt-0.5 text-muted-foreground text-xs">
                     {formatAmount(trade.tokenAmount)}
                   </div>

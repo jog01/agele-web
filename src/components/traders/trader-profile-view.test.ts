@@ -168,12 +168,15 @@ it("uses the opaque next cursor, preserves trades after a failed page, and retri
     .mockResolvedValueOnce(
       ok({ trades: [{ ...trade, id: "second", side: "sell", symbol: "BONK" }], nextCursor: null }),
     );
-  renderProfile();
+  const { client } = renderProfile();
+  const imageUrl = "https://example.com/sol.webp";
+  client.setQueryData(["tokens", "trending"], [{ mint, imageUrl }]);
   expect(await screen.findByRole("link", { name: "Solana Explorer" })).toBeDefined();
   expect((await screen.findByRole("link", { name: "Solscan" })).getAttribute("href")).toContain(
     trade.signature,
   );
   expect(screen.getByRole("link", { name: "SOL" }).getAttribute("href")).toBe(`/trade/${mint}`);
+  expect(screen.getByRole("link", { name: "SOL" }).querySelector("img")?.getAttribute("src")).toBe(imageUrl);
   fireEvent.click(screen.getByRole("button", { name: "Load more trades" }));
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn’t load more trades.");
   expect(screen.getByText("Buy")).toBeDefined();
@@ -212,8 +215,12 @@ it("renders indexed positions and skips nullable entries from the API", async ()
       ),
     )
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "indexed"));
-  renderProfile();
-  expect((await screen.findByRole("link", { name: "SOL" })).getAttribute("href")).toBe(`/trade/${mint}`);
+  const { client } = renderProfile();
+  const imageUrl = "https://example.com/sol.webp";
+  client.setQueryData(["tokens", mint], { mint, imageUrl });
+  const link = await screen.findByRole("link", { name: "SOL" });
+  expect(link.getAttribute("href")).toBe(`/trade/${mint}`);
+  expect(link.querySelector("img")?.getAttribute("src")).toBe(imageUrl);
   expect(screen.getByRole("table", { name: "Open positions" }).textContent).toContain("-$20.00");
   expect(await screen.findByText("No trades yet.")).toBeDefined();
 });
