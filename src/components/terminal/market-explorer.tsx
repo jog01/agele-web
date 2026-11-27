@@ -17,6 +17,7 @@ import { ChangeText } from "@/components/common/change-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLivePrices } from "@/hooks/use-live-prices";
 import { useMintSearch } from "@/hooks/use-mint-search";
 import { ApiError, type Token } from "@/lib/api/client";
 import { tokenQueries, useTrending } from "@/lib/api/queries";
@@ -73,6 +74,7 @@ export function MarketExplorer({
     if (token) return [{ mint, token }];
     return detail?.isPending ? [{ mint, token: null }] : [];
   });
+  useLivePrices(watched.flatMap(({ mint, token }) => (token && !trendingByMint.has(mint) ? [mint] : [])));
   const row = (token: Token, compact = false) => {
     const active = token.mint === activeMint;
     const isWatched = mounted && watchlist.includes(token.mint);

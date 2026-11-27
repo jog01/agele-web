@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
@@ -8,10 +8,20 @@ import { useTerminalStore } from "@/stores/terminal";
 import { MarketExplorer } from "./market-explorer";
 import { SearchDialog } from "./search-dialog";
 
-const { fetchDetail, fetchTrending, push } = vi.hoisted(() => ({
+const { fetchDetail, fetchTrending, priceListeners, push } = vi.hoisted(() => ({
   fetchDetail: vi.fn(),
   fetchTrending: vi.fn(),
+  priceListeners: new Map<string, (data: unknown) => void>(),
   push: vi.fn(),
+}));
+vi.mock("@/lib/realtime", () => ({
+  realtime: {
+    subscribe: (topic: string, listener: (data: unknown) => void) => {
+      priceListeners.set(topic, listener);
+      return () => priceListeners.delete(topic);
+    },
+    onReconnect: () => () => {},
+  },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/lib/api/queries", () => ({
@@ -161,4 +171,28 @@ it("loads saved non-trending mints, reuses trending data, and skips a 404", asyn
   await waitFor(() => expect(watchlist.queryByRole("status")).toBeNull());
   expect(watchlist.getAllByRole("link")).toHaveLength(2);
   expect(fetchDetail.mock.calls).toEqual([[JUP.mint], [MINT]]);
+});
+
+it("updates non-trending watchlist prices and removes subscriptions on unstar and unmount", async () => {
+  const bonk = { ...JUP, mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", symbol: "BONK" };
+  fetchDetail.mockImplementation(async (mint: string) => (mint === JUP.mint ? JUP : bonk));
+  useTerminalStore.setState({ watchlist: [SOL.mint, JUP.mint, bonk.mint] });
+  const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } });
+  const { unmount } = render(
+    createElement(QueryClientProvider, { client }, createElement(MarketExplorer, { activeMint: SOL.mint })),
+  );
+  fireEvent.click(screen.getByText("Watchlist"));
+  const watchlist = within(screen.getByLabelText("Watchlist"));
+  await watchlist.findByRole("link", { name: /JUP/ });
+  await watchlist.findByRole("link", { name: /BONK/ });
+  const jupTopic = `token:${JUP.mint}:price`;
+  const bonkTopic = `token:${bonk.mint}:price`;
+  expect([...priceListeners.keys()].sort()).toEqual([bonkTopic, jupTopic]);
+
+  act(() => priceListeners.get(jupTopic)?.({ mint: JUP.mint, priceUsd: 200, marketCapUsd: 2_000, time: 1 }));
+  expect(await watchlist.findByText("$200.00")).toBeTruthy();
+  fireEvent.click(watchlist.getByRole("button", { name: "Remove JUP from watchlist" }));
+  expect([...priceListeners.keys()]).toEqual([bonkTopic]);
+  unmount();
+  expect(priceListeners.size).toBe(0);
 });

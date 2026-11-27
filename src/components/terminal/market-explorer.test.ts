@@ -11,6 +11,7 @@ const { useMintSearch, useTrending } = vi.hoisted(() => ({
 }));
 vi.mock("@tanstack/react-query", () => ({ useQueries: () => [] }));
 vi.mock("@/lib/api/queries", () => ({ useTrending }));
+vi.mock("@/hooks/use-live-prices", () => ({ useLivePrices: vi.fn() }));
 vi.mock("@/hooks/use-mint-search", () => ({ useMintSearch }));
 afterEach(cleanup);
 
