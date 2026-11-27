@@ -39,6 +39,7 @@ const thesisComment: Comment = {
   source: "indexed",
   position: "long",
   thesisId: "thesis-1",
+  discussionKey: null,
   parentId: null,
   pinned: false,
   body: "SOL spot demand is absorbing every dip.",
