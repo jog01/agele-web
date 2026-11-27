@@ -141,7 +141,7 @@ export function PositionReplayChart({
       for (const thesis of theses) {
         if (thesis.createdAt < start || thesis.createdAt > end) continue;
         const point = times.findLast((time) => time <= thesis.createdAt);
-        if (point === undefined) continue;
+        if (point === undefined || thesis.createdAt - point >= seconds) continue;
         markers.push({
           time: point as UTCTimestamp,
           position: "aboveBar",
@@ -165,6 +165,7 @@ export function PositionReplayChart({
     position.avgEntryUsd,
     query.isPending,
     scale,
+    seconds,
     showFills,
     showTheses,
     start,

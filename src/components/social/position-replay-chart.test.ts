@@ -81,7 +81,7 @@ afterEach(() => {
 
 it("shows a thesis posted 30 minutes after close in every replay range", () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: 0 } } });
-  client.setQueryData(["tokens", "mint", "candles", "1h"], [candle(82_800)]);
+  client.setQueryData(["tokens", "mint", "candles", "1h"], [candle(82_800), candle(86_400)]);
   client.setQueryData(["tokens", "mint", "candles", "4h"], []);
   client.setQueryData(["tokens", "mint", "candles", "1d"], [candle(0), candle(86_400)]);
   render(
@@ -102,10 +102,39 @@ it("shows a thesis posted 30 minutes after close in every replay range", () => {
       expect.arrayContaining([expect.objectContaining({ text: "T", time })]),
     );
 
-  expectThesisMarkerAt(82_800);
+  expectThesisMarkerAt(86_400);
   fireEvent.click(screen.getByRole("button", { name: "1M" }));
   expectThesisMarkerAt(close);
   fireEvent.click(screen.getByRole("button", { name: "ALL" }));
   expectThesisMarkerAt(86_400);
+  client.clear();
+});
+
+it("does not place a thesis on a candle two days before publication", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: 0 } } });
+  const oldCandle = 86_400;
+  const exitCandle = oldCandle + 2 * 86_400;
+  const exit = exitCandle + 1;
+  client.setQueryData(["tokens", "mint", "candles", "1h"], [candle(oldCandle), candle(exitCandle)]);
+  render(
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(PositionReplayChart, {
+        position: {
+          ...position,
+          openedAt: oldCandle,
+          closedAt: exit,
+          fills: position.fills.map((fill) => ({ ...fill, time: exit })),
+        },
+        supply: null,
+        theses: [{ ...thesis, createdAt: exitCandle - 1 }],
+      }),
+    ),
+  );
+
+  expect(createMarkers).toHaveBeenLastCalledWith(expect.anything(), [
+    expect.objectContaining({ text: "S", time: exitCandle }),
+  ]);
   client.clear();
 });
