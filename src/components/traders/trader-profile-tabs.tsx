@@ -238,7 +238,13 @@ function TraderFeed({ wallet }: { wallet: string }) {
   const now = useNow(30_000);
   const [filter, setFilter] = useState<TraderFeedFilter>("all");
   const [minSize, setMinSize] = useState<(typeof MIN_SIZES)[number]>(0);
-  const feed = useInfiniteQuery(traderFeedQuery(wallet, { filter, minSizeUsd: minSize || undefined }, auth));
+  const feed = useInfiniteQuery(
+    traderFeedQuery(
+      wallet,
+      { filter, minSizeUsd: filter === "theses" ? undefined : minSize || undefined },
+      auth,
+    ),
+  );
   const items = (feed.data?.pages ?? []).flatMap((page) => page.items);
   return (
     <div>
