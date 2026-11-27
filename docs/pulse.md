@@ -29,7 +29,7 @@ sequenceDiagram
   API-->>Cache: Upsert or migration event
   alt Event can be applied to the cached snapshot
     Cache-->>Board: Render updated lists
-  else Stage or token is missing
+  else Migration arrived for a mint outside the snapshot
     Cache->>API: Request authoritative snapshot
     API-->>Cache: Refreshed token lists
   end

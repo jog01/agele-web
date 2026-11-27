@@ -1,104 +1,112 @@
 import { z } from "zod";
-import { env } from "@/env";
-import { ApiError } from "./client";
+import { api, unwrap } from "./client";
+import type { components } from "./schema";
 
-// Temporary handwritten contract until /v1/pulse appears in the generated OpenAPI types.
+export type PulseToken = components["schemas"]["PulseToken"];
+export type PulseSnapshot = components["schemas"]["Pulse"];
+export type PulseEvent = components["schemas"]["PulseEvent"];
+export type PulseStage = PulseToken["stage"];
+
 const mint = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
-const timestamp = z.number().int().nonnegative();
-const amount = z.number().nonnegative();
-const count = z.number().int().nonnegative();
+const timestamp = z.number().int().min(0).max(8_640_000_000_000);
+const count = z.number().int().min(0);
+const stage = z.enum(["new", "finalStretch", "migrated"]);
+const venue = z.enum([
+  "pump.fun",
+  "pumpswap",
+  "raydium-v4",
+  "raydium-cpmm",
+  "raydium-clmm",
+  "meteora-dlmm",
+  "meteora-damm",
+]);
 
 const pulseTokenSchema = z.object({
   mint,
   symbol: z.string(),
   name: z.string(),
-  logoUri: z.url({ protocol: /^https?$/ }).nullish(),
+  imageUrl: z.string().nullable(),
   creator: z.string(),
-  venue: z.string(),
+  venue,
+  stage,
   launchedAt: timestamp,
-  curveProgressBps: z.number().int().min(0).max(10_000).nullable(),
-  migratedAt: timestamp.nullish(),
-  migratedVenue: z.string().nullish(),
-  priceUsd: amount,
-  marketCapUsd: amount,
-  volume24hUsd: amount,
-  liquidityUsd: amount,
+  curveProgressBps: z.number().int().min(0).max(10_000),
+  migratedAt: timestamp.nullable(),
+  migratedVenue: venue.nullable(),
+  priceUsd: z.number(),
+  marketCapUsd: z.number(),
+  volume24hUsd: z.number(),
+  liquidityUsd: z.number(),
   holders: count,
   txCount24h: count,
   buys24h: count,
   sells24h: count,
-});
-
-const pulseSnapshotSchema = z.object({
-  source: z.enum(["demo", "indexed"]),
-  new: z.array(pulseTokenSchema),
-  finalStretch: z.array(pulseTokenSchema),
-  migrated: z.array(pulseTokenSchema),
-});
+}) satisfies z.ZodType<PulseToken>;
 
 export const pulseEventSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("upsert"), token: pulseTokenSchema }),
+  z.object({ type: z.literal("upsert"), stage, token: pulseTokenSchema }),
   z.object({
     type: z.literal("migrated"),
     mint,
-    migratedVenue: z.string(),
+    migratedVenue: venue,
     migratedAt: timestamp,
   }),
-]);
-
-export type PulseToken = z.infer<typeof pulseTokenSchema>;
-export type PulseSnapshot = z.infer<typeof pulseSnapshotSchema>;
-export type PulseEvent = z.infer<typeof pulseEventSchema>;
-export type PulseStage = "new" | "finalStretch" | "migrated";
+]) satisfies z.ZodType<PulseEvent>;
 
 export const PULSE_LIMIT = 30;
-export const PULSE_STAGES = ["new", "finalStretch", "migrated"] as const satisfies readonly PulseStage[];
+export const PULSE_STAGES = stage.options;
 
 export async function fetchPulse(signal: AbortSignal) {
-  const base = env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
-  const response = await fetch(`${base}/v1/pulse?limit=${PULSE_LIMIT}`, { signal });
-  if (!response.ok) throw new ApiError("Pulse could not be loaded", response.status);
-  return pulseSnapshotSchema.parse(await response.json());
+  return unwrap(await api.GET("/v1/pulse", { params: { query: { limit: PULSE_LIMIT } }, signal }));
 }
 
 export function mergePulseEvent(snapshot: PulseSnapshot, event: PulseEvent): PulseSnapshot | null {
   const mint = event.type === "upsert" ? event.token.mint : event.mint;
-  const stage = PULSE_STAGES.find((stage) => snapshot[stage].some((token) => token.mint === mint));
-  const existing = stage && snapshot[stage].find((token) => token.mint === mint);
-  if (event.type === "upsert") {
-    if (event.token.migratedAt != null) return moveToMigrated(snapshot, event.token, stage);
-    // REST owns lifecycle classification. Re-snapshot if this update might change the bucket or order.
-    if (
-      !existing ||
-      !stage ||
-      stage === "migrated" ||
-      existing.curveProgressBps !== event.token.curveProgressBps
-    )
-      return null;
-    return {
-      ...snapshot,
-      [stage]: snapshot[stage].map((token) => (token.mint === mint ? event.token : token)),
-    };
+  const existing = PULSE_STAGES.flatMap((stage) => snapshot[stage]).find((token) => token.mint === mint);
+  if (event.type === "migrated" && !existing) return null;
+  const next =
+    event.type === "upsert"
+      ? { ...event.token, stage: event.stage }
+      : {
+          ...existing!,
+          stage: "migrated" as const,
+          migratedAt: event.migratedAt,
+          migratedVenue: event.migratedVenue,
+        };
+  if (
+    existing?.stage === "migrated" &&
+    (next.stage !== "migrated" || (next.migratedAt ?? 0) < (existing.migratedAt ?? 0))
+  )
+    return snapshot;
+  if (
+    event.type === "migrated" &&
+    existing?.migratedAt === event.migratedAt &&
+    existing.migratedVenue === event.migratedVenue
+  )
+    return snapshot;
+  const result = { ...snapshot };
+  for (const stage of PULSE_STAGES) {
+    const rows = snapshot[stage];
+    if (stage !== next.stage && !rows.some((token) => token.mint === mint)) continue;
+    const withoutMint = rows.filter((token) => token.mint !== mint);
+    result[stage] =
+      stage === next.stage
+        ? [...withoutMint, next].sort((a, b) => compare(a, b, stage)).slice(0, PULSE_LIMIT)
+        : withoutMint;
   }
-
-  return existing
-    ? moveToMigrated(
-        snapshot,
-        { ...existing, migratedAt: event.migratedAt, migratedVenue: event.migratedVenue },
-        stage,
-      )
-    : null;
+  return result;
 }
 
-function moveToMigrated(snapshot: PulseSnapshot, token: PulseToken, previousStage?: PulseStage) {
-  const withoutMint = (row: PulseToken) => row.mint !== token.mint;
-  return {
-    ...snapshot,
-    new: previousStage === "new" ? snapshot.new.filter(withoutMint) : snapshot.new,
-    finalStretch:
-      previousStage === "finalStretch" ? snapshot.finalStretch.filter(withoutMint) : snapshot.finalStretch,
-    migrated: [...snapshot.migrated.filter(withoutMint), token]
-      .sort((a, b) => (b.migratedAt ?? 0) - (a.migratedAt ?? 0))
-      .slice(0, PULSE_LIMIT),
-  };
+function rank(token: PulseToken, stage: PulseStage) {
+  if (stage === "migrated") return token.migratedAt ?? 0;
+  if (stage === "finalStretch") return token.curveProgressBps;
+  return token.launchedAt;
+}
+
+function compare(a: PulseToken, b: PulseToken, stage: PulseStage) {
+  return (
+    rank(b, stage) - rank(a, stage) ||
+    (stage === "finalStretch" ? b.launchedAt - a.launchedAt : 0) ||
+    (a.mint < b.mint ? -1 : a.mint > b.mint ? 1 : 0)
+  );
 }

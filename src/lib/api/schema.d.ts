@@ -232,6 +232,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tokens/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Exact mint or case-insensitive symbol/name prefix matches */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            tokens: components["schemas"]["Token"][];
+                        };
+                    };
+                };
+                /** @description Invalid query */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Market data upstream unavailable */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pulse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Limit per lane. New is below 7,000 bps; Final stretch starts at 7,000 bps; Migrated requires a migration event. Timestamps are Unix seconds. */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Pulse lanes */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Pulse"];
+                    };
+                };
+                /** @description Invalid limit */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens/{mint}": {
         parameters: {
             query?: never;
@@ -2362,12 +2466,64 @@ export interface components {
             /** @description Unix seconds */
             time: number;
         };
+        PulseEvent: {
+            /** @enum {string} */
+            type: "upsert";
+            /** @enum {string} */
+            stage: "new" | "finalStretch" | "migrated";
+            token: components["schemas"]["PulseToken"];
+        } | {
+            /** @enum {string} */
+            type: "migrated";
+            mint: string;
+            /** @enum {string} */
+            migratedVenue: "pump.fun" | "pumpswap" | "raydium-v4" | "raydium-cpmm" | "raydium-clmm" | "meteora-dlmm" | "meteora-damm";
+            /** @description Unix seconds */
+            migratedAt: number;
+        };
+        PulseToken: {
+            mint: string;
+            symbol: string;
+            name: string;
+            imageUrl: string | null;
+            priceUsd: number;
+            marketCapUsd: number;
+            liquidityUsd: number;
+            volume24hUsd: number;
+            holders: number;
+            creator: string;
+            /** @enum {string} */
+            venue: "pump.fun" | "pumpswap" | "raydium-v4" | "raydium-cpmm" | "raydium-clmm" | "meteora-dlmm" | "meteora-damm";
+            /** @enum {string} */
+            stage: "new" | "finalStretch" | "migrated";
+            /** @description Unix seconds */
+            launchedAt: number;
+            curveProgressBps: number;
+            /** @description Unix seconds */
+            migratedAt: number | null;
+            /** @enum {string|null} */
+            migratedVenue: "pump.fun" | "pumpswap" | "raydium-v4" | "raydium-cpmm" | "raydium-clmm" | "meteora-dlmm" | "meteora-damm" | null;
+            txCount24h: number;
+            buys24h: number;
+            sells24h: number;
+        };
+        Trade: {
+            signature: string;
+            mint: string;
+            /** @enum {string} */
+            side: "buy" | "sell";
+            trader: string;
+            tokenAmount: number;
+            amountUsd: number;
+            priceUsd: number;
+            time: number;
+        };
         Health: {
             /** @enum {string} */
             status: "ok";
             uptimeSec: number;
             /** @enum {string} */
-            marketData: "mock" | "live";
+            marketData: "mock" | "live" | "indexed";
         };
         Error: {
             error: {
@@ -2406,6 +2562,13 @@ export interface components {
             volume24hUsd: number;
             holders: number;
         };
+        Pulse: {
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            new: components["schemas"]["PulseToken"][];
+            finalStretch: components["schemas"]["PulseToken"][];
+            migrated: components["schemas"]["PulseToken"][];
+        };
         Candle: {
             /** @description Bucket start, unix seconds */
             time: number;
@@ -2414,17 +2577,6 @@ export interface components {
             low: number;
             close: number;
             volume: number;
-        };
-        Trade: {
-            signature: string;
-            mint: string;
-            /** @enum {string} */
-            side: "buy" | "sell";
-            trader: string;
-            tokenAmount: number;
-            amountUsd: number;
-            priceUsd: number;
-            time: number;
         };
         TokenPosition: {
             mint: string;

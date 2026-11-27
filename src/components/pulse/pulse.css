@@ -1,0 +1,51 @@
+.pulse-column,
+.pulse-splitter {
+  display: none;
+}
+
+.pulse-column[data-selected="true"] {
+  display: flex;
+  height: 100%;
+}
+
+.pulse-progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  appearance: none;
+  border: 0;
+  border-radius: 2px;
+  background: var(--border);
+  color: var(--primary);
+}
+
+.pulse-progress::-webkit-progress-bar {
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.pulse-progress::-webkit-progress-value {
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+.pulse-progress::-moz-progress-bar {
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+@media (min-width: 920px) {
+  .pulse-board .pulse-switcher {
+    display: none;
+  }
+
+  .pulse-columns,
+  .pulse-column,
+  .pulse-splitter {
+    display: flex;
+  }
+
+  .pulse-column {
+    width: var(--pulse-column-width, auto);
+  }
+}
