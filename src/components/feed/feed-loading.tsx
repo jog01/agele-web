@@ -1,47 +1,49 @@
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const FEED_FRAME =
-  "mx-auto grid w-full max-w-[1120px] gap-4 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_280px] pointer-coarse:[&_button]:min-h-11";
-export const FEED_CARD = "min-w-0 rounded-md border bg-card p-4 sm:p-5";
+const POST_KEYS = ["post-1", "post-2", "post-3", "post-4"] as const;
+const TRADER_KEYS = ["trader-1", "trader-2", "trader-3", "trader-4", "trader-5"] as const;
 
 export function FeedHeading() {
   return (
-    <header className="lg:col-span-2">
-      <div className="flex items-center gap-2.5">
-        <h1 className="font-semibold text-xl tracking-tight">Feed</h1>
-        <Badge variant="outline" className="border-warning/30 bg-warning-subtle text-[10px] text-warning">
-          Demo feed
-        </Badge>
-      </div>
-      <p className="mt-1 text-muted-foreground text-sm">Market ideas and trades from the Solana community.</p>
-    </header>
+    <div>
+      <h1 className="font-semibold text-xl tracking-tight">Feed</h1>
+      <p className="mt-1 text-muted-foreground text-sm">Trades, theses, and the people behind them.</p>
+    </div>
   );
 }
 
-export function FeedPostsSkeleton({ count = 3 }: { count?: 1 | 2 | 3 }) {
+export function FeedPostsSkeleton() {
   return (
-    <div role="status" aria-label="Loading feed posts" className="space-y-3">
-      <span className="sr-only">Loading feed posts</span>
-      {["first", "second", "third"].slice(0, count).map((key) => (
-        <div key={key} aria-hidden className={FEED_CARD}>
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-8 shrink-0 rounded-full motion-reduce:animate-none" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-3.5 w-28 motion-reduce:animate-none" />
-              <Skeleton className="h-2.5 w-20 motion-reduce:animate-none" />
-            </div>
-            <Skeleton className="h-2.5 w-8 motion-reduce:animate-none" />
-          </div>
-          <div className="mt-3 min-h-12 space-y-2 py-1">
-            <Skeleton className="h-3 w-full motion-reduce:animate-none" />
-            <Skeleton className="h-3 w-3/4 motion-reduce:animate-none" />
-          </div>
-          <div className="mt-3 flex h-[66px] items-center gap-3 rounded-md border border-border/50 bg-background px-3">
-            <Skeleton className="size-8 shrink-0 rounded-full motion-reduce:animate-none" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-3 w-14 motion-reduce:animate-none" />
-              <Skeleton className="h-2.5 w-24 motion-reduce:animate-none" />
+    <div role="status" aria-label="Loading feed" className="space-y-3">
+      {POST_KEYS.map((key) => (
+        <div key={key} className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-start gap-3">
+            <Skeleton className="size-9 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3.5 w-16" />
+                </div>
+                <Skeleton className="h-3.5 w-12" />
+              </div>
+              <Skeleton className="mt-3 h-4 w-5/6" />
+              <Skeleton className="mt-2 h-4 w-2/3" />
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-border/70 bg-background/60 px-3.5 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  <Skeleton className="size-7 rounded-full" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-16" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                </div>
+                <Skeleton className="size-4 rounded" />
+              </div>
+              <div className="mt-3 flex items-center gap-4">
+                <Skeleton className="h-3.5 w-10" />
+                <Skeleton className="h-3.5 w-10" />
+                <Skeleton className="ml-auto h-3.5 w-20" />
+              </div>
             </div>
           </div>
         </div>
@@ -52,16 +54,15 @@ export function FeedPostsSkeleton({ count = 3 }: { count?: 1 | 2 | 3 }) {
 
 export function FeedTradersSkeleton() {
   return (
-    <div role="status" aria-label="Loading suggested traders" className="divide-y">
-      <span className="sr-only">Loading suggested traders</span>
-      {["first", "second", "third", "fourth"].map((key) => (
-        <div key={key} aria-hidden className="flex h-[68px] items-center gap-2.5">
-          <Skeleton className="size-8 shrink-0 rounded-full motion-reduce:animate-none" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-3 w-20 motion-reduce:animate-none" />
-            <Skeleton className="h-2.5 w-24 motion-reduce:animate-none" />
+    <div role="status" aria-label="Loading traders to watch" className="divide-y divide-border/50">
+      {TRADER_KEYS.map((key) => (
+        <div key={key} className="flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0">
+          <Skeleton className="size-8 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3 w-16" />
           </div>
-          <Skeleton className="h-10 w-14 motion-reduce:animate-none" />
+          <Skeleton className="h-7 w-16 rounded-md" />
         </div>
       ))}
     </div>
@@ -70,20 +71,21 @@ export function FeedTradersSkeleton() {
 
 export function FeedLoading() {
   return (
-    <div className={FEED_FRAME}>
-      <FeedHeading />
-      <div className="min-w-0 space-y-3">
-        <div aria-hidden className="flex h-11 items-center gap-1">
-          <Skeleton className="h-9 w-20 motion-reduce:animate-none" />
-          <Skeleton className="h-9 w-24 motion-reduce:animate-none" />
-        </div>
-        <FeedPostsSkeleton />
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <FeedHeading />
+        <Skeleton className="h-8 w-44 rounded-lg" />
       </div>
-      <aside className="min-w-0 self-start rounded-md border bg-card p-4">
-        <h2 className="font-medium text-sm">Traders to watch</h2>
-        <p className="mt-1 mb-2 text-muted-foreground text-xs">7-day leaderboard</p>
-        <FeedTradersSkeleton />
-      </aside>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <FeedPostsSkeleton />
+        <aside className="rounded-xl border border-border bg-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3.5 w-8" />
+          </div>
+          <FeedTradersSkeleton />
+        </aside>
+      </div>
     </div>
   );
 }

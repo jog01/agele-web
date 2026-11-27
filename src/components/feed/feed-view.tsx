@@ -1,251 +1,583 @@
 "use client";
 
-import { ArrowUpRight, MessageSquareText, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowUpRight,
+  Check,
+  Heart,
+  Loader2,
+  MessageSquare,
+  PenLine,
+  Pin,
+  Share2,
+  UserPlus,
+} from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
-import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
+import { type ActiveThesisThread, ThesisThreadSheet } from "@/components/social/thesis-thread-sheet";
+import { TraderAvatar } from "@/components/social/trader-avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFeed } from "@/hooks/use-feed";
 import { useFollow } from "@/hooks/use-follow";
 import { useNow } from "@/hooks/use-now";
-import type { FeedScope } from "@/lib/api/client";
-import { useLeaderboard, useTrending } from "@/lib/api/queries";
+import { usePostThesis, useReactToPost } from "@/hooks/use-social-actions";
+import type { FeedItem, FeedScope, PostPosition } from "@/lib/api/client";
+import { socialQueries, tokenQueries } from "@/lib/api/queries";
 import { feedItemContent } from "@/lib/api/social";
-import { formatCompactUsd, shortAddress, timeAgo } from "@/lib/format";
+import { formatUsd, timeAgo, utcTimestamp } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { FEED_CARD, FEED_FRAME, FeedHeading, FeedPostsSkeleton, FeedTradersSkeleton } from "./feed-loading";
+import { FeedHeading, FeedPostsSkeleton, FeedTradersSkeleton } from "./feed-loading";
 
-function Initials({ handle }: { handle: string }) {
+type FeedKindFilter = "all" | "trade" | "thesis";
+const MAX_THESIS = 3000;
+
+function FeedThesisComposer() {
+  const auth = useAuth();
+  const { data: tokens = [] } = useQuery(tokenQueries.trending());
+  const postThesis = usePostThesis();
+  const [open, setOpen] = useState(false);
+  const [selectedMint, setSelectedMint] = useState("");
+  const [position, setPosition] = useState<PostPosition>("long");
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const firstMint = tokens[0]?.mint ?? "";
+  useEffect(() => {
+    if (open && !selectedMint && firstMint) setSelectedMint(firstMint);
+  }, [open, selectedMint, firstMint]);
+
+  const mint = selectedMint;
+
+  async function submit() {
+    if (!auth.authenticated) {
+      auth.login();
+      return;
+    }
+    const body = draft.trim();
+    if (!mint || !body) return;
+    setError(null);
+    try {
+      await postThesis.mutateAsync({ mint, body, position });
+      setDraft("");
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not publish thesis");
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+        <div className="flex items-center gap-3 text-muted-foreground text-sm">
+          <span className="inline-flex size-8 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+            <PenLine className="size-3.5" />
+          </span>
+          <span>What&apos;s your thesis?</span>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!selectedMint && firstMint) setSelectedMint(firstMint);
+            setOpen(true);
+          }}
+        >
+          Write thesis
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary font-semibold text-primary text-xs">
-      {handle.slice(0, 2).toUpperCase()}
-    </span>
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor="feed-thesis-token">
+          Token
+        </label>
+        <select
+          id="feed-thesis-token"
+          value={mint}
+          onChange={(e) => setSelectedMint(e.target.value)}
+          className="h-8 rounded-md border border-border bg-background px-2.5 text-foreground text-xs outline-none focus:ring-2 focus:ring-ring/60"
+        >
+          {tokens.map((t) => (
+            <option key={t.mint} value={t.mint}>
+              {t.symbol} — {t.name}
+            </option>
+          ))}
+        </select>
+        <fieldset aria-label="Position stance" className="flex items-center gap-1 border-0 p-0">
+          {(
+            [
+              ["long", "Holding"],
+              ["short", "Exited"],
+              ["none", "Neutral"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={position === value}
+              onClick={() => setPosition(value)}
+              className={cn(
+                "rounded-md border px-2.5 py-1 text-xs transition-colors",
+                position === value
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </fieldset>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="ml-auto text-muted-foreground text-xs hover:text-foreground"
+        >
+          Cancel
+        </button>
+      </div>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value.slice(0, MAX_THESIS))}
+        placeholder="Share your conviction, entry context, and invalidation..."
+        aria-label="Thesis"
+        rows={3}
+        className="w-full resize-none rounded-lg border border-border bg-background/60 p-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+      />
+      {error && (
+        <p role="alert" className="text-negative text-xs">
+          {error}
+        </p>
+      )}
+      <div className="flex items-center justify-between">
+        <span className="tabular text-muted-foreground text-xs">
+          {draft.length}/{MAX_THESIS}
+        </span>
+        <Button
+          size="sm"
+          disabled={postThesis.isPending || (auth.authenticated ? !draft.trim() || !mint : !auth.configured)}
+          onClick={submit}
+        >
+          {postThesis.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+          {auth.authenticated ? "Publish thesis" : "Sign in to publish"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SidebarFollowButton({ wallet, isFollowing }: { wallet: string; isFollowing: boolean }) {
+  const auth = useAuth();
+  const follow = useFollow();
+  if (auth.authenticated && auth.walletAddress === wallet) return null;
+  return (
+    <Button
+      size="sm"
+      variant={isFollowing ? "secondary" : "outline"}
+      className="h-7 px-2.5 text-xs"
+      disabled={follow.isPending || (!auth.authenticated && !auth.configured)}
+      onClick={() => {
+        if (!auth.authenticated) {
+          auth.login();
+          return;
+        }
+        follow.mutate({ wallet, isFollowing: !isFollowing });
+      }}
+    >
+      {isFollowing ? "Following" : "Follow"}
+    </Button>
+  );
+}
+
+function FeedCard({
+  item,
+  now,
+  onOpenThread,
+  onLike,
+}: {
+  item: FeedItem;
+  now: number | null;
+  onOpenThread: (thread: ActiveThesisThread) => void;
+  onLike: (item: Extract<FeedItem, { kind: "thesis" }>) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const content = feedItemContent(item);
+
+  function share() {
+    const path = item.kind === "thesis" ? `/trade/${item.mint}` : `/traders/${item.wallet}`;
+    const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
+    navigator.clipboard?.writeText(url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
+  return (
+    <article className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-border/80">
+      <div className="flex items-start gap-3">
+        <TraderAvatar handle={item.handle} avatarUrl={item.avatarUrl} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <TraderLink wallet={item.wallet} handle={item.handle} className="font-medium text-sm" />
+              <span className="text-muted-foreground text-xs">·</span>
+              <span className={cn("font-medium text-xs", content.tone)}>
+                {item.kind === "thesis"
+                  ? item.position === "long"
+                    ? "Thesis · Holding"
+                    : item.position === "short"
+                      ? "Thesis · Exited"
+                      : "Thesis"
+                  : content.label}
+              </span>
+              {item.kind === "thesis" && item.pinned && (
+                <Badge variant="outline" className="h-5 border-primary/40 text-[10px] text-primary">
+                  <Pin className="mr-0.5 size-2.5" />
+                  Pinned
+                </Badge>
+              )}
+            </div>
+            <time
+              dateTime={utcTimestamp(item.createdAt)}
+              title={utcTimestamp(item.createdAt)}
+              className="shrink-0 text-muted-foreground text-xs"
+            >
+              {now ? `${timeAgo(item.createdAt, now)} ago` : ""}
+            </time>
+          </div>
+
+          {item.kind === "trade" ? (
+            <p className="mt-2 font-medium text-sm">
+              <span className={item.side === "buy" ? "text-positive" : "text-negative"}>
+                {item.side === "buy" ? "Bought" : "Sold"} {formatUsd(item.amountUsd)}
+              </span>{" "}
+              <span className="text-muted-foreground">of</span>{" "}
+              <span className="text-foreground">{item.symbol}</span>
+            </p>
+          ) : (
+            <p className="mt-2 whitespace-pre-wrap text-foreground/95 text-sm leading-6">{item.body}</p>
+          )}
+
+          <Link
+            href={`/trade/${item.mint}`}
+            className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-background/60 px-3.5 py-2.5 transition-colors hover:bg-secondary/60"
+          >
+            <div className="flex min-w-0 items-center gap-2.5">
+              <AssetAvatar imageUrl={item.imageUrl} className="size-7" />
+              <div className="min-w-0">
+                <div className="truncate font-medium text-sm">{item.symbol}</div>
+                <div className="tabular text-muted-foreground text-xs">
+                  {item.kind === "trade"
+                    ? `${content.attachment} · ${item.source === "demo" ? "simulated" : "indexed"}`
+                    : content.attachment}
+                </div>
+              </div>
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
+          </Link>
+
+          <div className="mt-3 flex items-center gap-4 text-muted-foreground text-xs">
+            {item.kind === "thesis" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onLike(item)}
+                  aria-pressed={Boolean(item.likedByMe)}
+                  aria-label={item.likedByMe ? "Unlike thesis" : "Like thesis"}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 transition-colors hover:text-foreground",
+                    item.likedByMe && "text-primary",
+                  )}
+                >
+                  <Heart className={cn("size-3.5", item.likedByMe && "fill-current")} />
+                  <span className="tabular">{item.likes}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenThread({
+                      mint: item.mint,
+                      thesisId: item.thesisId,
+                      symbol: item.symbol,
+                      imageUrl: item.imageUrl,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+                >
+                  <MessageSquare className="size-3.5" />
+                  <span className="tabular">{item.replyCount}</span>
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={share}
+              aria-label="Copy link"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+            >
+              {copied ? <Check className="size-3.5 text-primary" /> : <Share2 className="size-3.5" />}
+              <span>{copied ? "Copied" : "Share"}</span>
+            </button>
+            {item.kind === "thesis" && (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenThread({
+                    mint: item.mint,
+                    thesisId: item.thesisId,
+                    symbol: item.symbol,
+                    imageUrl: item.imageUrl,
+                  })
+                }
+                className="ml-auto font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Open thread
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
 export function FeedView() {
+  const [scope, setScope] = useState<FeedScope>("global");
+  const [kindFilter, setKindFilter] = useState<FeedKindFilter>("all");
+  const [activeThread, setActiveThread] = useState<ActiveThesisThread | null>(null);
   const auth = useAuth();
   const now = useNow(30_000);
-  const { data: tokens = [] } = useTrending();
-  const [scope, setScope] = useState<FeedScope>("global");
   const feed = useFeed(scope);
-  const follow = useFollow();
-  const {
-    data: board,
-    isPending: boardPending,
-    isError: boardError,
-    refetch: refetchBoard,
-  } = useLeaderboard("7d");
+  const reactToPost = useReactToPost();
+  const { data: board, isPending: boardPending } = useQuery(socialQueries.leaderboard("7d", auth));
 
-  const posts = (feed.data?.pages.flatMap((page) => page.items) ?? []).map((item) => ({
-    ...item,
-    content: feedItemContent(item),
-    token: tokens.find((token) => token.mint === item.mint) ?? {
+  const allItems = feed.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = kindFilter === "all" ? allItems : allItems.filter((item) => item.kind === kindFilter);
+  const hasDemoItems = allItems.some((item) => item.source === "demo") || board?.dataSource === "demo";
+  const needsAuth = scope === "following" && !auth.authenticated;
+  const emptyFollowing =
+    scope === "following" && auth.authenticated && !feed.isPending && !feed.isError && allItems.length === 0;
+
+  function handleLike(item: Extract<FeedItem, { kind: "thesis" }>) {
+    if (!auth.authenticated) {
+      auth.login();
+      return;
+    }
+    reactToPost.mutate({
+      id: item.id,
+      liked: !item.likedByMe,
       mint: item.mint,
-      symbol: shortAddress(item.mint),
-    },
-  }));
+    });
+  }
 
   return (
-    <div className={FEED_FRAME}>
-      <FeedHeading />
-      <div className="min-w-0 space-y-3 lg:col-start-1 lg:row-start-2">
-        <ToggleGroup
-          type="single"
-          value={scope}
-          onValueChange={(v) => v && setScope(v as FeedScope)}
-          variant="outline"
-          aria-label="Feed scope"
-        >
-          {(["global", "following"] as const).map((value) => (
-            <ToggleGroupItem key={value} value={value} className="h-11 px-4 text-xs lg:h-10">
-              {value === "global" ? "Global" : "Following"}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        {scope === "following" && !auth.authenticated ? (
-          <div className={cn(FEED_CARD, "space-y-3 py-8 sm:py-10")}>
-            <Users aria-hidden className="size-5 text-muted-foreground" />
-            <h2 className="font-medium text-sm">Your people, your feed</h2>
-            <p className="text-muted-foreground text-sm">
-              Follow traders to collect their ideas and trades here.
-            </p>
-            <Button variant="outline" disabled={!auth.configured || !auth.ready} onClick={auth.login}>
-              Sign in to see your following feed
-            </Button>
-            {!auth.configured && (
-              <p className="text-muted-foreground text-sm">Sign-in is not configured in this build.</p>
-            )}
-          </div>
-        ) : (
-          <>
-            {feed.isPending && <FeedPostsSkeleton />}
-            {feed.isError && !feed.isFetchNextPageError && (
-              <div
-                role="alert"
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <FeedHeading />
+        <div className="flex flex-wrap items-center gap-3">
+          <fieldset
+            aria-label="Feed scope"
+            className="flex items-center gap-1 rounded-lg border border-border bg-card p-1"
+          >
+            {(["global", "following"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={scope === s}
+                onClick={() => setScope(s)}
                 className={cn(
-                  FEED_CARD,
-                  "flex flex-wrap items-center justify-between gap-3 text-muted-foreground text-sm",
+                  "rounded-md px-3 py-1 font-medium text-xs capitalize transition-colors",
+                  scope === s
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <p>
-                  {posts.length ? "Couldn’t update the feed." : "Feed unavailable."} {feed.error.message}
-                </p>
-                <Button variant="outline" size="sm" disabled={feed.isFetching} onClick={() => feed.refetch()}>
-                  Retry
-                </Button>
-              </div>
-            )}
-            {!feed.isPending && !feed.isError && posts.length === 0 && (
-              <div className={cn(FEED_CARD, "space-y-2 py-10 sm:py-12")}>
-                <MessageSquareText aria-hidden className="mb-3 size-5 text-muted-foreground" />
-                <h2 className="font-medium text-sm">No posts yet.</h2>
-                <p className="text-muted-foreground text-sm">
-                  {scope === "following"
-                    ? "Ideas from traders you follow will appear here."
-                    : "Market ideas and trades will appear here as traders share them."}
-                </p>
-                <Link
-                  href="/leaderboard"
-                  className="inline-flex min-h-11 items-center gap-1 text-primary text-sm hover:underline focus-visible:outline-2 focus-visible:outline-foreground"
-                >
-                  Discover traders <ArrowUpRight aria-hidden className="size-3.5" />
-                </Link>
-              </div>
-            )}
-            {posts.map((p) => (
-              <article key={p.id} className={FEED_CARD}>
-                <header className="flex items-start gap-3">
-                  <Initials handle={p.handle} />
-                  <div className="min-w-0 flex-1">
-                    <TraderLink wallet={p.wallet} handle={p.handle} className="block truncate text-[13px]" />
-                    <div className={cn("text-xs", p.content.tone)}>
-                      {p.kind === "trade"
-                        ? p.content.label
-                        : p.position === "long"
-                          ? "Thesis · holding"
-                          : p.position === "short"
-                            ? "Thesis · exited"
-                            : "Thesis"}
-                    </div>
-                  </div>
-                  <time
-                    dateTime={new Date(p.createdAt * 1000).toISOString()}
-                    className="tabular shrink-0 pt-0.5 text-[11px] text-muted-foreground"
-                  >
-                    {now ? timeAgo(p.createdAt, now) : ""}
-                  </time>
-                </header>
-                <p className="mt-3 min-h-12 wrap-anywhere text-[13px] leading-6">
-                  {p.content.body ?? p.content.attachment}
-                </p>
-                <Link
-                  href={`/trade/${p.token.mint}`}
-                  className="mt-3 flex min-h-[66px] items-center gap-3 rounded-md border border-border/50 bg-background px-3 py-2.5 transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground"
-                >
-                  {"imageUrl" in p.token ? (
-                    <AssetAvatar imageUrl={p.token.imageUrl} />
-                  ) : (
-                    <TokenAssetAvatar mint={p.token.mint} />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-xs">{p.token.symbol}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
-                      {p.kind === "thesis" ? p.content.attachment : "Execution · demo data"}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 text-[11px] text-primary">
-                    View market <ArrowUpRight aria-hidden className="size-3" />
-                  </span>
-                </Link>
-              </article>
+                {s}
+              </button>
             ))}
-            {feed.isFetchingNextPage && <FeedPostsSkeleton count={1} />}
-            {feed.hasNextPage && (
-              <div className="space-y-3">
-                {feed.isFetchNextPageError && (
-                  <p role="alert" className="text-muted-foreground text-sm">
-                    Couldn’t load more posts. {feed.error.message}
-                  </p>
+          </fieldset>
+          <fieldset
+            aria-label="Feed filter"
+            className="flex items-center gap-1 rounded-lg border border-border bg-card p-1"
+          >
+            {(
+              [
+                ["all", "All"],
+                ["trade", "Trades"],
+                ["thesis", "Theses"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={kindFilter === value}
+                onClick={() => setKindFilter(value)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 font-medium text-xs transition-colors",
+                  kindFilter === value
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
-                <Button variant="outline" disabled={feed.isFetching} onClick={() => feed.fetchNextPage()}>
-                  {feed.isFetchingNextPage ? "Loading…" : feed.isFetchNextPageError ? "Retry" : "Load more"}
-                </Button>
-              </div>
-            )}
-            {!feed.isError && !feed.hasNextPage && posts.length > 0 && (
-              <p className="py-2 text-center text-muted-foreground text-sm">You're all caught up.</p>
-            )}
-          </>
-        )}
+              >
+                {label}
+              </button>
+            ))}
+          </fieldset>
+        </div>
       </div>
-      <aside className="min-w-0 self-start lg:col-start-2 lg:row-start-2">
-        <section className="rounded-md border bg-card p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="font-medium text-sm">Traders to watch</h2>
-            <span className="text-[10px] text-muted-foreground">7D</span>
-          </div>
-          <p className="mt-1 mb-2 text-muted-foreground text-xs">
-            {board?.dataSource === "demo" ? "Demo leaderboard" : "7-day leaderboard"}
-          </p>
-          {boardPending && <FeedTradersSkeleton />}
-          {boardError && (
-            <p role="alert" className="mt-3 text-muted-foreground text-sm">
-              Traders unavailable.{" "}
-              <Button variant="outline" size="sm" onClick={() => refetchBoard()}>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-3">
+          <FeedThesisComposer />
+
+          {needsAuth ? (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-12 text-center">
+              <UserPlus className="size-8 text-muted-foreground" />
+              <div className="space-y-1">
+                <p className="font-medium text-sm">Sign in to see traders you follow</p>
+                <p className="text-muted-foreground text-xs">
+                  Your following feed combines trades and theses from accounts you track.
+                </p>
+              </div>
+              <Button size="sm" disabled={!auth.configured} onClick={auth.login}>
+                Sign in
+              </Button>
+            </div>
+          ) : feed.isPending ? (
+            <FeedPostsSkeleton />
+          ) : feed.isError && allItems.length === 0 ? (
+            <div role="alert" className="rounded-xl border border-border bg-card p-6 text-center">
+              <p className="text-sm">{feed.error.message}</p>
+              <Button size="sm" variant="outline" className="mt-3" onClick={() => feed.refetch()}>
                 Retry
               </Button>
-            </p>
-          )}
-          <ul className="divide-y">
-            {board?.entries.slice(0, 4).map((e) => (
-              <li key={e.wallet} className="flex min-h-[68px] items-center gap-2.5 py-2">
-                <Initials handle={e.handle} />
-                <div className="min-w-0 flex-1">
-                  <TraderLink wallet={e.wallet} handle={e.handle} className="block truncate text-[13px]" />
-                  <div className="tabular truncate text-[10px] text-muted-foreground">
-                    {e.trades} trades · {formatCompactUsd(e.volumeUsd)} volume
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-h-10 min-w-14 px-2 text-[11px] pointer-coarse:min-h-11"
-                  disabled={!auth.authenticated || follow.isPending || e.wallet === auth.walletAddress}
-                  onClick={() => follow.mutate({ wallet: e.wallet, isFollowing: !e.isFollowing })}
+            </div>
+          ) : emptyFollowing ? (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-12 text-center">
+              <UserPlus className="size-8 text-muted-foreground" />
+              <div className="space-y-1">
+                <p className="font-medium text-sm">You aren&apos;t following any traders yet</p>
+                <p className="text-muted-foreground text-xs">
+                  Follow traders from the sidebar or leaderboard to populate this feed.
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/leaderboard">Browse leaderboard</Link>
+              </Button>
+            </div>
+          ) : (
+            <>
+              {feed.isError && !feed.isFetchNextPageError && (
+                <div
+                  role="alert"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-muted-foreground text-xs"
                 >
-                  {e.isFollowing ? "Unfollow" : "Follow"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {!boardPending && !boardError && !board?.entries.length && (
-            <p className="py-5 text-muted-foreground text-xs">No ranked traders yet.</p>
+                  <span>Couldn&apos;t update the feed.</span>
+                  <Button size="sm" variant="outline" onClick={() => feed.refetch()}>
+                    Retry
+                  </Button>
+                </div>
+              )}
+              {items.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card px-6 py-12 text-center text-muted-foreground text-sm">
+                  {kindFilter === "all"
+                    ? "No feed activity yet."
+                    : `No ${kindFilter === "trade" ? "trades" : "theses"} in the loaded pages yet.`}
+                </div>
+              ) : (
+                items.map((item) => (
+                  <FeedCard
+                    key={item.id}
+                    item={item}
+                    now={now}
+                    onOpenThread={setActiveThread}
+                    onLike={handleLike}
+                  />
+                ))
+              )}
+              {feed.isFetchingNextPage && <FeedPostsSkeleton />}
+              {feed.isFetchNextPageError && (
+                <div
+                  role="alert"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-muted-foreground text-xs"
+                >
+                  <span>Couldn&apos;t load more posts.</span>
+                  <Button size="sm" variant="outline" onClick={() => feed.fetchNextPage()}>
+                    Retry
+                  </Button>
+                </div>
+              )}
+              {feed.hasNextPage && !feed.isFetchNextPageError && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={feed.isFetchingNextPage}
+                    onClick={() => feed.fetchNextPage()}
+                  >
+                    {feed.isFetchingNextPage ? "Loading…" : "Load more"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
-          {!auth.authenticated && !boardError && (
-            <p className="mt-3 text-muted-foreground text-xs">
-              {auth.configured
-                ? "Sign in to follow traders."
-                : "Sign-in is not configured in this build, so following is disabled."}
-            </p>
+        </div>
+
+        <aside className="space-y-3">
+          <div className="h-fit rounded-xl border border-border bg-card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-medium text-sm">Traders to watch</h2>
+              <span className="text-muted-foreground text-xs">7D</span>
+            </div>
+            {boardPending ? (
+              <FeedTradersSkeleton />
+            ) : (
+              <ul className="divide-y divide-border/50">
+                {(board?.entries ?? []).slice(0, 6).map((t) => (
+                  <li key={t.wallet} className="flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0">
+                    <TraderAvatar handle={t.handle} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <TraderLink
+                        wallet={t.wallet}
+                        handle={t.handle}
+                        className="block truncate font-medium text-sm"
+                      />
+                      <div className="tabular text-xs">
+                        <span className={t.pnlUsd >= 0 ? "text-positive" : "text-negative"}>
+                          {t.pnlUsd > 0 ? `+${formatUsd(t.pnlUsd)}` : formatUsd(t.pnlUsd)}
+                        </span>
+                        <span className="text-muted-foreground"> · {t.winRatePct.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <SidebarFollowButton wallet={t.wallet} isFollowing={Boolean(t.isFollowing)} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link
+              href="/leaderboard"
+              className="mt-4 inline-flex items-center gap-1 text-muted-foreground text-xs transition-colors hover:text-foreground"
+            >
+              Explore traders
+              <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+          {hasDemoItems && (
+            <p className="px-1 text-muted-foreground text-xs">Demo traders · simulated activity</p>
           )}
-          {follow.isError && (
-            <p role="alert" className="text-muted-foreground text-xs">
-              {follow.error.message}
-            </p>
-          )}
-          <Link
-            href="/leaderboard"
-            className="mt-3 flex min-h-10 items-center justify-between border-t pt-2 text-primary text-xs hover:underline focus-visible:outline-2 focus-visible:outline-foreground"
-          >
-            View leaderboard <ArrowUpRight aria-hidden className="size-3.5" />
-          </Link>
-        </section>
-      </aside>
+        </aside>
+      </div>
+
+      <ThesisThreadSheet
+        thread={activeThread}
+        onOpenChange={(open) => {
+          if (!open) setActiveThread(null);
+        }}
+      />
     </div>
   );
 }

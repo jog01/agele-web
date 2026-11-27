@@ -23,7 +23,9 @@ const stats = { pnlUsd: 2, pnlPct: 5, volumeUsd: 100, trades: 2, winRatePct: 50,
 const profile: components["schemas"]["TraderProfile"] = {
   wallet,
   handle: "Orca",
+  displayName: null,
   avatarUrl: null,
+  bio: null,
   followers: 30,
   following: 5,
   realizedPnlUsd: 10,
@@ -36,6 +38,7 @@ const trade: UserTrade = {
   signature: "indexed-signature",
   mint,
   symbol: "SOL",
+  imageUrl: null,
   side: "buy",
   time: 1700000000,
   priceUsd: 100,
@@ -96,7 +99,7 @@ it("replaces the profile skeleton before independently resolving trade history",
   expect(screen.queryByRole("status", { name: "Loading trader profile" })).toBeNull();
   expect(screen.getByRole("status", { name: "Loading trades" })).toBeDefined();
   await act(async () => resolveTrades(ok({ trades: [], nextCursor: null }, "demo")));
-  expect(await screen.findByText("Demo profiles don’t include trade history.")).toBeDefined();
+  expect(await screen.findByText("No trades yet.")).toBeDefined();
   expect(screen.queryByRole("status", { name: "Loading trades" })).toBeNull();
 });
 
@@ -110,7 +113,7 @@ it("retains profile content rather than returning to a full skeleton on backgrou
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "demo"))
     .mockReturnValueOnce(refresh);
   const { client } = renderProfile();
-  await screen.findByText("Demo profiles don’t include trade history.");
+  await screen.findByText("No trades yet.");
   act(() => {
     void client.invalidateQueries({ queryKey: ["trader"] });
   });
@@ -137,8 +140,8 @@ it("labels demo data, explains empty history, and switches window without anothe
   expect((await screen.findByText("Trader profile: Orca")).getAttribute("role")).toBe("status");
   expect(screen.getByText("Demo profile")).toBeDefined();
   expect(screen.getByText("Sign-in isn’t configured, so following is unavailable.")).toBeDefined();
-  expect(screen.getByText("Demo profiles don’t include positions.")).toBeDefined();
-  expect(await screen.findByText("Demo profiles don’t include trade history.")).toBeDefined();
+  expect(screen.getByText("No open positions.")).toBeDefined();
+  expect(await screen.findByText("No trades yet.")).toBeDefined();
   expect(screen.queryByRole("link", { name: /Solana Explorer|Solscan/ })).toBeNull();
   expect(screen.getByText("#9")).toBeDefined();
   fireEvent.click(screen.getByRole("radio", { name: "24h" }));
@@ -189,6 +192,41 @@ it("uses the opaque next cursor, preserves trades after a failed page, and retri
     { path: { wallet }, query: { limit: 25, cursor } },
     { path: { wallet }, query: { limit: 25, cursor } },
   ]);
+});
+
+it("renders displayName, bio, and API-provided position imageUrl when present", async () => {
+  const imageUrl = "https://example.com/sol-direct.webp";
+  get
+    .mockResolvedValueOnce(
+      ok(
+        {
+          ...profile,
+          displayName: "Orca Prime",
+          bio: "Momentum trader tracking Solana liquidity.",
+          positions: [
+            {
+              mint,
+              symbol: "SOL",
+              imageUrl,
+              quantity: 2,
+              avgCostUsd: 100,
+              priceUsd: 120,
+              valueUsd: 240,
+              unrealizedPnlUsd: 40,
+              realizedPnlUsd: 10,
+            },
+          ],
+        },
+        "demo",
+      ),
+    )
+    .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "demo"));
+  renderProfile();
+  expect(await screen.findByRole("heading", { name: "Orca Prime" })).toBeDefined();
+  expect(screen.getByText("@Orca")).toBeDefined();
+  expect(screen.getByText("Momentum trader tracking Solana liquidity.")).toBeDefined();
+  const link = await screen.findByRole("link", { name: "SOL" });
+  expect(link.querySelector("img")?.getAttribute("src")).toBe(imageUrl);
 });
 
 it("renders indexed positions and skips nullable entries from the API", async () => {

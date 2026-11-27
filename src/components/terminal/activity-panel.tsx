@@ -3,9 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquareText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "@/components/auth/auth-context";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLiveTrades } from "@/hooks/use-live-trades";
@@ -27,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 import { TableSkeleton } from "./panel-skeleton";
 import { SwapHistoryPanel } from "./swap-history-panel";
+import { ThesisPanel } from "./thesis-panel";
 import { HoldersPanel, PositionsPanel, TradersPanel } from "./token-activity-panels";
 import { TopTraders } from "./top-traders";
 
@@ -148,64 +146,6 @@ function ActivityTable({ mint }: { mint: string }) {
       </Table>
       {!visible.length && <p className="p-4 text-muted-foreground">No trades match these filters.</p>}
     </>
-  );
-}
-
-const MAX_THESIS = 280;
-
-function ThesisPanel({ mint }: { mint: string }) {
-  const { data: comments = [], isPending } = useQuery(tokenQueries.comments(mint));
-  const auth = useAuth();
-  const [draft, setDraft] = useState("");
-  const now = useNow(30_000);
-  return (
-    <div className="space-y-4 p-4">
-      <div className="rounded-lg border bg-background/60 p-3 focus-within:ring-2 focus-within:ring-ring/60">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, MAX_THESIS))}
-          placeholder="Share your thesis on this token"
-          aria-label="Thesis"
-          rows={2}
-          className="w-full resize-none bg-transparent outline-none placeholder:text-muted-foreground"
-        />
-        <div className="flex items-center justify-between">
-          <span className="tabular text-muted-foreground text-xs">
-            {draft.length}/{MAX_THESIS}
-          </span>
-          <Button size="sm" disabled={!draft.trim() || !auth.authenticated} onClick={auth.login}>
-            {auth.authenticated ? "Post" : "Sign in to post"}
-          </Button>
-        </div>
-      </div>
-      {isPending && <TableSkeleton label="Loading theses" columns={3} />}
-      <ul className="space-y-2">
-        {comments.map((c) => (
-          <li key={c.id} className="rounded-md border p-3">
-            <div className="mb-1 flex items-center gap-2 text-xs">
-              <span className="font-medium text-foreground">@{c.handle}</span>
-              {c.position !== "none" && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-5 text-[11px]",
-                    c.position === "long"
-                      ? "border-positive/40 text-positive"
-                      : "border-negative/40 text-negative",
-                  )}
-                >
-                  {c.position === "long" ? "Holding" : "Exited"}
-                </Badge>
-              )}
-              <span className="ml-auto text-muted-foreground" title={utcTimestamp(c.createdAt)}>
-                {now ? `${timeAgo(c.createdAt, now)} ago` : ""}
-              </span>
-            </div>
-            <p>{c.body}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

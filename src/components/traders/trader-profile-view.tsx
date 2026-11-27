@@ -5,9 +5,10 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
+import { AssetAvatar } from "@/components/common/asset-avatar";
 import { CopyAddress } from "@/components/common/copy-address";
 import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TraderAvatar } from "@/components/social/trader-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -90,13 +91,7 @@ function TraderStats({
   );
 }
 
-function TraderPositions({
-  positions,
-  demo,
-}: {
-  positions: components["schemas"]["TraderProfile"]["positions"];
-  demo: boolean;
-}) {
+function TraderPositions({ positions }: { positions: components["schemas"]["TraderProfile"]["positions"] }) {
   const rows = positions.filter((position) => position !== null);
   return (
     <section className="min-w-0 overflow-hidden rounded-md border bg-card">
@@ -118,7 +113,11 @@ function TraderPositions({
                     href={`/trade/${encodeURIComponent(position.mint)}`}
                     className={cn(LINK, "inline-flex items-center gap-1.5")}
                   >
-                    <TokenAssetAvatar mint={position.mint} className="size-4" />
+                    {position.imageUrl ? (
+                      <AssetAvatar imageUrl={position.imageUrl} className="size-4" />
+                    ) : (
+                      <TokenAssetAvatar mint={position.mint} className="size-4" />
+                    )}
                     {position.symbol}
                   </Link>
                   <div className="tabular text-muted-foreground text-xs">
@@ -137,7 +136,7 @@ function TraderPositions({
         </Table>
       ) : (
         <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">
-          {demo ? "Demo profiles don’t include positions." : "No open positions."}
+          No open positions.
         </p>
       )}
     </section>
@@ -173,9 +172,7 @@ function TraderTrades({ wallet }: { wallet: string }) {
         </div>
       )}
       {trades.isSuccess && !rows.length && (
-        <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">
-          {pages[0]?.dataSource === "demo" ? "Demo profiles don’t include trade history." : "No trades yet."}
-        </p>
+        <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">No trades yet.</p>
       )}
       {rows.length > 0 && (
         <Table aria-label="Recent trades">
@@ -198,7 +195,11 @@ function TraderTrades({ wallet }: { wallet: string }) {
                       href={`/trade/${encodeURIComponent(trade.mint)}`}
                       className={cn(LINK, "inline-flex items-center gap-1.5")}
                     >
-                      <TokenAssetAvatar mint={trade.mint} className="size-4" />
+                      {trade.imageUrl ? (
+                        <AssetAvatar imageUrl={trade.imageUrl} className="size-4" />
+                      ) : (
+                        <TokenAssetAvatar mint={trade.mint} className="size-4" />
+                      )}
                       {trade.symbol}
                     </Link>
                   </div>
@@ -341,22 +342,26 @@ export function TraderProfileView({
           <section className="overflow-hidden rounded-md border bg-card">
             <div className="flex flex-wrap items-start justify-between gap-4 p-4 sm:p-5">
               <div className="flex min-w-0 items-start gap-3">
-                <Avatar aria-hidden className="size-11 shrink-0">
-                  {data.avatarUrl && <AvatarImage src={data.avatarUrl} alt="" referrerPolicy="no-referrer" />}
-                  <AvatarFallback className="bg-secondary font-semibold text-primary">
-                    {data.handle.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <TraderAvatar
+                  handle={data.handle}
+                  displayName={data.displayName}
+                  avatarUrl={data.avatarUrl}
+                  size="lg"
+                  className="size-11"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="min-w-0 wrap-anywhere font-semibold text-xl tracking-tight">
-                      {data.handle}
+                      {data.displayName || data.handle}
                     </h1>
+                    {data.displayName && data.displayName !== data.handle && (
+                      <span className="text-muted-foreground text-sm">@{data.handle}</span>
+                    )}
                     <Badge
                       variant="outline"
                       className={
                         data.dataSource === "demo"
-                          ? "border-warning/40 bg-warning-subtle text-warning"
+                          ? "border-border/80 bg-secondary/60 text-muted-foreground"
                           : undefined
                       }
                     >
@@ -368,7 +373,10 @@ export function TraderProfileView({
                     </Badge>
                     {auth.authenticated && data.isFollowing && <Badge variant="secondary">Following</Badge>}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2">
+                  {data.bio && (
+                    <p className="mt-1 max-w-2xl text-muted-foreground text-sm leading-5">{data.bio}</p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2">
                     <CopyAddress address={data.wallet} label="Copy trader wallet address" />
                     {data.dataSource === "indexed" && (
                       <a
@@ -381,7 +389,7 @@ export function TraderProfileView({
                       </a>
                     )}
                   </div>
-                  <p className="tabular flex flex-wrap gap-x-3 text-muted-foreground text-xs">
+                  <p className="tabular mt-1 flex flex-wrap gap-x-3 text-muted-foreground text-xs">
                     <span>
                       <strong className="text-foreground">{COUNT.format(data.followers)}</strong> followers
                     </span>
@@ -394,7 +402,7 @@ export function TraderProfileView({
               <div className="max-w-64 text-xs">
                 <FollowTrader wallet={data.wallet} routeWallet={wallet} isFollowing={data.isFollowing} />
                 {data.dataSource === "demo" && (
-                  <p className="mt-2 text-[11px] text-muted-foreground">Performance figures are simulated.</p>
+                  <p className="mt-2 text-[11px] text-muted-foreground">Simulated history & performance.</p>
                 )}
               </div>
             </div>
@@ -414,7 +422,7 @@ export function TraderProfileView({
           </section>
           <TraderStats stats={data.stats} initialWindow={initialWindow} />
           <div className="grid items-start gap-4 xl:grid-cols-2">
-            <TraderPositions positions={data.positions} demo={data.dataSource === "demo"} />
+            <TraderPositions positions={data.positions} />
             <TraderTrades wallet={wallet} />
           </div>
         </>

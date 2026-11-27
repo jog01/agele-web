@@ -33,6 +33,7 @@ const portfolio: Portfolio = {
     {
       mint: "mint",
       symbol: "TEST",
+      imageUrl: null,
       quantity: 10,
       avgCostUsd: 15.5,
       priceUsd: 15,
@@ -47,6 +48,7 @@ const buy: UserTrade = {
   signature: "sig-buy",
   mint: "mint",
   symbol: "TEST",
+  imageUrl: null,
   side: "buy",
   tokenAmount: 10,
   priceUsd: 15.5,
