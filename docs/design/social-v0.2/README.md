@@ -18,15 +18,33 @@ PNGs are the canonical visual reference. Each has an editable, text-based SVG be
 | [08 Mobile replay](08-mobile-replay.png) · [SVG](08-mobile-replay.svg) | Chart, fill controls, tabs and separate Buy/Share bar at 390px |
 | [09 Continuations](09-social-continuations.png) · [SVG](09-social-continuations.svg) | P1 leaderboard, token holders with theses, notification drawer |
 | [10 States](10-states.png) · [SVG](10-states.svg) | Structure-matched loading, empty following, stale data and rejected publish |
+| [11 Search and discovery](11-search-discovery.png) · [SVG](11-search-discovery.svg) | Token/trader destinations, recent tokens, market context, keyboard hints and 390px sheet |
 
 ![Feed](01-feed.png)
 ![Replay](04-replay.png)
 ![Mobile](06-mobile.png)
 
+## Parity and polish review
+
+The [Fomo parity and polish review](implementation-review.md) separates current-main browser findings, source-only gaps and public Fomo documentation. A design target is not evidence that its app feature has shipped. Use the audited revisions and acceptance criteria when handing implementation to Frontend.
+
+Board 11 adds the missing search target from Jogeshwar's reference screenshots. It keeps the market table compact, reserves numeric columns, and makes the token/profile destinations distinct. It does not add a runtime search index or expand Agele beyond supported Solana markets.
+
+### Search interaction contract
+
+- Search tokens by symbol/name/contract and traders by handle/display name through backend-supported search. Do not limit text search silently to the trending list or a browser-seeded set of traders.
+- Empty queries show recent tokens and a useful discovery list. Store visited mints, not copied market data; resolve names, artwork and prices through the normal API/cache. Clear all clears that history, not the watchlist.
+- Token rows show circular artwork, symbol, name, supported chain and unambiguous contract context. Align labelled USD market cap, price and change columns. Trader rows open the public profile; they do not open a token market.
+- Arrow keys change the active result; Enter opens it; Escape closes and restores the originating search trigger. Keep the active row in view and expose it to assistive technology. Ignore shortcuts during IME composition.
+- Show Paste address and keyboard hints where useful. Clipboard denial leaves manual paste available and keeps the dialog open. Never request clipboard access on page load.
+- Use a full-width sheet at 390px, with 44px non-overlapping controls and a 16px input on coarse-pointer devices. Do not open the software keyboard until the visitor taps the input.
+- Preserve results during background refresh. Initial loading, no matches, search failure and expired/unavailable markets have distinct states. No match must not mean the request failed.
+- A search result is navigation, not an immediate trade. Buying from a social position remains a separate explicit action with a fresh viewer quote.
+
 ## References and decisions
 
 - [CTO's v0.2 thread and fomo spec](https://jog-fld1119.slack.com/archives/C0CJE8VH25R/p1795805869071429), including priorities and published fomo screenshots. The replay interpretation is an **Agele product decision**, not a verified fomo playback implementation.
-- [fomo's social guide](https://fomo.family/blog/guide/leveraging-fomos-social-features) and [public feed artwork](https://fomo.family/images/landing/social-static.webp) were inspected. Borrow identity-first information hierarchy and position context, not fomo's brand, decorations or marketing claims. The signed-in fomo app was not accessed.
+- [fomo's social guide](https://fomo.family/blog/guide/leveraging-fomos-social-features) and [public feed artwork](https://fomo.family/images/landing/social-static.webp) were inspected. The [parity review](implementation-review.md#official-reference-catalog) expands the reference set to official feature guides, articles and release notes. Borrow identity-first information hierarchy and position context, not fomo's brand, decorations or marketing claims. This design session did not access signed-in Fomo; the CTO owns that separate walkthrough.
 - [Existing Agele brand contract](../../brand.md) stays authoritative: Manrope, mono numeric values, Agele mark, green accent, neutral black/grey, real circular token artwork.
 - **No auto-copy.** A social Buy creates the viewer's own fresh quote. It does not mirror position size, buy automatically on an alert, or imply the viewer gets the author's historical entry.
 - **No free-floating thesis.** Compose against a position; revisions remain in its history. A thesis may be authored for an open position or within the server-enforced three-hour post-close window.

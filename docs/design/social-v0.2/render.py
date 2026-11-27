@@ -779,6 +779,78 @@ def states():
     b.save("10-states")
 
 
+def search_discovery():
+    b = Board("Agele — token search and trader discovery", 1440, 1040)
+    b.text(40, 52, "Search tokens. Find traders.", 25, weight=600)
+    b.text(40, 80, "Design target, not shipped UI · illustrative demo content · Agele green / graphite", 12, MUTED)
+    b.text(40, 126, "Desktop · empty query with recent tokens", 12, MUTED)
+    b.text(982, 126, "390px · trader results", 12, MUTED)
+
+    x, y, w = 40, 150, 856
+    b.rect(x, y, w, 644, PANEL, EDGE, 6)
+    b.text(x + 24, y + 35, "Search", 16, weight=600)
+    b.icon(x + w - 42, y + 20, "close", size=16)
+    b.rect(x + 24, y + 56, w - 48, 52, BG, MUTED, 4)
+    b.icon(x + 40, y + 73, "search", size=18)
+    b.text(x + 72, y + 89, "Token, trader or contract address", 16, MUTED)
+    b.btn(x + w - 138, y + 62, 108, "Paste address", h=40)
+    tabs(b, x + 12, y + 126, ["All", "Tokens", "Traders"], widths=[70, 90, 98])
+    b.text(x + 24, y + 200, "Recent tokens", 12, MUTED)
+    b.text(x + w - 24, y + 200, "Clear all", 12, MUTED, anchor="end")
+    for i, token in enumerate(["wif", "jup", "sol", "bonk"]):
+        xx = x + 24 + i * 156
+        b.rect(xx, y + 218, 144, 44, BG, EDGE, 4)
+        b.logo(xx + 10, y + 228, token, 24)
+        b.text(xx + 44, y + 246, token.upper(), 12, weight=600)
+    for xx, label, anchor in [(x + 24, "Markets", "start"), (x + 534, "Market cap", "end"), (x + 674, "Price", "end"), (x + w - 40, "24h", "end")]:
+        b.text(xx, y + 306, label, 11, MUTED, anchor=anchor)
+    rows = [("wif", "dogwifhat", "$2.04B", "$2.04", "+12.4%"), ("jup", "Jupiter", "$1.32B", "$0.94", "+6.1%"), ("bonk", "Bonk", "$1.59B", "$0.000021", "−3.2%")]
+    for i, (token, name, cap, price, change) in enumerate(rows):
+        yy = y + 324 + i * 70
+        if i == 0:
+            b.rect(x + 16, yy - 7, w - 32, 64, FLOAT, EDGE, 4)
+        b.logo(x + 28, yy + 6, token, 34)
+        b.text(x + 76, yy + 22, token.upper(), 13, weight=600)
+        b.text(x + 76, yy + 42, name + " · Solana", 11, MUTED)
+        b.text(x + 534, yy + 30, cap, 12, anchor="end", mono=True)
+        b.text(x + 674, yy + 30, price, 12, anchor="end", mono=True)
+        b.text(x + w - 40, yy + 30, change, 12, DOWN if change.startswith("−") else UP, anchor="end", mono=True)
+    b.line(x, y + 578, x + w, y + 578)
+    b.text(x + 24, y + 607, "↑ ↓  Navigate     Enter  Open     Esc  Close", 11, MUTED)
+    b.text(x + w - 24, y + 607, "Solana markets", 11, MUTED, anchor="end")
+    b.text(40, 836, "One dialog, clear destinations", 16, weight=600)
+    b.text(40, 866, "A token opens its market. A trader opens their public profile.", 13, MUTED)
+    b.text(40, 893, "Recent history stores visited mints; prices still come from the API.", 13, MUTED)
+    b.text(40, 920, "Keep position-detail and thread links separate from token search results.", 13, MUTED)
+    b.text(40, 974, "Keyboard focus follows the selected result; closing returns to the search trigger.", 12, MUTED)
+
+    x, y, w, h = 982, 150, 390, 794
+    b.rect(x, y, w, h, PANEL, EDGE, 6)
+    b.text(x + 16, y + 36, "Search", 18, weight=600)
+    b.icon(x + w - 38, y + 22, "close", size=17)
+    b.rect(x + 16, y + 62, w - 32, 52, BG, MUTED, 4)
+    b.icon(x + 32, y + 79, "search", size=18)
+    b.text(x + 64, y + 95, "sol", 16)
+    b.icon(x + w - 48, y + 80, "close", size=16)
+    tabs(b, x + 4, y + 136, ["All", "Tokens", "Traders"], active=2, widths=[70, 90, 98])
+    b.text(x + 16, y + 210, "Traders", 12, MUTED)
+    for i, (name, handle) in enumerate([("Sol Surfer", "solsurfer"), ("Solace", "solace")]):
+        yy = y + 232 + i * 90
+        b.avatar(x + 16, yy + 9, 40, i)
+        b.text(x + 70, yy + 25, name, 14, weight=600)
+        b.text(x + 70, yy + 47, "@" + handle, 12, MUTED)
+        b.icon(x + w - 38, yy + 22, "chevron", size=16)
+        b.line(x + 16, yy + 73, x + w - 16, yy + 73)
+    b.text(x + 16, y + 467, "Tap a trader to view their profile.", 12, MUTED)
+    b.line(x, y + h - 122, x + w, y + h - 122)
+    b.text(x + 16, y + h - 91, "Full-width sheet · safe-area-aware close", 11, MUTED)
+    b.text(x + 16, y + h - 65, "44px controls · 16px input on touch", 11, MUTED)
+    b.text(x + 16, y + h - 39, "No autofocus keyboard on open", 11, MUTED)
+    b.text(982, 974, "Trader search requires an API-backed index.", 11, MUTED)
+    b.text(982, 995, "Never search only a local seeded trader list.", 11, MUTED)
+    b.save("11-search-discovery")
+
+
 if __name__ == "__main__":
     feed()
     profile()
@@ -790,3 +862,4 @@ if __name__ == "__main__":
     mobile_replay()
     continuations()
     states()
+    search_discovery()
