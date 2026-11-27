@@ -209,11 +209,14 @@ export function OrderTicket({
                     setReviewOpen(true);
                 }}
                 className={cn(
-                  "tabular h-auto min-h-7 whitespace-normal break-all rounded px-1 text-[11px]",
+                  "tabular h-auto min-h-7 min-w-0 flex-wrap gap-x-1 gap-y-0 rounded px-1 text-[11px]",
                   side === "buy" && swap.inputAmount === p && "bg-accent text-primary ring-1 ring-primary/30",
                 )}
               >
-                {side === "buy" ? `${instantPreset ? `${presetAction} ` : ""}$${p}` : `${p}%`}
+                {instantPreset && <span>{presetAction}</span>}
+                <span className="max-w-full wrap-anywhere whitespace-normal">
+                  {side === "buy" ? `$${p}` : `${p}%`}
+                </span>
               </Button>
             );
           })}
