@@ -116,12 +116,15 @@ export function PositionReplayChart({
       data.prices.map(({ time, price }) => ({ time: time as UTCTimestamp, value: price * factor })),
     );
     const series = data.candles.length ? candles : line;
-    series.createPriceLine({
-      price: position.avgEntryUsd * factor,
-      color: accent,
-      lineStyle: LineStyle.Dashed,
-      title: "Avg entry",
-    });
+    const entry = scale === null ? position.avgEntryUsd : position.avgEntryMarketCapUsd;
+    if (entry !== null) {
+      series.createPriceLine({
+        price: entry,
+        color: accent,
+        lineStyle: LineStyle.Dashed,
+        title: "Avg entry",
+      });
+    }
 
     const markers: SeriesMarker<UTCTimestamp>[] = [];
     if (showFills) {
@@ -162,6 +165,7 @@ export function PositionReplayChart({
     end,
     hasData,
     interval,
+    position.avgEntryMarketCapUsd,
     position.avgEntryUsd,
     query.isPending,
     scale,

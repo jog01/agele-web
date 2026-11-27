@@ -39,6 +39,7 @@ The URL opens one position overlay without navigating away from the current page
 flowchart LR
   F[Feed trade or thesis] --> U["URL: trader, mint, position"]
   P[Trader profile open position] --> U
+  C[Trader profile closed position or top trade] --> U
   T[Trader profile recent trade] --> U
   S[Shared link] --> U
   U --> M[Position replay overlay]
@@ -54,17 +55,21 @@ sequenceDiagram
   Viewer->>Replay: Open a position link
   par Load episode
     Replay->>API: GET /v1/traders/{wallet}/positions/{mint}
-    API-->>Replay: Episode, chronological fills, and PnL
+    API-->>Replay: Episode, chronological chart fills, entry and exit MC, invested USD, and PnL %
   and Load token and trader metadata
     Replay->>API: GET /v1/tokens/{mint} and /v1/traders/{wallet}
     API-->>Replay: Current token quote and trader identity
   end
   Replay->>API: GET /v1/tokens/{mint}/candles
   API-->>Replay: Market candles when available
+  loop Initial load, page change, or minimum size change
+    Replay->>API: GET /v1/traders/{wallet}/positions/{mint}/transactions (positionId, page, limit, minSizeUsd)
+    API-->>Replay: Newest-first fills with recorded MC, total matches, and next page
+  end
   opt A thesis or discussion is included in the link
     Replay->>API: GET /v1/tokens/{mint}/theses/{thesisId} or /v1/feed/{key}/comments
     API-->>Replay: Thesis versions and replies, or trade discussion
   end
 ```
 
-The chart falls back to a line of recorded fill prices when candles are unavailable or don't cover the selected fills. Entry, exit, and fill market caps are estimates using the token's current implied supply; when that supply is unavailable, replay displays USD per token instead. Average exit is total sell proceeds divided by tokens sold. The feed passes its thesis ID, or the ID of a thesis on the same episode already loaded in the feed. Otherwise the trade's discussion is shown when available. Trader history doesn't expose episode IDs, so a history row checks that its selected fill belongs to the latest episode instead of silently showing an unrelated episode.
+The chart falls back to recorded fill prices when candles are unavailable or don't cover its fills. Its optional market-cap axis scales price data by current implied supply, but the entry and exit market caps in Position performance are the backend's historical values and display a dash if unavailable. Transaction rows show the backend's fill market cap, or USD per token if it is unavailable. The server filters transaction pages by minimum USD size without changing the chart or the whole episode's performance metrics. The feed passes its thesis ID, or the ID of a thesis on the same episode already loaded in the feed. Otherwise the trade's discussion is shown when available. Trader history doesn't expose episode IDs, so a history row checks that its selected fill belongs to the latest episode instead of silently showing an unrelated episode.

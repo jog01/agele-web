@@ -1,6 +1,5 @@
-import type { Candle, Token } from "./api/client";
+import type { Candle } from "./api/client";
 import type { components } from "./api/schema";
-import { tokenSupply } from "./candles";
 
 export type TraderPosition = components["schemas"]["TraderPosition"];
 
@@ -42,23 +41,6 @@ export function positionUrl(url: URL, target: PositionTarget | null) {
     if (fillId) next.searchParams.set("fill", fillId);
   }
   return next;
-}
-
-export function replayMetrics(position: TraderPosition, token: Token | undefined) {
-  const supply = tokenSupply(token);
-  const invested = position.fills.reduce((sum, fill) => sum + (fill.side === "buy" ? fill.valueUsd : 0), 0);
-  const sells = position.fills.filter((fill) => fill.side === "sell" && fill.tokenAmount > 0);
-  const sold = sells.reduce((sum, fill) => sum + fill.tokenAmount, 0);
-  const proceeds = sells.reduce((sum, fill) => sum + fill.valueUsd, 0);
-  const pnl = position.realizedPnlUsd + position.unrealizedPnlUsd;
-  return {
-    supply,
-    invested,
-    pnl,
-    pnlPct: invested > 0 ? (pnl / invested) * 100 : null,
-    averageEntry: position.avgEntryUsd * (supply ?? 1),
-    averageExit: sold > 0 ? (proceeds / sold) * (supply ?? 1) : null,
-  };
 }
 
 export function replaySeries(

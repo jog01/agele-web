@@ -18,7 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, type Comment, type Token } from "@/lib/api/client";
 import { tokenQueries } from "@/lib/api/queries";
 import { positionDiscussionQuery, thesisThreadQuery } from "@/lib/api/social";
-import { traderPositionQuery, traderProfileQuery } from "@/lib/api/traders";
+import { positionTransactionsQuery, traderPositionQuery, traderProfileQuery } from "@/lib/api/traders";
+import { tokenSupply } from "@/lib/candles";
 import {
   changeTone,
   formatCompact,
@@ -29,13 +30,7 @@ import {
   shortAddress,
   utcTimestamp,
 } from "@/lib/format";
-import {
-  type PositionTarget,
-  positionTarget,
-  positionUrl,
-  replayMetrics,
-  type TraderPosition,
-} from "@/lib/position-replay";
+import { type PositionTarget, positionTarget, positionUrl, type TraderPosition } from "@/lib/position-replay";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 import { PositionReplayChart } from "./position-replay-chart";
@@ -58,18 +53,25 @@ function ReplaySkeleton() {
   return <Skeleton className="position-replay-loading-panel" />;
 }
 
-function PositionFills({ position, supply }: { position: TraderPosition; supply: number | null }) {
+function PositionFills({ position }: { position: TraderPosition }) {
   const [minSize, setMinSize] = useState("");
-  const [page, setPage] = useState(0);
-  const fills = position.fills.filter((fill) => fill.valueUsd >= (Number(minSize) || 0)).toReversed();
-  const lastPage = Math.max(0, Math.ceil(fills.length / PAGE_SIZE) - 1);
-  const currentPage = Math.min(page, lastPage);
+  const [page, setPage] = useState(1);
+  const size = Number(minSize);
+  const minSizeUsd = Number.isFinite(size) && size > 0 ? size : 0;
+  const query = useQuery(
+    positionTransactionsQuery(position.wallet, position.mint, position.id, {
+      page,
+      limit: PAGE_SIZE,
+      minSizeUsd,
+    }),
+  );
+  const fills = query.data?.transactions ?? [];
+  const nextPage = query.data?.nextPage ?? null;
+  const lastPage = Math.ceil((query.data?.total ?? 0) / PAGE_SIZE);
   return (
     <section className="position-replay-panel" aria-label="Transactions">
       <div className="position-replay-panel-head">
-        <h3>
-          Transactions <span>({position.fills.length})</span>
-        </h3>
+        <h3>Transactions {query.data && <span>({query.data.total})</span>}</h3>
         <label className="position-replay-filter">
           Min size
           <input
@@ -81,14 +83,25 @@ function PositionFills({ position, supply }: { position: TraderPosition; supply:
             value={minSize}
             onChange={(event) => {
               setMinSize(event.target.value);
-              setPage(0);
+              setPage(1);
             }}
           />
         </label>
       </div>
-      {fills.length ? (
+      {query.isPending ? (
+        <div role="status" aria-label="Loading transactions">
+          <ReplaySkeleton />
+        </div>
+      ) : query.isError ? (
+        <div className="position-replay-empty" role="alert">
+          <p>Couldn’t load transactions.</p>
+          <Button variant="outline" size="sm" onClick={() => query.refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : fills.length ? (
         <ul className="position-replay-fills">
-          {fills.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map((fill) => (
+          {fills.map((fill) => (
             <li key={fill.id}>
               <span className={fill.side === "buy" ? "text-positive" : "text-negative"}>
                 {fill.side === "buy" ? "Buy" : "Sell"}
@@ -96,9 +109,9 @@ function PositionFills({ position, supply }: { position: TraderPosition; supply:
               <div>
                 <div>
                   {formatCompact(fill.tokenAmount)} at{" "}
-                  {supply === null
+                  {fill.marketCapUsd === null
                     ? formatPrice(fill.priceUsd)
-                    : `${formatCompactUsd(fill.priceUsd * supply)} MC`}
+                    : `${formatCompactUsd(fill.marketCapUsd)} MC`}
                 </div>
                 <time dateTime={new Date(fill.time * 1000).toISOString()}>{utcTimestamp(fill.time)}</time>
               </div>
@@ -108,27 +121,23 @@ function PositionFills({ position, supply }: { position: TraderPosition; supply:
         </ul>
       ) : (
         <p className="position-replay-empty">
-          {position.fills.length ? "No fills meet the minimum size." : "No fills recorded."}
+          {minSizeUsd > 0 ? "No fills meet the minimum size." : "No fills recorded."}
         </p>
       )}
-      {lastPage > 0 && (
+      {(page > 1 || nextPage !== null) && (
         <div className="position-replay-pagination">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!currentPage}
-            onClick={() => setPage(currentPage - 1)}
-          >
+          <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>
             Previous
           </Button>
           <span>
-            {currentPage + 1} / {lastPage + 1}
+            {page}
+            {lastPage > 0 && ` / ${lastPage}`}
           </span>
           <Button
             size="sm"
             variant="outline"
-            disabled={currentPage === lastPage}
-            onClick={() => setPage(currentPage + 1)}
+            disabled={nextPage === null}
+            onClick={() => nextPage !== null && setPage(nextPage)}
           >
             Next
           </Button>
@@ -214,8 +223,8 @@ function PositionDetails({
         ).values(),
       )
     : NO_THESES;
-  const { supply, invested, pnl, pnlPct, averageEntry, averageExit } = replayMetrics(position, token);
-  const formatLevel = supply === null ? formatPrice : formatCompactUsd;
+  const supply = tokenSupply(token);
+  const pnl = position.realizedPnlUsd + position.unrealizedPnlUsd;
 
   return (
     <>
@@ -286,20 +295,20 @@ function PositionDetails({
               <div className="position-replay-pnl">
                 <dt>Net PnL</dt>
                 <dd className={changeTone(pnl)}>
-                  {formatUsd(pnl)} <span>{formatPct(pnlPct)}</span>
+                  {formatUsd(pnl)} <span>{formatPct(position.pnlPct)}</span>
                 </dd>
               </div>
               <div>
-                <dt>Avg. entry {supply === null ? "price" : "MC"}</dt>
-                <dd>{formatLevel(averageEntry)}</dd>
+                <dt>Avg. entry MC</dt>
+                <dd>{formatCompactUsd(position.avgEntryMarketCapUsd)}</dd>
               </div>
               <div>
-                <dt>Avg. exit {supply === null ? "price" : "MC"}</dt>
-                <dd>{formatLevel(averageExit)}</dd>
+                <dt>Avg. exit MC</dt>
+                <dd>{formatCompactUsd(position.avgExitMarketCapUsd)}</dd>
               </div>
               <div>
                 <dt>Total invested</dt>
-                <dd>{formatUsd(invested)}</dd>
+                <dd>{formatUsd(position.totalInvestedUsd)}</dd>
               </div>
             </dl>
             <div className="position-replay-actions">
@@ -326,7 +335,7 @@ function PositionDetails({
               </div>
             )}
           </section>
-          <PositionFills position={position} supply={supply} />
+          <PositionFills key={position.id} position={position} />
         </div>
       </div>
     </>

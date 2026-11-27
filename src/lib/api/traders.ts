@@ -27,6 +27,25 @@ export function traderPositionQuery(wallet: string, mint: string, positionId?: s
   });
 }
 
+export function positionTransactionsQuery(
+  wallet: string,
+  mint: string,
+  positionId: string,
+  { page, limit, minSizeUsd }: { page: number; limit: number; minSizeUsd: number },
+) {
+  return queryOptions({
+    queryKey: ["position-transactions", wallet, mint, positionId, page, limit, minSizeUsd],
+    retry,
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await api.GET("/v1/traders/{wallet}/positions/{mint}/transactions", {
+          params: { path: { wallet, mint }, query: { positionId, page, limit, minSizeUsd } },
+          signal,
+        }),
+      ),
+  });
+}
+
 export function traderProfileQuery(wallet: string, auth: TraderAuth) {
   return queryOptions({
     queryKey: ["trader", socialViewer(auth), wallet],

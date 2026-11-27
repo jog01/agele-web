@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Candle, Token } from "./api/client";
-import {
-  positionTarget,
-  positionUrl,
-  replayMetrics,
-  replaySeries,
-  type TraderPosition,
-} from "./position-replay";
+import type { Candle } from "./api/client";
+import { positionTarget, positionUrl, replaySeries, type TraderPosition } from "./position-replay";
 
 const position: TraderPosition = {
   id: "position",
@@ -18,6 +12,10 @@ const position: TraderPosition = {
   closedAt: null,
   quantity: 1,
   avgEntryUsd: 4,
+  avgEntryMarketCapUsd: null,
+  avgExitMarketCapUsd: null,
+  totalInvestedUsd: 20,
+  pnlPct: 150,
   avgCostUsd: 4,
   priceUsd: 10,
   priceSinceFirstBuyPct: 150,
@@ -34,6 +32,7 @@ const position: TraderPosition = {
       side: "buy",
       tokenAmount: 5,
       priceUsd: 4,
+      marketCapUsd: null,
       valueUsd: 20,
       realizedPnlUsd: null,
       time: 101,
@@ -47,6 +46,7 @@ const position: TraderPosition = {
       side: "sell",
       tokenAmount: 3,
       priceUsd: 8,
+      marketCapUsd: null,
       valueUsd: 24,
       realizedPnlUsd: 12,
       time: 120,
@@ -60,53 +60,13 @@ const position: TraderPosition = {
       side: "sell",
       tokenAmount: 1,
       priceUsd: 16,
+      marketCapUsd: null,
       valueUsd: 16,
       realizedPnlUsd: 12,
       time: 121,
     },
   ],
 };
-
-const token: Token = {
-  mint: "mint",
-  symbol: "TOK",
-  name: "Token",
-  decimals: 6,
-  imageUrl: null,
-  priceUsd: 10,
-  priceChange24hPct: 1,
-  marketCapUsd: 1000,
-  liquidityUsd: 1,
-  volume24hUsd: 1,
-  holders: 1,
-};
-
-describe("replay metrics", () => {
-  it("uses total sell proceeds per token and infers market cap from current supply", () => {
-    expect(replayMetrics(position, token)).toEqual({
-      supply: 100,
-      invested: 20,
-      pnl: 30,
-      pnlPct: 150,
-      averageEntry: 400,
-      averageExit: 1000,
-    });
-  });
-
-  it("falls back to unit prices and leaves missing exit or return empty", () => {
-    expect(replayMetrics({ ...position, fills: [] }, undefined)).toMatchObject({
-      supply: null,
-      invested: 0,
-      pnlPct: null,
-      averageEntry: 4,
-      averageExit: null,
-    });
-    expect(replayMetrics(position, { ...token, priceUsd: 0 })).toMatchObject({
-      supply: null,
-      averageExit: 10,
-    });
-  });
-});
 
 const candle = (time: number): Candle => ({ time, open: 4, high: 9, low: 4, close: 8, volume: 10 });
 
