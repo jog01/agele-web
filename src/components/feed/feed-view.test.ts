@@ -32,6 +32,7 @@ const thesisPost: Extract<FeedItem, { kind: "thesis" }> = {
   positionId: "pos-1",
   pinned: true,
   kind: "thesis",
+  eventType: "thesis",
   wallet: "trader-wallet",
   handle: "Orca",
   avatarUrl: null,
@@ -41,15 +42,19 @@ const thesisPost: Extract<FeedItem, { kind: "thesis" }> = {
   imageUrl: "https://example.com/sol.webp",
   position: "long",
   body: "Watching Solana liquidity.",
+  marketCapUsd: 80_000_000_000,
   likes: 4,
+  likeCount: 4,
   replyCount: 2,
   likedByMe: false,
+  viewerLiked: false,
   createdAt: 1700000000,
 };
 
 const tradePost: Extract<FeedItem, { kind: "trade" }> = {
   id: "trade-1",
   kind: "trade",
+  eventType: "bought",
   wallet: "trader-wallet",
   handle: "Orca",
   avatarUrl: null,
@@ -60,6 +65,15 @@ const tradePost: Extract<FeedItem, { kind: "trade" }> = {
   position: "long",
   side: "buy",
   amountUsd: 2500,
+  tokenAmount: 15,
+  positionId: "pos-1",
+  realizedPnlUsd: null,
+  priceSinceFirstBuyPct: 12.4,
+  marketCapUsd: 80_000_000_000,
+  likeCount: 0,
+  replyCount: 0,
+  viewerLiked: false,
+  discussionKey: "trade:trade-1",
   createdAt: 1700000100,
 };
 

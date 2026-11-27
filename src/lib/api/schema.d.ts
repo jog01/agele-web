@@ -775,6 +775,310 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/traders/{wallet}/positions/{mint}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public position replay. Returns chronological fills for the selected position episode, or the most recent episode if positionId is omitted. */
+        get: {
+            parameters: {
+                query?: {
+                    positionId?: string;
+                };
+                header?: never;
+                path: {
+                    wallet: string;
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Position, average entry, PnL and fills */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TraderPosition"];
+                    };
+                };
+                /** @description Invalid input */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader or position */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traders/{wallet}/followers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    wallet: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Wallet connections newest first; viewer follow state is included when authenticated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TraderConnections"];
+                    };
+                };
+                /** @description Invalid input */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader or position */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traders/{wallet}/following": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    wallet: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Wallet connections newest first; viewer follow state is included when authenticated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TraderConnections"];
+                    };
+                };
+                /** @description Invalid input */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader or position */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traders/{wallet}/portfolio/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    range?: "24h" | "7d" | "30d" | "all";
+                };
+                header?: never;
+                path: {
+                    wallet: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stored daily value of public positions, oldest first. Excludes cash and linked-wallet balances. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PortfolioHistory"];
+                    };
+                };
+                /** @description Invalid input */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown trader or position */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -1628,13 +1932,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Stored trades and theses, newest first with stable keyset pagination. Each item identifies demo or indexed provenance. Following scope requires a bearer token. */
+        /** @description Social activity newest first with keyset pagination. Defaults to trades and theses; request milestone, multi-user or new-trader via types. Following scope requires a bearer token. */
         get: {
             parameters: {
                 query?: {
                     scope?: "global" | "following";
                     cursor?: string;
                     limit?: number;
+                    /** @description Comma-separated eventType values: bought,sold,closed,thesis,milestone,multi-user,new-trader */
+                    types?: string;
+                    minSizeUsd?: number | null;
+                    minPortfolioUsd?: number | null;
+                    minMarketCapUsd?: number | null;
+                    maxMarketCapUsd?: number | null;
+                    minPriceSinceFirstBuyPct?: number | null;
+                    wallet?: string;
+                    mint?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1686,6 +1999,303 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/feed/{key}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description The card's discussionKey */
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Feed activity replies, newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            comments: components["schemas"]["Comment"][];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown feed activity or parent post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description The card's discussionKey */
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: string;
+                        /**
+                         * @default none
+                         * @enum {string}
+                         */
+                        position?: "long" | "short" | "none";
+                        /** Format: uuid */
+                        parentId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Published activity reply */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Comment"];
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown feed activity or parent post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Text rejected by moderation */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Post rate limit reached */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/feed/{key}/reaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description The card's discussionKey */
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Activity liked (idempotent) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown feed activity or parent post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description The card's discussionKey */
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Activity unliked (idempotent) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown feed activity or parent post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -2605,6 +3215,16 @@ export interface components {
             displayName: string | null;
             avatarUrl: string | null;
             bio: string | null;
+            joinedAt: number;
+            tradeCount: number;
+            avgHoldSeconds: number | null;
+            mutuals?: {
+                count: number;
+                preview: {
+                    wallet: string | null;
+                    avatarUrl: string | null;
+                }[];
+            };
             followers: number;
             following: number;
             isFollowing?: boolean;
@@ -2641,6 +3261,41 @@ export interface components {
             realizedPnlUsd: number | null;
             time: number;
         };
+        TraderPosition: {
+            /** Format: uuid */
+            id: string;
+            wallet: string;
+            mint: string;
+            symbol: string;
+            imageUrl: string | null;
+            openedAt: number;
+            closedAt: number | null;
+            quantity: number;
+            avgEntryUsd: number;
+            avgCostUsd: number;
+            priceUsd: number;
+            priceSinceFirstBuyPct: number | null;
+            valueUsd: number;
+            realizedPnlUsd: number;
+            unrealizedPnlUsd: number;
+            fills: components["schemas"]["UserTrade"][];
+        };
+        TraderConnections: {
+            users: {
+                wallet: string | null;
+                handle: string | null;
+                avatarUrl: string | null;
+                createdAt: number;
+                isFollowing?: boolean;
+            }[];
+            nextCursor: string | null;
+        };
+        PortfolioHistory: {
+            points: {
+                time: number;
+                valueUsd: number;
+            }[];
+        };
         Me: {
             id: string;
             privyDid: string;
@@ -2672,12 +3327,6 @@ export interface components {
                 valueUsd: number;
                 unrealizedPnlUsd: number;
                 realizedPnlUsd: number;
-            }[];
-        };
-        PortfolioHistory: {
-            points: {
-                time: number;
-                valueUsd: number;
             }[];
         };
         LeaderboardEntry: {
@@ -2716,9 +3365,14 @@ export interface components {
             /** Format: uuid */
             positionId: string;
             pinned: boolean;
+            /** @enum {string} */
+            eventType: "thesis";
+            marketCapUsd: number | null;
             likes: number;
             replyCount: number;
             likedByMe?: boolean;
+            likeCount: number;
+            viewerLiked: boolean;
         } | {
             handle: string;
             avatarUrl: string | null;
@@ -2733,12 +3387,106 @@ export interface components {
             position: "long" | "short" | "none";
             /** @description Unix seconds */
             createdAt: number;
+            likeCount: number;
+            replyCount: number;
+            viewerLiked: boolean;
+            /** @description Opaque key for this card's comments and reaction routes */
+            discussionKey: string;
             /** @enum {string} */
             kind: "trade";
             wallet: string;
             /** @enum {string} */
             side: "buy" | "sell";
             amountUsd: number;
+            /** @enum {string} */
+            eventType: "bought" | "sold" | "closed";
+            tokenAmount: number;
+            /** Format: uuid */
+            positionId: string | null;
+            realizedPnlUsd: number | null;
+            priceSinceFirstBuyPct: number | null;
+            marketCapUsd: number | null;
+        } | {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
+            id: string;
+            mint: string;
+            symbol: string;
+            imageUrl: string | null;
+            /** @enum {string} */
+            position: "long" | "short" | "none";
+            /** @description Unix seconds */
+            createdAt: number;
+            likeCount: number;
+            replyCount: number;
+            viewerLiked: boolean;
+            /** @description Opaque key for this card's comments and reaction routes */
+            discussionKey: string;
+            /** @enum {string} */
+            kind: "multi-user";
+            /** @enum {string} */
+            eventType: "multi-user";
+            wallet: string;
+            /** @enum {string} */
+            side: "buy" | "sell";
+            amountUsd: number;
+            traderCount: number;
+            marketCapUsd: number | null;
+        } | {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
+            id: string;
+            mint: string;
+            symbol: string;
+            imageUrl: string | null;
+            /** @enum {string} */
+            position: "long" | "short" | "none";
+            /** @description Unix seconds */
+            createdAt: number;
+            likeCount: number;
+            replyCount: number;
+            viewerLiked: boolean;
+            /** @description Opaque key for this card's comments and reaction routes */
+            discussionKey: string;
+            /** @enum {string} */
+            kind: "milestone";
+            /** @enum {string} */
+            eventType: "milestone";
+            wallet: string;
+            amountUsd: number;
+            realizedPnlUsd: number;
+            marketCapUsd: number | null;
+        } | {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
+            id: string;
+            mint: string;
+            symbol: string;
+            imageUrl: string | null;
+            /** @enum {string} */
+            position: "long" | "short" | "none";
+            /** @description Unix seconds */
+            createdAt: number;
+            likeCount: number;
+            replyCount: number;
+            viewerLiked: boolean;
+            /** @description Opaque key for this card's comments and reaction routes */
+            discussionKey: string;
+            /** @enum {string} */
+            kind: "new-trader";
+            /** @enum {string} */
+            eventType: "new-trader";
+            wallet: string;
+            marketCapUsd: number | null;
         };
         Comment: {
             handle: string;
@@ -2759,6 +3507,7 @@ export interface components {
             wallet: string | null;
             /** Format: uuid */
             thesisId: string | null;
+            discussionKey: string | null;
             /** Format: uuid */
             parentId: string | null;
             pinned: boolean;
@@ -2776,7 +3525,7 @@ export interface components {
             mint: string;
             /** Format: uuid */
             positionId: string;
-            pinned: components["schemas"]["Comment"] & (Record<string, never> | null);
+            pinned: components["schemas"]["Comment"] | null;
         };
     };
     responses: never;

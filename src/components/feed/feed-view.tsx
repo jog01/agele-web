@@ -250,7 +250,9 @@ function FeedCard({
             </time>
           </div>
 
-          {item.kind === "trade" ? (
+          {item.kind === "thesis" ? (
+            <p className="mt-2 whitespace-pre-wrap text-foreground/95 text-sm leading-6">{item.body}</p>
+          ) : item.kind === "trade" ? (
             <p className="mt-2 font-medium text-sm">
               <span className={item.side === "buy" ? "text-positive" : "text-negative"}>
                 {item.side === "buy" ? "Bought" : "Sold"} {formatUsd(item.amountUsd)}
@@ -258,8 +260,28 @@ function FeedCard({
               <span className="text-muted-foreground">of</span>{" "}
               <span className="text-foreground">{item.symbol}</span>
             </p>
+          ) : item.kind === "multi-user" ? (
+            <p className="mt-2 font-medium text-sm">
+              <span className={item.side === "buy" ? "text-positive" : "text-negative"}>
+                {item.traderCount} traders {item.side === "buy" ? "bought" : "sold"}{" "}
+                {formatUsd(item.amountUsd)}
+              </span>{" "}
+              <span className="text-muted-foreground">of</span>{" "}
+              <span className="text-foreground">{item.symbol}</span>
+            </p>
+          ) : item.kind === "milestone" ? (
+            <p className="mt-2 font-medium text-sm">
+              <span className={item.realizedPnlUsd >= 0 ? "text-positive" : "text-negative"}>
+                {item.realizedPnlUsd >= 0 ? "+" : "-"}
+                {formatUsd(Math.abs(item.realizedPnlUsd))} realized PnL
+              </span>{" "}
+              <span className="text-muted-foreground">on</span>{" "}
+              <span className="text-foreground">{item.symbol}</span>
+            </p>
           ) : (
-            <p className="mt-2 whitespace-pre-wrap text-foreground/95 text-sm leading-6">{item.body}</p>
+            <p className="mt-2 font-medium text-sm text-foreground">
+              Joined Agele trading <span className="text-primary">{item.symbol}</span>
+            </p>
           )}
 
           <Link
@@ -356,7 +378,11 @@ export function FeedView() {
   const { data: board, isPending: boardPending } = useQuery(socialQueries.leaderboard("7d", auth));
 
   const allItems = feed.data?.pages.flatMap((page) => page.items) ?? [];
-  const items = kindFilter === "all" ? allItems : allItems.filter((item) => item.kind === kindFilter);
+  const items = allItems.filter((item) => {
+    if (kindFilter === "all") return true;
+    if (kindFilter === "thesis") return item.kind === "thesis";
+    return item.kind !== "thesis";
+  });
   const hasDemoItems = allItems.some((item) => item.source === "demo") || board?.dataSource === "demo";
   const needsAuth = scope === "following" && !auth.authenticated;
   const emptyFollowing =

@@ -78,8 +78,9 @@ export function thesisThreadQuery(mint: string, thesisId: string | null, auth?: 
 }
 
 export function feedItemContent(item: FeedItem) {
-  return item.kind === "thesis"
-    ? {
+  switch (item.kind) {
+    case "thesis":
+      return {
         label: "Thesis",
         body: item.body,
         attachment: "Thesis · no trade attached",
@@ -89,13 +90,36 @@ export function feedItemContent(item: FeedItem) {
             : item.position === "short"
               ? "text-negative"
               : "text-primary",
-      }
-    : {
-        label: item.side === "buy" ? "Buy" : "Sell",
+      };
+    case "trade":
+      return {
+        label: item.eventType === "closed" ? "Closed" : item.side === "buy" ? "Buy" : "Sell",
         tone: item.side === "buy" ? "text-positive" : "text-negative",
         body: null,
         attachment: `${item.side === "buy" ? "Bought" : "Sold"} · $${item.amountUsd.toLocaleString("en-US")}`,
       };
+    case "multi-user":
+      return {
+        label: `${item.traderCount} traders`,
+        tone: item.side === "buy" ? "text-positive" : "text-negative",
+        body: null,
+        attachment: `${item.traderCount} traders ${item.side === "buy" ? "bought" : "sold"} · $${item.amountUsd.toLocaleString("en-US")}`,
+      };
+    case "milestone":
+      return {
+        label: "Milestone",
+        tone: item.realizedPnlUsd >= 0 ? "text-positive" : "text-negative",
+        body: null,
+        attachment: `${item.realizedPnlUsd >= 0 ? "+" : "-"}$${Math.abs(item.realizedPnlUsd).toLocaleString("en-US")} realized PnL`,
+      };
+    case "new-trader":
+      return {
+        label: "Joined",
+        tone: "text-primary",
+        body: null,
+        attachment: "New trader on Agele",
+      };
+  }
 }
 
 export function updateFollowing<T extends { entries: LeaderboardEntry[] }>(
@@ -135,7 +159,13 @@ export function updateFeedReaction(
     ...data,
     pages: data.pages.map((page) => ({
       ...page,
-      items: page.items.map((item) => (item.kind === "thesis" ? applyLike(item, postId, liked) : item)),
+      items: page.items.map((item) => {
+        if (item.kind !== "thesis") return item;
+        const next = applyLike(item, postId, liked);
+        return next === item
+          ? item
+          : { ...next, likeCount: next.likes, viewerLiked: Boolean(next.likedByMe) };
+      }),
     })),
   };
 }
