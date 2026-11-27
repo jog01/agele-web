@@ -4,13 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { ChangeText } from "@/components/common/change-text";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useMintSearch } from "@/hooks/use-mint-search";
 import { tokenQueries } from "@/lib/api/queries";
 import { formatPrice, shortAddress } from "@/lib/format";
+import { getSearchMint } from "@/lib/token-search";
 import { cn } from "@/lib/utils";
 
 export function SearchDialog({
@@ -26,14 +29,14 @@ export function SearchDialog({
   const { data: tokens = [] } = useQuery({ ...tokenQueries.trending(), enabled: open });
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q
-      ? tokens.filter(
-          (t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q) || t.mint === query,
-        )
-      : tokens;
-  }, [tokens, query]);
+  const mint = getSearchMint(query);
+  const lookup = useMintSearch(mint, tokens, open);
+  const q = query.trim().toLowerCase();
+  const results = mint
+    ? lookup.token
+      ? [lookup.token]
+      : []
+    : tokens.filter((t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q));
 
   const select = (mint: string) => {
     onOpenChange(false);
@@ -55,7 +58,7 @@ export function SearchDialog({
         <DialogHeader className="sr-only">
           <DialogTitle>Search tokens</DialogTitle>
           <DialogDescription>
-            Search supported Solana tokens by symbol, name or mint address.
+            Search supported Solana tokens by symbol, name or contract address.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -72,7 +75,7 @@ export function SearchDialog({
           <Input
             ref={inputRef}
             type="search"
-            aria-label="Search tokens by symbol, name or mint address"
+            aria-label="Search tokens by symbol, name or contract address"
             autoComplete="off"
             spellCheck={false}
             value={query}
@@ -91,13 +94,34 @@ export function SearchDialog({
                 setActive((i) => Math.max(i - 1, 0));
               }
             }}
-            placeholder="Symbol, name or mint address"
+            placeholder="Symbol, name or contract address"
             className="h-12 rounded-none border-0 bg-transparent pr-10 pl-8 text-base shadow-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/30 dark:bg-transparent"
           />
         </form>
         <ul className="max-h-80 overflow-auto p-1">
-          {results.length === 0 && (
-            <li className="p-6 text-center text-muted-foreground">No supported markets match.</li>
+          {lookup.isPending && (
+            <li className="flex h-12 items-center gap-3 rounded-md px-2">
+              <span className="sr-only" role="status">
+                Looking up token…
+              </span>
+              <Skeleton className="size-8 shrink-0 rounded-full" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-2 w-24" />
+              </div>
+              <Skeleton className="h-3 w-14" />
+            </li>
+          )}
+          {!lookup.isPending && results.length === 0 && (
+            <li className="p-6 text-center text-muted-foreground">
+              <span role="status">
+                {!mint
+                  ? "No supported markets match."
+                  : lookup.isNotFound
+                    ? "No token found for this address."
+                    : "Token lookup unavailable."}
+              </span>
+            </li>
           )}
           {results.map((t, i) => (
             <li key={t.mint}>

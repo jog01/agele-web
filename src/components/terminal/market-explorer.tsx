@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueries } from "@tanstack/react-query";
 import {
   ArrowDownWideNarrow,
   ChevronDown,
@@ -16,9 +17,12 @@ import { ChangeText } from "@/components/common/change-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Token } from "@/lib/api/client";
-import { useTrending } from "@/lib/api/queries";
+import { useLivePrices } from "@/hooks/use-live-prices";
+import { useMintSearch } from "@/hooks/use-mint-search";
+import { ApiError, type Token } from "@/lib/api/client";
+import { tokenQueries, useTrending } from "@/lib/api/queries";
 import { formatCompactUsd, formatPrice } from "@/lib/format";
+import { getSearchMint } from "@/lib/token-search";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 
@@ -39,20 +43,38 @@ export function MarketExplorer({
   useEffect(() => setMounted(true), []);
   // The shell ticker can populate this cache before the streamed terminal hydrates.
   const tokens = mounted ? markets.data : undefined;
-  const isPending = !mounted || markets.isPending;
-  const isError = mounted && markets.isError;
+  const mint = getSearchMint(query);
+  const lookup = useMintSearch(mint, tokens ?? [], mounted);
+  const isPending = mint ? lookup.isPending : !mounted || markets.isPending;
+  const isError = mint ? lookup.isError && !lookup.isNotFound : mounted && markets.isError;
   const rows = useMemo(() => {
+    if (mint) return lookup.token ? [lookup.token] : [];
     const q = query.trim().toLowerCase();
     const filtered = (tokens ?? []).filter(
-      (t) =>
-        !q ||
-        t.symbol.toLowerCase().includes(q) ||
-        t.name.toLowerCase().includes(q) ||
-        t.mint.toLowerCase() === q,
+      (t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q),
     );
     return sort === "holders" ? [...filtered].sort((a, b) => b.holders - a.holders) : filtered;
-  }, [tokens, sort, query]);
-  const watched = mounted ? (tokens ?? []).filter((t) => watchlist.includes(t.mint)) : [];
+  }, [tokens, sort, query, mint, lookup.token]);
+  const trendingByMint = new Map(tokens?.map((token) => [token.mint, token]));
+  const watchedMints = mounted && !collapsed ? watchlist : [];
+  const missingMints = watchedMints.filter((mint) => !trendingByMint.has(mint));
+  const watchedDetails = useQueries({
+    queries: missingMints.map((mint) => ({
+      ...tokenQueries.detail(mint),
+      refetchInterval: false,
+      retry: (count: number, error: unknown) =>
+        !(error instanceof ApiError && error.status === 404) && count < 1,
+    })),
+  });
+  const detailsByMint = new Map(missingMints.map((mint, index) => [mint, watchedDetails[index]]));
+  const watched = watchedMints.flatMap<{ mint: string; token: Token | null }>((mint) => {
+    const detail = detailsByMint.get(mint);
+    if (detail?.error instanceof ApiError && detail.error.status === 404) return [];
+    const token = trendingByMint.get(mint) ?? detail?.data;
+    if (token) return [{ mint, token }];
+    return detail?.isPending ? [{ mint, token: null }] : [];
+  });
+  useLivePrices(watched.flatMap(({ mint, token }) => (token && !trendingByMint.has(mint) ? [mint] : [])));
   const row = (token: Token, compact = false) => {
     const active = token.mint === activeMint;
     const isWatched = mounted && watchlist.includes(token.mint);
@@ -143,7 +165,7 @@ export function MarketExplorer({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter tokens"
+              placeholder="Symbol, name or address"
               aria-label="Filter markets"
               autoComplete="off"
               spellCheck={false}
@@ -177,7 +199,7 @@ export function MarketExplorer({
       <div className="min-h-0 overflow-auto overscroll-contain">
         <ul aria-label="Supported markets">
           {isPending &&
-            Array.from({ length: 8 }, (_, i) => (
+            Array.from({ length: mint ? 1 : 8 }, (_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
               <li key={i} className="flex h-11 items-center gap-2 px-3">
                 <Skeleton className="size-7 shrink-0 rounded-full" />
@@ -186,15 +208,23 @@ export function MarketExplorer({
             ))}
           {isError && (
             <li className="px-3 py-4 text-muted-foreground text-xs">
-              Markets unavailable.
-              <Button variant="link" onClick={() => markets.refetch()}>
-                Retry
-              </Button>
+              {mint ? (
+                <span role="status">Token lookup unavailable.</span>
+              ) : (
+                <>
+                  Markets unavailable.
+                  <Button variant="link" onClick={() => markets.refetch()}>
+                    Retry
+                  </Button>
+                </>
+              )}
             </li>
           )}
           {!isPending && !isError && rows.length === 0 && (
             <li className="px-3 py-5 text-muted-foreground text-xs">
-              No matching tokens. Try a symbol or mint.
+              <span role="status">
+                {mint ? "No token found for this address." : "No matching tokens. Try a symbol or mint."}
+              </span>
             </li>
           )}
           {rows.map((t) => row(t))}
@@ -203,7 +233,9 @@ export function MarketExplorer({
           <details aria-label="Watchlist" className="group mt-2 border-t border-border/60">
             <summary className="flex min-h-9 cursor-pointer items-center gap-2 rounded px-3 font-medium text-xs transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground">
               <Star className="size-3 text-warning" aria-hidden /> Watchlist{" "}
-              <span className="tabular ml-auto text-muted-foreground">{watched.length}</span>
+              <span className="tabular ml-auto text-muted-foreground">
+                {watched.filter(({ token }) => token).length}
+              </span>
               <ChevronDown
                 className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
                 aria-hidden
@@ -212,7 +244,21 @@ export function MarketExplorer({
             {!mounted ? (
               <Skeleton className="mx-3 mb-3 h-16" />
             ) : watched.length ? (
-              <ul>{watched.map((t) => row(t, true))}</ul>
+              <ul>
+                {watched.map(({ mint, token }) =>
+                  token ? (
+                    row(token, true)
+                  ) : (
+                    <li key={mint} className="flex h-11 items-center gap-2 px-3">
+                      <span className="sr-only" role="status">
+                        Loading watched token…
+                      </span>
+                      <Skeleton className="size-6 shrink-0 rounded-full" />
+                      <Skeleton className="h-3 w-16" />
+                    </li>
+                  ),
+                )}
+              </ul>
             ) : (
               <p className="px-4 pb-4 text-muted-foreground text-sm">Star a token to keep it close.</p>
             )}

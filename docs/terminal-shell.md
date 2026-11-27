@@ -14,6 +14,26 @@ The terminal uses the [Green / Graphite contract](brand.md): neutral black/grey 
 
 The shell returns 36px of vertical space to the workspace before the terminal grid changes. Market names remain readable with two-line identity/market-cap and price/change columns, real 28px artwork, a selected edge and independent watchlist actions. Empty, loading, error, no-match and collapsed states retain the same contract.
 
+## Contract-address search
+
+The header search and Markets filter both accept a full Solana mint address. They trim surrounding whitespace but preserve case, then validate that Base58 decodes to 32 bytes. Symbol and name still filter trending markets.
+
+```mermaid
+flowchart TD
+  I[Type or paste in search] --> V{Valid Solana address?}
+  V -->|No| F[Filter trending by symbol or name]
+  V -->|Yes| C{Exact mint in trending results?}
+  C -->|Yes| R[Show one token row]
+  C -->|No| L[Show loading row and look up mint]
+  L -->|Found| R
+  L -->|404| N[No token found for this address]
+  L -->|Other error| E[Token lookup unavailable]
+  F -->|Select result| T[Open trading terminal for its mint]
+  R -->|Select result| T
+```
+
+Lookup uses the same token-detail query as the terminal, without subscribing to live prices. Results are limited to the tokens the backend currently supports; demo mode uses its seeded catalog.
+
 ## Moving footer
 
 ```mermaid
