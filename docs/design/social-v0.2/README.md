@@ -51,6 +51,8 @@ Use existing semantic tokens and shadcn primitives, not hex literals in product 
 
 At 1024–1199px reduce gutters and hide the discovery rail before squeezing post text. Pulse changes to tabbed single-column presentation below the width needed for three 280px columns and gaps. Tab strips may scroll internally, never the entire page. At 320px, wrap metric labels and move actions to their own row. The 390px boards are examples, not fixed-width layouts.
 
+Keep the established terminal type scale for compact data; reading text can grow rather than squeezing to match a mockup. Editors and inputs use at least **16px whenever the primary pointer is coarse**, including tablets; never disable pinch zoom. Target areas are at least 40px on desktop and 44px on touch, even when the visible icon is smaller, and must not overlap. Use tabular digits plus reserved widths for live counts/prices, keep tab weights constant across selection, and expose full truncated names/text through detail or expansion. Hover enhancements require a fine pointer; all actions remain visible or reachable on focus and touch. Prefer existing neutral focus rings and semantic input-edge tokens.
+
 Retain the existing resizable-panel behavior: any side-by-side workspace panels get keyboard-operable splitters using the terminal's existing separator pattern, bounded to readable minimums. Feed/discovery and replay/position rails can resize or collapse; Pulse column widths share the available space and can resize without hiding a lifecycle. Do not add a bespoke drag system for stacked mobile content. Native vertical scrolling stays available and themed inside panels.
 
 ## 1. Feed and thesis
