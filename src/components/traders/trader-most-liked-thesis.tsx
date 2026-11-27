@@ -32,7 +32,6 @@ export function TraderMostLikedThesis({ wallet, thesis }: { wallet: string; thes
           positionId: thesis.positionId,
           thesisId: post.thesisId ?? undefined,
         }}
-        aria-label={post.thesisId ? `Open ${post.symbol} thesis thread` : `View ${post.symbol} position`}
         className="block w-full rounded text-left focus-visible:outline-2 focus-visible:outline-foreground/50"
       >
         <span className="mt-2 line-clamp-3 text-foreground/90 text-sm leading-5">{post.body}</span>

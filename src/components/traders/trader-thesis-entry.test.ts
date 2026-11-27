@@ -41,7 +41,11 @@ afterEach(() => {
 it("opens the featured thesis in its actual position while preserving the profile destination", () => {
   window.history.replaceState(null, "", "/traders/trader-wallet?window=30d#activity");
   render(createElement(TraderMostLikedThesis, { wallet: "trader-wallet", thesis }));
-  fireEvent.click(screen.getByRole("button", { name: "Open SOL thesis thread" }));
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: /Watching the first pullback.*Likes 3.*Replies 1.*Views 84.*Open thread/,
+    }),
+  );
   const url = new URL(window.location.href);
   expect(url.pathname).toBe("/traders/trader-wallet");
   expect(url.hash).toBe("#activity");
