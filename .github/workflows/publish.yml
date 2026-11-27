@@ -24,7 +24,21 @@ jobs:
     # NEXT_PUBLIC_* is inlined at build time, so each environment gets its own image.
     # Set the Privy and RPC values as variables on the matching GitHub environment.
     environment: ${{ matrix.environment }}
+    # Serialize runs for one commit so two runs cannot both see a tag as missing.
+    concurrency:
+      group: publish-${{ matrix.environment }}-${{ github.sha }}
+      cancel-in-progress: false
     steps:
+      # Without these the image silently ships signed-out demo auth and the public RPC fallback.
+      - name: Check build config
+        env:
+          PRIVY_APP_ID: ${{ vars.NEXT_PUBLIC_PRIVY_APP_ID }}
+          SOLANA_RPC_URL: ${{ vars.NEXT_PUBLIC_SOLANA_RPC_URL }}
+        run: |
+          missing=0
+          [ -n "$PRIVY_APP_ID" ] || { echo "::error::Set NEXT_PUBLIC_PRIVY_APP_ID on the ${{ matrix.environment }} environment"; missing=1; }
+          [ -n "$SOLANA_RPC_URL" ] || { echo "::error::Set NEXT_PUBLIC_SOLANA_RPC_URL on the ${{ matrix.environment }} environment"; missing=1; }
+          exit $missing
       - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -37,10 +51,12 @@ jobs:
       # A rerun must not replace an image that is already published under this tag.
       - id: exists
         run: |
-          if docker buildx imagetools inspect "ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.sha }}" >/dev/null 2>&1; then
+          if out=$(docker buildx imagetools inspect "ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.sha }}" 2>&1); then
             echo "published=true" >> "$GITHUB_OUTPUT"
-          else
+          elif grep -qiE "not found|denied|forbidden|unauthorized" <<<"$out"; then  # missing tag, or package not created yet (a real auth failure fails the push too)
             echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"; exit 1
           fi
       # Tags never move; jog01/agele-infra pins image.webTag to <environment>-sha-<commit>.
       - uses: docker/build-push-action@v6
