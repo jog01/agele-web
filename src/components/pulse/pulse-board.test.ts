@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { PulseSnapshot, PulseToken } from "@/lib/api/pulse";
 import { PulseBoard, PulseLoading } from "./pulse-board";
@@ -39,7 +40,7 @@ afterEach(() => {
 });
 
 it("renders a structured loading state without synthetic data", () => {
-  const { container } = render(<PulseLoading />);
+  const { container } = render(createElement(PulseLoading));
   expect(screen.getByRole("region", { name: "Pulse" }).getAttribute("aria-busy")).toBe("true");
   expect(container.querySelector("[data-slot=skeleton]")).not.toBeNull();
   expect(screen.queryByText("Demo")).toBeNull();
@@ -56,7 +57,7 @@ it("renders exact lifecycle rows and lets mobile readers select a lane", () => {
     migratedVenue: "pumpswap",
   };
   query.data = { source: "demo", new: [token], finalStretch: [], migrated: [migrated] };
-  const { container } = render(<PulseBoard />);
+  const { container } = render(createElement(PulseBoard));
   const lane = within(container.querySelector('[data-selected="true"]') as HTMLElement);
   expect(lane.getByRole("link", { name: /view Solana/i }).getAttribute("href")).toBe(`/trade/${token.mint}`);
   expect(lane.getByRole("progressbar", { name: "Bonding curve" }).getAttribute("value")).toBe("15");
@@ -73,11 +74,25 @@ it("renders exact lifecycle rows and lets mobile readers select a lane", () => {
 
 it("holds the visible snapshot until the reader resumes updates", () => {
   query.data = { source: "indexed", new: [token], finalStretch: [], migrated: [] };
-  const { rerender } = render(<PulseBoard />);
+  const { rerender } = render(createElement(PulseBoard));
   fireEvent.click(screen.getByRole("button", { name: /pause updates/i }));
   query.data = { ...query.data, new: [] };
-  rerender(<PulseBoard />);
+  rerender(createElement(PulseBoard));
   expect(screen.getByText("Solana")).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: /resume updates/i }));
   expect(screen.queryByText("Solana")).toBeNull();
+});
+
+it("holds keyboard focus but does not stay paused after pointer interaction with Copy", () => {
+  query.data = { source: "indexed", new: [token], finalStretch: [], migrated: [] };
+  const { rerender } = render(createElement(PulseBoard));
+  const copy = screen.getByRole("button", { name: "Copy SOL mint address" });
+  const matches = vi.spyOn(copy, "matches").mockReturnValue(true);
+  fireEvent.focus(copy);
+  query.data = { ...query.data, new: [] };
+  rerender(createElement(PulseBoard));
+  expect(screen.getByText("Solana")).toBeDefined();
+  fireEvent.pointerDown(copy);
+  expect(screen.queryByText("Solana")).toBeNull();
+  matches.mockRestore();
 });

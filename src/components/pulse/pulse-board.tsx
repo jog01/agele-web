@@ -329,8 +329,10 @@ function Board({ snapshot, loading = false, error = false, retry, lastUpdated }:
                         if (event.pointerType === "mouse") setHovered(display);
                       }}
                       onPointerLeave={() => setHovered(undefined)}
+                      onPointerDown={() => setFocused(undefined)}
                       onFocus={(event) => {
-                        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(display);
+                        const keyboardFocus = event.target.matches(":focus-visible");
+                        setFocused((current) => (keyboardFocus ? (current ?? display) : undefined));
                       }}
                       onBlur={(event) => {
                         if (!event.currentTarget.contains(event.relatedTarget)) setFocused(undefined);
