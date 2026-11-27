@@ -136,8 +136,8 @@ class Board:
         if getattr(self, "has_shell", False):
             self.footer()
         source = '\n'.join(self.parts) + '\n</svg>\n'
-        (OUT / f"{name}.svg").write_text(source)
-        cairosvg.svg2png(bytestring=source.encode(), write_to=str(OUT / f"{name}.png"))
+        (OUT / f"{name}.svg").write_text(source, encoding="utf-8")
+        cairosvg.svg2png(bytestring=source.encode("utf-8"), write_to=str(OUT / f"{name}.png"))
 
 
 def tabs(b, x, y, labels, active=0, widths=None):
