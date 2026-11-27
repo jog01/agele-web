@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
-import { fromBaseUnits, toBaseUnits } from "@/lib/amounts";
+import { fromBaseUnits, toSwapBaseUnits } from "@/lib/amounts";
 import { ApiError, type Token } from "@/lib/api/client";
 import { pendingSwaps } from "@/lib/pending-swaps";
 import { solanaCluster } from "@/lib/solana/cluster";
@@ -13,12 +13,31 @@ import { swapHistoryKey } from "@/lib/swap-history";
 import {
   checkSwap,
   executeSwap,
+  type PendingSwap,
+  type ReviewedSwap,
   type SwapInput,
   type SwapIssued,
   type SwapPhase,
   swapApi,
   swapErrorMessage,
 } from "@/lib/swaps";
+
+type SwapIntent =
+  | { pending: PendingSwap }
+  | { review: ReviewedSwap }
+  | { instant: SwapInput; signal: AbortSignal };
+
+function swapInput(token: Token | undefined, side: "buy" | "sell", raw: string): SwapInput | undefined {
+  if (!token || !raw) return;
+  const amount = toSwapBaseUnits(raw, side === "buy" ? 6 : token.decimals);
+  if (amount === "0") return;
+  return {
+    inputMint: side === "buy" ? solanaCluster().usdcMint : token.mint,
+    outputMint: side === "buy" ? token.mint : solanaCluster().usdcMint,
+    amount,
+    slippageBps: 50,
+  };
+}
 
 export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: string, price: number | null) {
   const auth = useAuth();
@@ -41,17 +60,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   let input: SwapInput | undefined;
   let validation = "";
   try {
-    if (token && raw) {
-      const amount = toBaseUnits(raw.startsWith(".") ? `0${raw}` : raw, side === "buy" ? 6 : token.decimals);
-      if (amount.length > 78) throw new Error("Amount is too large. Use at most 78 base-unit digits.");
-      if (amount !== "0")
-        input = {
-          inputMint: side === "buy" ? solanaCluster().usdcMint : token.mint,
-          outputMint: side === "buy" ? token.mint : solanaCluster().usdcMint,
-          amount,
-          slippageBps: 50,
-        };
-    }
+    input = swapInput(token, side, raw);
   } catch (error) {
     validation = swapErrorMessage(error);
   }
@@ -61,17 +70,30 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     const timer = setTimeout(() => setDebounced(key), 350);
     return () => clearTimeout(timer);
   }, [key]);
+  const reviewedOrder = requote?.key === key ? requote.order : undefined;
   const quoteQuery = useQuery({
     queryKey: ["swap-quote", key],
-    enabled: !!input && key === debounced && !busy && !pending,
+    enabled: !!input && key === debounced && !busy && !pending && !reviewedOrder,
     queryFn: ({ signal }) => swapApi.quote(input!, signal),
     retry: false,
     staleTime: 10_000,
   });
-  const reviewedOrder = requote?.key === key ? requote.order : undefined;
   const quote = reviewedOrder ?? quoteQuery.data;
+  const quoteError = reviewedOrder ? null : quoteQuery.error;
   const tradingDisabled =
-    disabledByApi || (quoteQuery.error instanceof ApiError && quoteQuery.error.code === "trading_disabled");
+    disabledByApi || (quoteError instanceof ApiError && quoteError.code === "trading_disabled");
+  const canSign = !!(auth.configured && auth.ready && owner && auth.signSwap);
+  const instantContext = useRef<AbortController | null>(null);
+  const mint = token?.mint;
+  useLayoutEffect(() => {
+    if (!canSign || !owner || !mint) return;
+    const controller = new AbortController();
+    instantContext.current = controller;
+    return () => {
+      controller.abort();
+      instantContext.current = null;
+    };
+  }, [canSign, owner, mint]);
   const unavailable = !auth.configured
     ? "Trading is unavailable in demo. Configure sign-in to trade."
     : !auth.ready
@@ -84,6 +106,87 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
   const outputDecimals = side === "buy" ? (token?.decimals ?? 0) : 6;
   const receive = quote ? fromBaseUnits(quote.outAmount, outputDecimals) : undefined;
   const minReceive = quote ? fromBaseUnits(quote.otherAmountThreshold, outputDecimals) : undefined;
+  const run = useCallback(
+    async (intent: SwapIntent) => {
+      if (!owner || !pendingSwaps.begin(owner)) return;
+      const track = (next: Parameters<typeof pendingSwaps.track>[1]) => pendingSwaps.track(owner, next);
+      setMessage("");
+      const signal = "instant" in intent ? intent.signal : undefined;
+      try {
+        let result: Awaited<ReturnType<typeof executeSwap>>;
+        if ("pending" in intent) {
+          result = await checkSwap(intent.pending, { ...swapApi, phase: setPhase });
+        } else {
+          const sign = auth.signSwap;
+          if (!sign) throw new Error("Embedded Solana wallet is not ready");
+          let review: ReviewedSwap;
+          if ("instant" in intent) {
+            setPhase("quoting");
+            const fresh = await swapApi.quote(intent.instant, intent.signal);
+            intent.signal.throwIfAborted();
+            if (BigInt(fresh.inAmount) !== BigInt(intent.instant.amount))
+              throw new Error("Swap input amount changed");
+            review = { input: intent.instant, otherAmountThreshold: fresh.otherAmountThreshold };
+          } else {
+            review = intent.review;
+          }
+          result = await executeSwap(review, {
+            ...swapApi,
+            sign: async (transaction) => {
+              signal?.throwIfAborted();
+              const signed = await sign(transaction);
+              signal?.throwIfAborted();
+              return signed;
+            },
+            phase: setPhase,
+            submitted: track,
+          });
+          if (result.status === "requote") {
+            if (signal?.aborted) return;
+            setRequote({ key: JSON.stringify(review.input), order: result.order });
+            setMessage("Price moved: review the new minimum and confirm again");
+            return "requote" as const;
+          }
+        }
+        setRequote(undefined);
+        if (["confirmed", "failed", "expired"].includes(result.status))
+          void qc.invalidateQueries({ queryKey: swapHistoryKey(auth) });
+        track(result.status === "pending-unknown" ? result : undefined);
+        const url = result.signature
+          ? `https://solscan.io/tx/${result.signature}${solanaCluster().explorerQuery}`
+          : undefined;
+        if (result.status === "confirmed") {
+          setMessage("Swap confirmed");
+          toast.success("Swap confirmed", {
+            action: url
+              ? { label: "View on Solscan", onClick: () => window.open(url, "_blank", "noopener,noreferrer") }
+              : undefined,
+          });
+        } else if (result.status === "pending-unknown") {
+          setMessage(
+            "Outcome unknown: checking the existing swap. Confirm again to check status, not create another swap.",
+          );
+        } else if (result.status === "failed") {
+          setMessage(result.error ?? "Swap failed");
+        } else setMessage("Quote expired. Review a fresh quote and try again.");
+      } catch (error) {
+        if (signal?.aborted && !pendingSwaps.snapshot(owner).pending) {
+          setPhase("idle");
+        } else if (pendingSwaps.snapshot(owner).pending) {
+          setPhase("pending-unknown");
+        } else {
+          setRequote(undefined);
+          setPhase("failed");
+          void qc.invalidateQueries({ queryKey: swapHistoryKey(auth) });
+          setMessage(swapErrorMessage(error));
+          if (error instanceof ApiError && error.code === "trading_disabled") setDisabledByApi(true);
+        }
+      } finally {
+        pendingSwaps.end(owner);
+      }
+    },
+    [auth, owner, qc],
+  );
   const confirm = useCallback(async () => {
     if (!auth.authenticated) {
       if (auth.configured && auth.ready) auth.login();
@@ -91,58 +194,36 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
     }
     if (!owner) return;
     const resume = pendingSwaps.snapshot(owner).pending;
-    if ((!auth.configured || !auth.ready || !auth.signSwap) && !resume) return;
-    if ((!resume && (!input || !quote || tradingDisabled)) || !pendingSwaps.begin(owner)) return;
-    const track = (next: Parameters<typeof pendingSwaps.track>[1]) => pendingSwaps.track(owner, next);
-    setMessage("");
-    try {
-      if (!resume && !auth.signSwap) throw new Error("Embedded Solana wallet is not ready");
-      const result = resume
-        ? await checkSwap(resume, { ...swapApi, phase: setPhase })
-        : await executeSwap(
-            { input: input!, otherAmountThreshold: quote!.otherAmountThreshold, order: reviewedOrder },
-            { ...swapApi, sign: auth.signSwap!, phase: setPhase, submitted: track },
-          );
-      if (result.status === "requote") {
-        setRequote({ key, order: result.order });
-        setMessage("Price moved: review the new minimum and confirm again");
-        return;
-      }
-      setRequote(undefined);
-      if (["confirmed", "failed", "expired"].includes(result.status))
-        void qc.invalidateQueries({ queryKey: swapHistoryKey(auth) });
-      track(result.status === "pending-unknown" ? result : undefined);
-      const url = result.signature
-        ? `https://solscan.io/tx/${result.signature}${solanaCluster().explorerQuery}`
-        : undefined;
-      if (result.status === "confirmed") {
-        setMessage("Swap confirmed");
-        toast.success("Swap confirmed", {
-          action: url
-            ? { label: "View on Solscan", onClick: () => window.open(url, "_blank", "noopener,noreferrer") }
-            : undefined,
-        });
-      } else if (result.status === "pending-unknown") {
-        setMessage(
-          "Outcome unknown: checking the existing swap. Confirm again to check status, not create another swap.",
-        );
-      } else if (result.status === "failed") {
-        setMessage(result.error ?? "Swap failed");
-      } else setMessage("Quote expired. Review a fresh quote and try again.");
-    } catch (error) {
-      if (pendingSwaps.snapshot(owner).pending) {
-        setPhase("pending-unknown");
-      } else {
-        setRequote(undefined);
-        setPhase("failed");
-        void qc.invalidateQueries({ queryKey: swapHistoryKey(auth) });
-        setMessage(swapErrorMessage(error));
-        if (error instanceof ApiError && error.code === "trading_disabled") setDisabledByApi(true);
-      }
-    } finally {
-      pendingSwaps.end(owner);
+    if (resume) {
+      await run({ pending: resume });
+    } else if (canSign && input && quote && !tradingDisabled && !quoteError && key === debounced) {
+      await run({
+        review: { input, otherAmountThreshold: quote.otherAmountThreshold, order: reviewedOrder },
+      });
     }
-  }, [auth, owner, input, quote, tradingDisabled, reviewedOrder, key, qc]);
+  }, [auth, owner, run, canSign, input, quote, tradingDisabled, quoteError, key, debounced, reviewedOrder]);
+  async function instantBuy(amount: string) {
+    const signal = instantContext.current?.signal;
+    if (
+      side !== "buy" ||
+      !canSign ||
+      !owner ||
+      !signal ||
+      tradingDisabled ||
+      pendingSwaps.snapshot(owner).pending
+    )
+      return;
+    let intent: SwapInput | undefined;
+    try {
+      intent = swapInput(token, "buy", amount);
+    } catch (error) {
+      setMessage(swapErrorMessage(error));
+      return;
+    }
+    if (!intent) return;
+    if (requote?.key === JSON.stringify(intent)) return "requote";
+    return run({ instant: intent, signal });
+  }
   useEffect(() => {
     if (!owner || !auth.ready || !pending || autoResumed.current === owner) return;
     autoResumed.current = owner;
@@ -162,10 +243,13 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
         ? Number(raw)
         : receive !== undefined
           ? Number(receive)
-          : !quoteQuery.error && input && price !== null
+          : !quoteError && input && price !== null
             ? Number(raw) * price
             : null,
     confirm,
+    instantBuy,
+    instantBuyAvailable: canSign && !tradingDisabled,
+    instantBuyBlocked: busy || !!pending || !!tracking.storageError,
     pending: !!pending,
     explorerUrl: pending?.signature
       ? `https://solscan.io/tx/${pending.signature}${solanaCluster().explorerQuery}`
@@ -181,7 +265,7 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
           !auth.ready ||
           (auth.authenticated && !owner) ||
           (auth.authenticated && !auth.signSwap) ||
-          (auth.authenticated && (!quote || !!quoteQuery.error || key !== debounced)))),
+          (auth.authenticated && (!quote || !!quoteError || key !== debounced)))),
     status:
       tracking.storageError ??
       (pending
@@ -192,9 +276,9 @@ export function useSwap(token: Token | undefined, side: "buy" | "sell", raw: str
             ? `${phase}…`
             : message ||
               validation ||
-              (quoteQuery.error ? swapErrorMessage(quoteQuery.error) : "") ||
+              (quoteError ? swapErrorMessage(quoteError) : "") ||
               unavailable ||
               (auth.authenticated && !owner ? "Trading needs a wallet identity." : "")),
-    fallback: !!input && !quoteQuery.error && !quote,
+    fallback: !!input && !quoteError && !quote,
   };
 }

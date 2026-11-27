@@ -1,6 +1,6 @@
 # Gasless swaps
 
-The terminal requests a server quote before review, creates an unsigned transaction when the user confirms, and asks Privy's embedded Solana wallet to sign it. The frontend never broadcasts the transaction: the API sponsors and submits it. Amounts sent to the API are base-unit strings; token precision comes from `Token.decimals`, and USDC uses six decimals.
+The terminal requests a server quote, creates an unsigned transaction on user action, and asks Privy's embedded Solana wallet to sign it. The frontend never broadcasts the transaction: the API sponsors and submits it. Amounts sent to the API are base-unit strings; token precision comes from `Token.decimals`, and USDC uses six decimals.
 
 ## Quote, sign and submit
 
@@ -41,7 +41,34 @@ sequenceDiagram
   end
 ```
 
-`lib/swaps.ts` contains the injected orchestration and typed API adapter; `hooks/use-swap.ts` owns quotes and execution state. `hooks/use-swap-signer.ts` uses Privy 3.51.4's `useSignTransaction` and `useWallets`. Signing takes bytes plus the connected wallet and returns signed bytes; it does not send the transaction.
+`lib/swaps.ts` contains the injected orchestration and typed API adapter; `hooks/use-swap.ts` owns quotes and execution state. `hooks/use-swap-signer.ts` uses Privy 3.51.4's `useSignTransaction` and `useWallets`. Signing explicitly opens Privy's wallet UI, takes bytes plus the connected wallet, and returns signed bytes; it does not send the transaction.
+
+### Instant buy
+
+Opting in through Trade settings lets a buy preset skip the app's review dialog. The ticket captures the selected mint and exact preset amount, acquires the same in-flight lock as a reviewed swap, and fetches a fresh quote before creating an order. If the created order's minimum is worse, it opens normal review without signing. A wallet change or ticket close cancels an instant attempt that has not yet reached submission; once submission starts, the existing pending tracking applies. The no-key demo follows the preview branch instead of creating an order.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant T as Order ticket
+  participant A as Agele API
+  participant W as Privy wallet
+  U->>T: Press an instant buy preset
+  alt No trading wallet
+    T-->>U: Show quote preview only
+  else Wallet ready
+    T->>T: Lock swaps and capture mint and amount
+    T->>A: Request fresh quote, then create order
+    A-->>T: Unsigned order and minimum receive
+    alt Lower minimum than fresh quote
+      T-->>U: Review the updated quote before signing
+    else Same or better minimum
+      T->>W: Open wallet signing
+      W-->>T: Signed transaction
+      T->>A: Track and submit through normal swap flow
+    end
+  end
+```
 
 Buy routes USDC → token; sell routes token → USDC. The USDC mint and Solscan cluster follow `NEXT_PUBLIC_SOLANA_CLUSTER`. Decimal conversions use strings and BigInt, not floating-point multiplication. Review's From amount uses the exact base-unit conversion without display rounding (for example, `1.234567891 SOL` sends `1234567891` base units). Numeric USD display values are computed separately from formatted receive labels.
 

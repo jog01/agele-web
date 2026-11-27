@@ -77,6 +77,104 @@ async function confirm(result: { current: ReturnType<typeof useSwap> }) {
 
 const storageKey = `agele:pending-swap:${solanaCluster().caip2}:wallet-a`;
 
+it("quotes the exact clicked buy preset and holds the shared lock before quoting", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: issued, error: null });
+  const order = { ...issued, inAmount: "1250000" };
+  let giveQuote: (quote: SwapIssued) => void = () => {};
+  const quote = vi
+    .spyOn(swapApi, "quote")
+    .mockImplementation(() => new Promise((resolve) => (giveQuote = resolve)));
+  const create = vi.spyOn(swapApi, "create").mockResolvedValue(order);
+  const submit = vi.spyOn(swapApi, "submit").mockResolvedValue({ status: "confirmed" });
+  const first = renderHook(() => useSwap(token, "buy", "50", 150));
+  const second = renderHook(() => useSwap(token, "buy", "", 150));
+
+  await act(async () => {
+    const execution = first.result.current.instantBuy("1.25");
+    await second.result.current.instantBuy("2");
+    expect(quote).toHaveBeenCalledExactlyOnceWith(
+      { inputMint: solanaCluster().usdcMint, outputMint: token.mint, amount: "1250000", slippageBps: 50 },
+      expect.any(AbortSignal),
+    );
+    expect(create).not.toHaveBeenCalled();
+    giveQuote(order);
+    await execution;
+  });
+  expect(create).toHaveBeenCalledExactlyOnceWith(quote.mock.calls[0][0]);
+  expect(auth.signSwap).toHaveBeenCalledExactlyOnceWith(order.transaction);
+  expect(submit).toHaveBeenCalledExactlyOnceWith(order.requestId, "signed");
+});
+
+it("requires review when an instant order worsens the fresh quote's minimum", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: issued, error: null });
+  const fresh = { ...issued, inAmount: "1000000", otherAmountThreshold: "150000000" };
+  const order = { ...fresh, otherAmountThreshold: "149000000" };
+  const quote = vi.spyOn(swapApi, "quote").mockResolvedValue(fresh);
+  const create = vi.spyOn(swapApi, "create").mockResolvedValue(order);
+  const submit = vi.spyOn(swapApi, "submit").mockResolvedValue({ status: "confirmed" });
+  const { result } = renderHook(() => useSwap(token, "buy", "1", 150));
+  await act(async () => {
+    expect(await result.current.instantBuy("1")).toBe("requote");
+  });
+  expect(result.current.quote).toEqual(order);
+  expect(auth.signSwap).not.toHaveBeenCalled();
+  expect(submit).not.toHaveBeenCalled();
+  await act(async () => {
+    expect(await result.current.instantBuy("1")).toBe("requote");
+  });
+  expect(quote).toHaveBeenCalledTimes(1);
+  await confirm(result);
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(auth.signSwap).toHaveBeenCalledTimes(1);
+  expect(submit).toHaveBeenCalledTimes(1);
+});
+
+it("cannot start an instant quote while signed out or while a pending swap is being tracked", async () => {
+  query.mockReturnValue({ data: undefined, error: null });
+  const quote = vi.spyOn(swapApi, "quote");
+  const create = vi.spyOn(swapApi, "create");
+  const status = vi.spyOn(swapApi, "status").mockRejectedValue(new Error("Offline"));
+  const { result, rerender } = renderHook(() => useSwap(token, "buy", "", 150));
+  await act(() => result.current.instantBuy("1"));
+  expect(auth.login).not.toHaveBeenCalled();
+  sessionStorage.setItem(storageKey, JSON.stringify({ requestId: "previous" }));
+  auth.authenticated = true;
+  rerender();
+  await act(async () => {
+    await result.current.instantBuy("2");
+    await vi.runAllTimersAsync();
+  });
+  expect(status).toHaveBeenCalledExactlyOnceWith("previous");
+  expect(quote).not.toHaveBeenCalled();
+  expect(create).not.toHaveBeenCalled();
+});
+
+it("does not create an instant order when the wallet changes during quoting", async () => {
+  auth.authenticated = true;
+  query.mockReturnValue({ data: undefined, error: null });
+  let giveQuote: (quote: SwapIssued) => void = () => {};
+  const quote = vi
+    .spyOn(swapApi, "quote")
+    .mockImplementation(() => new Promise((resolve) => (giveQuote = resolve)));
+  const create = vi.spyOn(swapApi, "create");
+  const { result, rerender } = renderHook(() => useSwap(token, "buy", "", 150));
+  let execution: ReturnType<typeof result.current.instantBuy>;
+  act(() => {
+    execution = result.current.instantBuy("1");
+  });
+  auth.walletAddress = "wallet-b";
+  rerender();
+  expect(quote.mock.calls[0][1]?.aborted).toBe(true);
+  await act(async () => {
+    giveQuote({ ...issued, inAmount: "1000000" });
+    await execution;
+  });
+  expect(create).not.toHaveBeenCalled();
+  expect(auth.signSwap).not.toHaveBeenCalled();
+});
+
 it("restores an unknown swap after unmount and resumes GET without a second create", async () => {
   auth.authenticated = true;
   query.mockReturnValue({ data: issued, error: null });

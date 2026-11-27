@@ -49,16 +49,22 @@ flowchart LR
 
 ## Trade states
 
-The main action is sign-in when signed out. Demo mode retains a separate, display-only quote preview; balances, fills and PnL are never fabricated. Sell percentage presets stay disabled until a real balance exists. Settings disclose the fixed preview slippage instead of presenting non-functional controls.
+**Trade settings** edits the four USDC buy amounts and four whole sell percentages. Saved amounts persist in the browser across markets and desktop/mobile tickets. Buy presets normally fill the amount; sell presets stay disabled until the ticket has a real token balance.
+
+**Instant buy** is off when a ticket opens. It applies only to buy presets, never typed amounts or sells. Preview consent does not enable it for a signed-in wallet; enable it again when ready to trade. Demo without trading access previews the amounts without creating a swap, signing, or fabricating a fill.
 
 ```mermaid
-flowchart LR
-  Amount[Enter amount / buy preset] --> Estimate[Display-only estimate]
-  Estimate --> Auth{Signed in?}
-  Auth -->|No| Login[Sign in to trade]
-  Auth -->|Yes| Review[Review quote]
-  Estimate -->|Demo preview| Review
-  Review --> Disabled[Submission disabled in demo]
+flowchart TD
+  Settings[Trade settings] --> Save[Validate and save amounts to this browser]
+  Save --> Preset[Press a buy preset]
+  Preset --> Mode{Instant buy enabled?}
+  Mode -->|No| Fill[Fill amount; normal review]
+  Mode -->|Yes| Wallet{Trading wallet available?}
+  Wallet -->|No| Preview[Quote preview only]
+  Wallet -->|Yes| Quote[Fetch fresh quote and create order]
+  Quote --> Minimum{Created minimum worsened?}
+  Minimum -->|Yes| Review[Show updated quote for review]
+  Minimum -->|No| Sign[Open wallet signing]
 ```
 
 The market overview uses the existing 24h change, liquidity and holder count. Social URLs, descriptions, top-10 concentration, intraday changes, buy/sell ratios and order-book depth are explicitly unavailable when absent from the contract. Empty bars are placeholders, not invented ratios. Terms are not linked until a real policy is published. Trader discovery links to the leaderboard; global trader search is not represented as working.
