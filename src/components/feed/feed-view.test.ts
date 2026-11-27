@@ -152,11 +152,46 @@ it("shows named post and trader skeletons independently, then replaces only reso
   expect(screen.getByRole("status", { name: "Loading traders to watch" })).toBeDefined();
   await act(async () => feedReq.resolve(feedOk([thesisPost])));
   expect(await screen.findByText(thesisPost.body)).toBeDefined();
-  expect(screen.getByRole("link", { name: /SOL/ }).querySelector("img")?.getAttribute("src")).toBe(
-    "https://example.com/sol.webp",
-  );
+  expect(
+    screen.getByRole("button", { name: "Replay SOL position" }).querySelector("img")?.getAttribute("src"),
+  ).toBe("https://example.com/sol.webp");
   expect(screen.queryByRole("status", { name: "Loading feed" })).toBeNull();
   expect(screen.getByRole("status", { name: "Loading traders to watch" })).toBeDefined();
+});
+
+it("links a trade to the thesis on its exact position episode without leaving the feed", async () => {
+  routeGet({ feed: async () => feedOk([thesisPost, tradePost]) });
+  const original = window.location.href;
+  try {
+    renderFeed();
+    const [, trade] = await screen.findAllByRole("button", { name: "Replay SOL position" });
+    fireEvent.click(trade!);
+    const params = new URL(window.location.href).searchParams;
+    expect(window.location.pathname).toBe(new URL(original).pathname);
+    expect(params.get("trader")).toBe(tradePost.wallet);
+    expect(params.get("position")).toBe(tradePost.positionId);
+    expect(params.get("thesis")).toBe(thesisPost.thesisId);
+    expect(params.has("discussion")).toBe(false);
+  } finally {
+    window.history.replaceState(null, "", original);
+  }
+});
+
+it("keeps activity without a position linked to the token in the Trades filter", async () => {
+  const activity: Extract<FeedItem, { kind: "multi-user" }> = {
+    ...tradePost,
+    id: "activity-1",
+    kind: "multi-user",
+    eventType: "multi-user",
+    traderCount: 3,
+  };
+  routeGet({ feed: async () => feedOk([thesisPost, activity]) });
+  renderFeed();
+  await screen.findByText(thesisPost.body);
+  fireEvent.click(screen.getByRole("button", { name: "Trades" }));
+  expect(screen.getByText("3 traders bought $2,500.00")).toBeDefined();
+  expect(screen.getByRole("link", { name: /SOL/ }).getAttribute("href")).toBe("/trade/sol");
+  expect(screen.queryByRole("button", { name: "Replay SOL position" })).toBeNull();
 });
 
 it("keeps loaded posts while a cursor page loads and appends the resolved page", async () => {

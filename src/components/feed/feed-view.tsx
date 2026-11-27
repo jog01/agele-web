@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
+import { PositionReplayLink } from "@/components/social/position-replay-link";
 import { type ActiveThesisThread, ThesisThreadSheet } from "@/components/social/thesis-thread-sheet";
 import { TraderAvatar } from "@/components/social/trader-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ import type { FeedItem, FeedScope, PostPosition } from "@/lib/api/client";
 import { socialQueries, tokenQueries } from "@/lib/api/queries";
 import { feedItemContent } from "@/lib/api/social";
 import { formatUsd, timeAgo, utcTimestamp } from "@/lib/format";
+import { type PositionTarget, positionUrl } from "@/lib/position-replay";
 import { cn } from "@/lib/utils";
 import { FeedHeading, FeedPostsSkeleton, FeedTradersSkeleton } from "./feed-loading";
 
@@ -199,21 +202,56 @@ function FeedCard({
   now,
   onOpenThread,
   onLike,
+  relatedThesisId,
 }: {
   item: FeedItem;
   now: number | null;
   onOpenThread: (thread: ActiveThesisThread) => void;
   onLike: (item: Extract<FeedItem, { kind: "thesis" }>) => void;
+  relatedThesisId?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const content = feedItemContent(item);
+  const target: PositionTarget | null =
+    item.kind === "trade" || item.kind === "thesis"
+      ? {
+          wallet: item.wallet,
+          mint: item.mint,
+          positionId: item.positionId ?? undefined,
+          thesisId: item.kind === "thesis" ? item.thesisId : relatedThesisId,
+          discussionKey: item.kind === "trade" && !relatedThesisId ? item.discussionKey : undefined,
+          fillId: item.kind === "trade" && !item.positionId ? item.id : undefined,
+        }
+      : null;
+  const attachmentClass =
+    "mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-background/60 px-3.5 py-2.5 transition-colors hover:bg-secondary/60";
+  const attachment = (
+    <>
+      <span className="flex min-w-0 items-center gap-2.5">
+        <AssetAvatar imageUrl={item.imageUrl} className="size-7" />
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-sm">{item.symbol}</span>
+          <span className="tabular block text-muted-foreground text-xs">
+            {item.kind === "trade"
+              ? `${content.attachment} · ${item.source === "demo" ? "simulated" : "indexed"}`
+              : content.attachment}
+          </span>
+        </span>
+      </span>
+      <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
+    </>
+  );
 
-  function share() {
-    const path = item.kind === "thesis" ? `/trade/${item.mint}` : `/traders/${item.wallet}`;
-    const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
-    navigator.clipboard?.writeText(url).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+  async function share() {
+    try {
+      const current = new URL(window.location.href);
+      const url = target ? positionUrl(current, target) : new URL(`/traders/${item.wallet}`, current);
+      await navigator.clipboard.writeText(url.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error(target ? "Couldn’t copy the replay link" : "Couldn’t copy the trader link");
+    }
   }
 
   return (
@@ -284,23 +322,19 @@ function FeedCard({
             </p>
           )}
 
-          <Link
-            href={`/trade/${item.mint}`}
-            className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-background/60 px-3.5 py-2.5 transition-colors hover:bg-secondary/60"
-          >
-            <div className="flex min-w-0 items-center gap-2.5">
-              <AssetAvatar imageUrl={item.imageUrl} className="size-7" />
-              <div className="min-w-0">
-                <div className="truncate font-medium text-sm">{item.symbol}</div>
-                <div className="tabular text-muted-foreground text-xs">
-                  {item.kind === "trade"
-                    ? `${content.attachment} · ${item.source === "demo" ? "simulated" : "indexed"}`
-                    : content.attachment}
-                </div>
-              </div>
-            </div>
-            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
-          </Link>
+          {target ? (
+            <PositionReplayLink
+              target={target}
+              aria-label={`Replay ${item.symbol} position`}
+              className={cn(attachmentClass, "w-full text-left")}
+            >
+              {attachment}
+            </PositionReplayLink>
+          ) : (
+            <Link href={`/trade/${item.mint}`} className={attachmentClass}>
+              {attachment}
+            </Link>
+          )}
 
           <div className="mt-3 flex items-center gap-4 text-muted-foreground text-xs">
             {item.kind === "thesis" && (
@@ -378,6 +412,11 @@ export function FeedView() {
   const { data: board, isPending: boardPending } = useQuery(socialQueries.leaderboard("7d", auth));
 
   const allItems = feed.data?.pages.flatMap((page) => page.items) ?? [];
+  const thesisIds = new Map(
+    allItems.flatMap((item) =>
+      item.kind === "thesis" ? [[`${item.wallet}:${item.mint}:${item.positionId}`, item.thesisId]] : [],
+    ),
+  );
   const items = allItems.filter((item) => {
     if (kindFilter === "all") return true;
     if (kindFilter === "thesis") return item.kind === "thesis";
@@ -522,6 +561,11 @@ export function FeedView() {
                     now={now}
                     onOpenThread={setActiveThread}
                     onLike={handleLike}
+                    relatedThesisId={
+                      item.kind === "trade" && item.positionId
+                        ? thesisIds.get(`${item.wallet}:${item.mint}:${item.positionId}`)
+                        : undefined
+                    }
                   />
                 ))
               )}
