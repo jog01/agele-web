@@ -1,27 +1,28 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
-import { AssetAvatar } from "@/components/common/asset-avatar";
 import { CopyAddress } from "@/components/common/copy-address";
-import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { TraderAvatar } from "@/components/social/trader-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFollow } from "@/hooks/use-follow";
 import { ApiError, type LeaderboardWindow } from "@/lib/api/client";
 import { LEADERBOARD_WINDOWS } from "@/lib/api/leaderboard";
 import type { components } from "@/lib/api/schema";
-import { traderProfileQuery, traderTradesQuery } from "@/lib/api/traders";
-import { changeTone, formatAmount, formatPct, formatUsd, utcTimestamp } from "@/lib/format";
+import { traderProfileQuery } from "@/lib/api/traders";
+import { changeTone, formatPct, formatUsd } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
-import { PROFILE_FRAME, TraderProfileLoading, TraderTableSkeleton } from "./trader-profile-loading";
+import { TraderMostLikedThesis } from "./trader-most-liked-thesis";
+import { TraderPortfolioChart } from "./trader-portfolio-chart";
+import { PROFILE_FRAME, TraderProfileLoading } from "./trader-profile-loading";
+import { TraderActivityPanel, TraderPositionsPanel } from "./trader-profile-tabs";
+import { TraderTopTrades } from "./trader-top-trades";
 
 const COUNT = new Intl.NumberFormat("en-US");
 const LINK = "font-medium text-primary hover:underline focus-visible:underline";
@@ -37,6 +38,51 @@ function ProfileAnnouncement({ handle }: { handle: string }) {
     <span role="status" aria-atomic="true" className="sr-only">
       {message}
     </span>
+  );
+}
+
+const JOINED = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+
+export function formatHold(seconds: number | null | undefined) {
+  if (seconds == null) return "—";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${Math.max(1, minutes)}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return minutes % 60 ? `${hours}h ${minutes % 60}m` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return hours % 24 ? `${days}d ${hours % 24}h` : `${days}d`;
+}
+
+function ProfileMeta({ profile }: { profile: components["schemas"]["TraderProfile"] }) {
+  const mutuals = profile.mutuals;
+  return (
+    <p className="tabular mt-1 flex flex-wrap items-center gap-x-1.5 text-muted-foreground text-xs">
+      {mutuals && mutuals.count > 0 && (
+        <>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="-space-x-1.5 flex">
+              {mutuals.preview.slice(0, 3).map((mutual, index) => (
+                <TraderAvatar
+                  key={mutual.wallet ?? index}
+                  handle={mutual.wallet ?? "mutual"}
+                  avatarUrl={mutual.avatarUrl}
+                  className="size-4 ring-2 ring-card"
+                />
+              ))}
+            </span>
+            {COUNT.format(mutuals.count)} {mutuals.count === 1 ? "mutual" : "mutuals"}
+          </span>
+          <span aria-hidden>·</span>
+        </>
+      )}
+      <span>Avg hold {formatHold(profile.avgHoldSeconds)}</span>
+      <span aria-hidden>·</span>
+      <span>
+        {COUNT.format(profile.tradeCount)} {profile.tradeCount === 1 ? "trade" : "trades"}
+      </span>
+      <span aria-hidden>·</span>
+      <span>Joined {JOINED.format(profile.joinedAt * 1000)}</span>
+    </p>
   );
 }
 
@@ -87,160 +133,6 @@ function TraderStats({
         <Metric label="Trades" value={COUNT.format(trades)} />
         <Metric label="Win rate" value={formatPct(winRatePct, { signed: false })} />
       </dl>
-    </section>
-  );
-}
-
-function TraderPositions({ positions }: { positions: components["schemas"]["TraderProfile"]["positions"] }) {
-  const rows = positions.filter((position) => position !== null);
-  return (
-    <section className="min-w-0 overflow-hidden rounded-md border bg-card">
-      <h2 className="p-4 font-medium text-sm sm:px-5">Open positions</h2>
-      {rows.length ? (
-        <Table aria-label="Open positions">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4 sm:pl-5">Token</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="pr-4 text-right sm:pr-5">Unrealized PnL</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((position) => (
-              <TableRow key={position.mint}>
-                <TableCell className="pl-4 sm:pl-5">
-                  <Link
-                    href={`/trade/${encodeURIComponent(position.mint)}`}
-                    className={cn(LINK, "inline-flex items-center gap-1.5")}
-                  >
-                    {position.imageUrl ? (
-                      <AssetAvatar imageUrl={position.imageUrl} className="size-4" />
-                    ) : (
-                      <TokenAssetAvatar mint={position.mint} className="size-4" />
-                    )}
-                    {position.symbol}
-                  </Link>
-                  <div className="tabular text-muted-foreground text-xs">
-                    {formatAmount(position.quantity)}
-                  </div>
-                </TableCell>
-                <TableCell className="tabular text-right">{formatUsd(position.valueUsd)}</TableCell>
-                <TableCell
-                  className={cn("tabular pr-4 text-right sm:pr-5", changeTone(position.unrealizedPnlUsd))}
-                >
-                  {formatUsd(position.unrealizedPnlUsd)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">
-          No open positions.
-        </p>
-      )}
-    </section>
-  );
-}
-
-function TraderTrades({ wallet }: { wallet: string }) {
-  const auth = useAuth();
-  const trades = useInfiniteQuery(traderTradesQuery(wallet, auth));
-  const pages = trades.data?.pages ?? [];
-  const rows = pages.flatMap(({ trades, dataSource }) => trades.map((trade) => ({ trade, dataSource })));
-  return (
-    <section className="min-w-0 overflow-hidden rounded-md border bg-card">
-      <h2 className="p-4 font-medium text-sm sm:px-5">Recent trades</h2>
-      {trades.isPending && <TraderTableSkeleton label="Loading trades" />}
-      {trades.isError && (
-        <div className="flex flex-wrap items-center gap-2 px-4 pb-4 text-muted-foreground text-sm sm:px-5">
-          <p role="alert">
-            {trades.isFetchNextPageError
-              ? "Couldn’t load more trades."
-              : rows.length
-                ? "Couldn’t update trades."
-                : "Trades unavailable."}
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={trades.isFetching}
-            onClick={() => (trades.isFetchNextPageError ? trades.fetchNextPage() : trades.refetch())}
-          >
-            Retry
-          </Button>
-        </div>
-      )}
-      {trades.isSuccess && !rows.length && (
-        <p className="min-h-24 border-t px-4 py-6 text-muted-foreground text-sm sm:px-5">No trades yet.</p>
-      )}
-      {rows.length > 0 && (
-        <Table aria-label="Recent trades">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4 sm:pl-5">Trade</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="pr-4 text-right sm:pr-5">Realized PnL</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map(({ trade, dataSource }) => (
-              <TableRow key={trade.id}>
-                <TableCell className="whitespace-normal pl-4 sm:pl-5">
-                  <div className="flex items-center gap-1.5">
-                    <span className={trade.side === "buy" ? "text-positive" : "text-negative"}>
-                      {trade.side === "buy" ? "Buy" : "Sell"}
-                    </span>
-                    <Link
-                      href={`/trade/${encodeURIComponent(trade.mint)}`}
-                      className={cn(LINK, "inline-flex items-center gap-1.5")}
-                    >
-                      {trade.imageUrl ? (
-                        <AssetAvatar imageUrl={trade.imageUrl} className="size-4" />
-                      ) : (
-                        <TokenAssetAvatar mint={trade.mint} className="size-4" />
-                      )}
-                      {trade.symbol}
-                    </Link>
-                  </div>
-                  <div className="tabular mt-0.5 text-muted-foreground text-xs">
-                    {formatAmount(trade.tokenAmount)}
-                  </div>
-                  <div className="mt-0.5 flex flex-wrap gap-x-2 text-muted-foreground text-xs">
-                    <time dateTime={new Date(trade.time * 1000).toISOString()}>
-                      {utcTimestamp(trade.time)}
-                    </time>
-                    {dataSource === "indexed" && (
-                      <a
-                        href={`https://solscan.io/tx/${encodeURIComponent(trade.signature)}${solanaCluster().explorerQuery}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={LINK}
-                      >
-                        Solscan <ExternalLink aria-hidden className="inline size-3" />
-                      </a>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="tabular text-right">{formatUsd(trade.valueUsd)}</TableCell>
-                <TableCell
-                  className={cn("tabular pr-4 text-right sm:pr-5", changeTone(trade.realizedPnlUsd))}
-                >
-                  {formatUsd(trade.realizedPnlUsd)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-      {trades.isFetchingNextPage && <TraderTableSkeleton label="Loading more trades" rows={1} />}
-      {trades.hasNextPage && !trades.isFetchNextPageError && (
-        <div className="border-t p-4 sm:px-5">
-          <Button variant="outline" disabled={trades.isFetching} onClick={() => trades.fetchNextPage()}>
-            {trades.isFetchingNextPage ? "Loading…" : "Load more trades"}
-          </Button>
-        </div>
-      )}
     </section>
   );
 }
@@ -397,6 +289,7 @@ export function TraderProfileView({
                       <strong className="text-foreground">{COUNT.format(data.following)}</strong> following
                     </span>
                   </p>
+                  <ProfileMeta profile={data} />
                 </div>
               </div>
               <div className="max-w-64 text-xs">
@@ -420,10 +313,17 @@ export function TraderProfileView({
               ))}
             </dl>
           </section>
+          <TraderTopTrades trades={data.topTrades} />
           <TraderStats stats={data.stats} initialWindow={initialWindow} />
-          <div className="grid items-start gap-4 xl:grid-cols-2">
-            <TraderPositions positions={data.positions} />
-            <TraderTrades wallet={wallet} />
+          <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid min-w-0 gap-4">
+              <TraderPortfolioChart wallet={wallet} />
+              <TraderPositionsPanel wallet={wallet} positions={data.positions} topTrades={data.topTrades} />
+            </div>
+            <div className="grid min-w-0 gap-4">
+              {data.mostLikedThesis && <TraderMostLikedThesis thesis={data.mostLikedThesis} />}
+              <TraderActivityPanel wallet={wallet} />
+            </div>
           </div>
         </>
       )}

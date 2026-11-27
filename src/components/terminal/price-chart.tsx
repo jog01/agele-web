@@ -22,30 +22,12 @@ import { useSwapOverlay } from "@/hooks/use-swap-overlay";
 import type { Candle, Interval } from "@/lib/api/client";
 import { useToken } from "@/lib/api/queries";
 import { marketCapCandle, movingAverage, tokenSupply } from "@/lib/candles";
+import { chartPalette } from "@/lib/chart-palette";
 import { formatCompactUsd, formatPct, formatPrice } from "@/lib/format";
 import { useTerminalStore } from "@/stores/terminal";
 import { ChartSkeleton } from "./panel-skeleton";
 
 const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
-/** Canvas cannot resolve CSS variables, so read the shared brand tokens at mount. */
-function chartPalette(element: HTMLElement) {
-  const style = getComputedStyle(element);
-  const token = (name: string, fallback?: string) =>
-    style.getPropertyValue(name).trim() || (fallback ? style.getPropertyValue(fallback).trim() : "");
-  const up = token("--chart-positive", "--positive");
-  const down = token("--chart-negative", "--negative");
-  return {
-    bg: token("--chart-background", "--card"),
-    text: token("--chart-text", "--muted-foreground"),
-    grid: token("--chart-grid"),
-    crosshair: token("--chart-crosshair"),
-    up,
-    down,
-    volumeUp: `${up}40`,
-    volumeDown: `${down}40`,
-    font: style.fontFamily,
-  };
-}
 
 /** Precision follows price magnitude so memecoins don't render as $0.00. */
 function priceFormat(price: number) {

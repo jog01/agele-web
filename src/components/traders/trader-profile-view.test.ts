@@ -9,11 +9,28 @@ import type { LeaderboardWindow, UserTrade } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { TraderProfileView } from "./trader-profile-view";
 
-const { get, put, del } = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), del: vi.fn() }));
+const { get, aux, put, del } = vi.hoisted(() => ({ get: vi.fn(), aux: vi.fn(), put: vi.fn(), del: vi.fn() }));
+const AUX_PATHS = new Set(["/v1/traders/{wallet}/portfolio/history", "/v1/feed"]);
 vi.mock("@/lib/api/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/client")>()),
-  api: { GET: get, PUT: put, DELETE: del },
+  api: {
+    GET: (path: string, options: unknown) => (AUX_PATHS.has(path) ? aux(path, options) : get(path, options)),
+    PUT: put,
+    DELETE: del,
+  },
 }));
+vi.mock("lightweight-charts", () => {
+  const series = { applyOptions: vi.fn(), setData: vi.fn() };
+  return {
+    AreaSeries: {},
+    ColorType: { Solid: "solid" },
+    createChart: () => ({
+      addSeries: () => series,
+      timeScale: () => ({ fitContent: vi.fn() }),
+      remove: vi.fn(),
+    }),
+  };
+});
 
 const wallet = "7UoqY5gZVcHjspNprmQ6WW1Lu73HrPwKSEj7ddEZ2UHw";
 const mint = "So11111111111111111111111111111111111111112";
@@ -34,6 +51,8 @@ const profile: components["schemas"]["TraderProfile"] = {
   realizedPnlUsd: 10,
   unrealizedPnlUsd: -20,
   positions: [],
+  topTrades: [],
+  mostLikedThesis: null,
   stats: { "24h": { ...stats, rank: null }, "7d": stats, "30d": { ...stats, rank: 2 } },
 };
 const trade: UserTrade = {
@@ -61,6 +80,16 @@ function ok(data: unknown, source?: string) {
   return { data, response: new Response(null, { headers: source ? { "X-Data-Source": source } : {} }) };
 }
 
+function auxDefault(path: string) {
+  return Promise.resolve(ok(path === "/v1/feed" ? { items: [], nextCursor: null } : { points: [] }, "demo"));
+}
+
+async function openTab(name: string) {
+  fireEvent.mouseDown(await screen.findByRole("tab", { name }), { button: 0 });
+}
+
+const openTransactions = () => openTab("Transactions");
+
 const clients: QueryClient[] = [];
 function renderProfile(auth = demoAuth, initialWindow?: LeaderboardWindow) {
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
@@ -75,11 +104,15 @@ function renderProfile(auth = demoAuth, initialWindow?: LeaderboardWindow) {
   return { client, setAuth: (value: AuthState) => rendered.rerender(tree(value)) };
 }
 
+aux.mockImplementation(auxDefault);
+
 afterEach(() => {
   cleanup();
   for (const client of clients) client.clear();
   clients.length = 0;
   get.mockReset();
+  aux.mockReset();
+  aux.mockImplementation(auxDefault);
   put.mockReset();
   del.mockReset();
 });
@@ -100,8 +133,10 @@ it("replaces the profile skeleton before independently resolving trade history",
   await act(async () => resolveProfile(ok(profile, "demo")));
   expect(await screen.findByRole("heading", { name: "Orca" })).toBeDefined();
   expect(screen.queryByRole("status", { name: "Loading trader profile" })).toBeNull();
+  await openTransactions();
   expect(screen.getByRole("status", { name: "Loading trades" })).toBeDefined();
   await act(async () => resolveTrades(ok({ trades: [], nextCursor: null }, "demo")));
+  await openTransactions();
   expect(await screen.findByText("No trades yet.")).toBeDefined();
   expect(screen.queryByRole("status", { name: "Loading trades" })).toBeNull();
 });
@@ -116,6 +151,7 @@ it("retains profile content rather than returning to a full skeleton on backgrou
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "demo"))
     .mockReturnValueOnce(refresh);
   const { client } = renderProfile();
+  await openTransactions();
   await screen.findByText("No trades yet.");
   act(() => {
     void client.invalidateQueries({ queryKey: ["trader"] });
@@ -144,6 +180,7 @@ it("labels demo data, explains empty history, and switches window without anothe
   expect(screen.getByText("Demo profile")).toBeDefined();
   expect(screen.getByText("Sign-in isn’t configured, so following is unavailable.")).toBeDefined();
   expect(screen.getByText("No open positions.")).toBeDefined();
+  await openTransactions();
   expect(await screen.findByText("No trades yet.")).toBeDefined();
   expect(screen.queryByRole("link", { name: /Solana Explorer|Solscan/ })).toBeNull();
   expect(screen.getByText("#9")).toBeDefined();
@@ -178,6 +215,7 @@ it("uses the opaque next cursor, preserves trades after a failed page, and retri
   const imageUrl = "https://example.com/sol.webp";
   client.setQueryData(["tokens", "trending"], [{ mint, imageUrl }]);
   expect(await screen.findByRole("link", { name: "Solana Explorer" })).toBeDefined();
+  await openTransactions();
   expect((await screen.findByRole("link", { name: "Solscan" })).getAttribute("href")).toContain(
     trade.signature,
   );
@@ -263,6 +301,7 @@ it("renders indexed positions and skips nullable entries from the API", async ()
   expect(link.getAttribute("href")).toBe(`/trade/${mint}`);
   expect(link.querySelector("img")?.getAttribute("src")).toBe(imageUrl);
   expect(screen.getByRole("table", { name: "Open positions" }).textContent).toContain("-$20.00");
+  await openTransactions();
   expect(await screen.findByText("No trades yet.")).toBeDefined();
 });
 
@@ -287,9 +326,11 @@ it("uses bearer auth without showing the previous viewer’s following state aft
     .mockResolvedValueOnce(ok({ trades: [], nextCursor: null }, "indexed"));
   const { setAuth } = renderProfile(signedIn);
   expect(await screen.findByText("Following")).toBeDefined();
+  await openTransactions();
   expect(await screen.findByText("No trades yet.")).toBeDefined();
   setAuth(demoAuth);
   expect(await screen.findByRole("heading", { name: "Orca" })).toBeDefined();
+  await openTransactions();
   expect(await screen.findByText("No trades yet.")).toBeDefined();
   expect(screen.queryByText("Following")).toBeNull();
   expect(get.mock.calls.map(([, options]) => options.headers)).toEqual([
@@ -309,6 +350,7 @@ it("follows and unfollows with the viewer token, refreshing counts and follow st
   put.mockResolvedValue({ response: new Response(null, { status: 204 }) });
   del.mockResolvedValue({ response: new Response(null, { status: 204 }) });
   renderProfile(signedIn);
+  await openTransactions();
   await screen.findByText("No trades yet.");
   fireEvent.click(screen.getByRole("button", { name: "Follow" }));
   expect(await screen.findByText("31")).toBeDefined();
@@ -321,4 +363,64 @@ it("follows and unfollows with the viewer token, refreshing counts and follow st
   ];
   expect(put).toHaveBeenCalledExactlyOnceWith(...args);
   expect(del).toHaveBeenCalledExactlyOnceWith(...args);
+});
+
+it("shows the meta row, portfolio change, and filters the wallet feed by type and size", async () => {
+  get
+    .mockResolvedValueOnce(
+      ok(
+        {
+          ...profile,
+          tradeCount: 142,
+          avgHoldSeconds: 4 * 3600 + 12 * 60,
+          joinedAt: Date.UTC(2026, 9, 3) / 1000,
+          mutuals: { count: 3, preview: [{ wallet: "mutual-wallet", avatarUrl: null }] },
+        },
+        "demo",
+      ),
+    )
+    .mockResolvedValue(ok({ trades: [], nextCursor: null }, "demo"));
+  aux.mockImplementation((path: string) =>
+    Promise.resolve(
+      path === "/v1/feed"
+        ? ok({ items: [], nextCursor: null }, "demo")
+        : ok(
+            {
+              points: [
+                { time: 1, valueUsd: 200 },
+                { time: 2, valueUsd: 250 },
+              ],
+              changeUsd: 50,
+              changePct: 25,
+            },
+            "demo",
+          ),
+    ),
+  );
+  renderProfile();
+  expect(await screen.findByText("3 mutuals")).toBeDefined();
+  expect(screen.getByText("Avg hold 4h 12m")).toBeDefined();
+  expect(screen.getByText("142 trades")).toBeDefined();
+  expect(screen.getByText("Joined Oct 2026")).toBeDefined();
+  expect(await screen.findByText("+$50.00 (+25.00%)")).toBeDefined();
+
+  await openTab("Feed");
+  fireEvent.click(await screen.findByRole("radio", { name: "Trades" }));
+  fireEvent.click(screen.getByRole("radio", { name: "$1K+" }));
+  await waitFor(() =>
+    expect(aux).toHaveBeenLastCalledWith(
+      "/v1/feed",
+      expect.objectContaining({
+        params: {
+          query: expect.objectContaining({
+            wallet,
+            scope: "global",
+            types: "bought,sold,closed",
+            minSizeUsd: 1000,
+          }),
+        },
+      }),
+    ),
+  );
+  expect(await screen.findByText("No activity at this size.")).toBeDefined();
 });
