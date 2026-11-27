@@ -29,6 +29,10 @@ const MAX_COMMENT = 200;
 type ComposeMode = "thesis" | "comment";
 
 export function ThesisPanel({ mint }: { mint: string }) {
+  return <ThesisPanelBody key={mint} mint={mint} />;
+}
+
+function ThesisPanelBody({ mint }: { mint: string }) {
   const auth = useAuth();
   const { data: token } = useToken(mint);
   const query = useInfiniteQuery(tokenCommentsQuery(mint, auth));
@@ -40,11 +44,12 @@ export function ThesisPanel({ mint }: { mint: string }) {
   const [mode, setMode] = useState<ComposeMode>("thesis");
   const [position, setPosition] = useState<PostPosition>("long");
   const [replyTarget, setReplyTarget] = useState<{ id: string; handle: string } | null>(null);
-  const [draft, setDraft] = useState("");
+  const [drafts, setDrafts] = useState<{ thesis: string; comment: string }>({ thesis: "", comment: "" });
   const [error, setError] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<ActiveThesisThread | null>(null);
   const now = useNow(30_000);
 
+  const draft = drafts[mode];
   const comments = query.data?.pages.flatMap((page) => page.comments) ?? [];
   const limit = mode === "thesis" ? MAX_THESIS : MAX_COMMENT;
   const submitting = postThesis.isPending || postComment.isPending;
@@ -67,7 +72,7 @@ export function ThesisPanel({ mint }: { mint: string }) {
           parentId: replyTarget?.id,
         });
       }
-      setDraft("");
+      setDrafts((prev) => ({ ...prev, [mode]: "" }));
       setReplyTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not post");
@@ -122,7 +127,6 @@ export function ThesisPanel({ mint }: { mint: string }) {
                 onClick={() => {
                   setMode(value);
                   if (value === "thesis") setReplyTarget(null);
-                  setDraft((prev) => prev.slice(0, value === "thesis" ? MAX_THESIS : MAX_COMMENT));
                 }}
                 className={cn(
                   "rounded-md border px-2 py-0.5 text-[11px] transition-colors",
@@ -176,7 +180,7 @@ export function ThesisPanel({ mint }: { mint: string }) {
         </div>
         <textarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, limit))}
+          onChange={(e) => setDrafts((prev) => ({ ...prev, [mode]: e.target.value.slice(0, limit) }))}
           placeholder={
             mode === "thesis"
               ? "Share your thesis on this token (requires an open or recently closed position)"
