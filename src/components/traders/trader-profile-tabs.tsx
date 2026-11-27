@@ -209,7 +209,10 @@ function FeedRow({ item, now }: { item: FeedItem; now: number | null }) {
         <div className="flex items-baseline justify-between gap-3">
           <p className="min-w-0 truncate text-sm">
             <span className={cn("font-medium", content.tone)}>{content.label}</span>{" "}
-            <Link href={`/trade/${encodeURIComponent(item.mint)}`} className="font-medium hover:underline">
+            <Link
+              href={`/trade/${encodeURIComponent(item.mint)}`}
+              className="inline-flex items-center font-medium hover:underline focus-visible:outline-2 focus-visible:outline-foreground/50 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+            >
               {item.symbol}
             </Link>
           </p>

@@ -99,7 +99,7 @@ export function feedItemContent(item: FeedItem) {
       return {
         label: "Thesis",
         body: item.body,
-        attachment: "Thesis · no trade attached",
+        attachment: item.positionId ? "Position thesis" : "Thesis",
         tone:
           item.position === "long"
             ? "text-positive"
