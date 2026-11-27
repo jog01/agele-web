@@ -155,7 +155,6 @@ function ClosedPositions({ wallet }: { wallet: string }) {
           <TableHeader>
             <TableRow>
               <TableHead className="pl-4 sm:pl-5">Token</TableHead>
-              <TableHead className="text-right">Exit value</TableHead>
               <TableHead className="pr-4 text-right sm:pr-5">Realized PnL</TableHead>
             </TableRow>
           </TableHeader>
@@ -171,7 +170,6 @@ function ClosedPositions({ wallet }: { wallet: string }) {
                     </time>
                   </div>
                 </TableCell>
-                <TableCell className="tabular text-right">{formatUsd(item.amountUsd)}</TableCell>
                 <TableCell className={cn("tabular pr-4 text-right sm:pr-5", changeTone(item.realizedPnlUsd))}>
                   {item.realizedPnlUsd === null ? "—" : formatUsd(item.realizedPnlUsd)}
                 </TableCell>
