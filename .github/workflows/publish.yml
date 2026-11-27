@@ -13,11 +13,13 @@ jobs:
   image:
     runs-on: ubuntu-latest
     strategy:
+      # One environment's missing config must not cancel the other's publish.
+      fail-fast: false
       matrix:
         include:
           - environment: staging
-            api: https://api.staging.agele.xyz
-            ws: wss://api.staging.agele.xyz/ws
+            api: https://staging-api.agele.xyz
+            ws: wss://staging-api.agele.xyz/ws
           - environment: production
             api: https://api.agele.xyz
             ws: wss://api.agele.xyz/ws
