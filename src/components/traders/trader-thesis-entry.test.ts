@@ -43,7 +43,7 @@ it("opens the featured thesis in its actual position while preserving the profil
   render(createElement(TraderMostLikedThesis, { wallet: "trader-wallet", thesis }));
   fireEvent.click(
     screen.getByRole("button", {
-      name: /Watching the first pullback.*Likes 3.*Replies 1.*Views 84.*Open thread/,
+      name: /Watching the first pullback.*Likes\s*3.*Replies\s*1.*Views\s*84.*Open thread/,
     }),
   );
   const url = new URL(window.location.href);
