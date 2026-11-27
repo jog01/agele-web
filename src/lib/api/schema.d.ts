@@ -536,7 +536,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Trader profile; demo profiles have simulated stats, no holdings or trade history */
+                /** @description Trader profile with positions and PnL derived from stored trades */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -598,7 +598,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public indexed trade history, newest first by executedAt and id. Same UserTrade shape and cursor as /me/trades. Demo traders return an empty history. X-Data-Source: indexed or demo. */
+        /** @description Public stored trade history, newest first by executedAt and id. Same UserTrade shape and cursor as /me/trades. X-Data-Source labels indexed or seeded demo history. */
         get: {
             parameters: {
                 query?: {
@@ -1476,7 +1476,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Top traders by realized + unrealized PnL. X-Data-Source is demo for mock rankings, indexed otherwise. */
+                /** @description Top traders by realized + unrealized PnL. Seeded entries have source=demo. X-Data-Source is demo for an entirely seeded page, indexed otherwise. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1524,7 +1524,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Newest first with stable keyset pagination. Feed content remains demo data, independent of indexed leaderboard rankings. Following scope requires a bearer token. */
+        /** @description Stored trades and theses, newest first with stable keyset pagination. Each item identifies demo or indexed provenance. Following scope requires a bearer token. */
         get: {
             parameters: {
                 query?: {
@@ -1631,6 +1631,24 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description Follow cap reached */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Follow rate limit reached */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
                 /** @description Authentication is not configured */
                 503: {
                     headers: {
@@ -1679,6 +1697,24 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description Follow cap reached */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Follow rate limit reached */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
                 /** @description Authentication is not configured */
                 503: {
                     headers: {
@@ -1705,6 +1741,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    cursor?: string;
                     limit?: number;
                 };
                 header?: never;
@@ -1723,11 +1760,328 @@ export interface paths {
                     content: {
                         "application/json": {
                             comments: components["schemas"]["Comment"][];
+                            nextCursor: string | null;
                         };
+                    };
+                };
+                /** @description Invalid query or cursor */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
                     };
                 };
                 /** @description Unknown token */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** @description Publish a token comment or reply to a thesis on the same token. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: string;
+                        /**
+                         * @default none
+                         * @enum {string}
+                         */
+                        position?: "long" | "short" | "none";
+                        /** Format: uuid */
+                        parentId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Published comment */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Comment"];
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Thesis update window expired */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Text rejected by moderation */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Post rate limit reached */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tokens/{mint}/theses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Publish a thesis version for an open position or one closed at most three hours ago. Omit positionId to use the most recent position. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mint: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: string;
+                        /**
+                         * @default none
+                         * @enum {string}
+                         */
+                        position?: "long" | "short" | "none";
+                        /** Format: uuid */
+                        positionId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Published thesis */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Comment"];
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Thesis update window expired */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Text rejected by moderation */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Post rate limit reached */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tokens/{mint}/theses/{thesisId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    mint: string;
+                    thesisId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Thesis versions and replies, newest first, with the pinned version returned separately */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ThesisThread"];
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1740,6 +2094,258 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/posts/{id}/reaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Post liked (idempotent) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Post unliked (idempotent) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/posts/{id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Thesis version pin updated (author only) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Thesis version pin updated (author only) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Unknown token, thesis or post */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -1844,7 +2450,9 @@ export interface components {
         TraderProfile: {
             wallet: string;
             handle: string;
+            displayName: string | null;
             avatarUrl: string | null;
+            bio: string | null;
             followers: number;
             following: number;
             isFollowing?: boolean;
@@ -1855,7 +2463,9 @@ export interface components {
                 "7d": components["schemas"]["TraderWindowStats"];
                 "30d": components["schemas"]["TraderWindowStats"];
             };
-            positions: components["schemas"]["TokenPosition"][];
+            positions: (components["schemas"]["TokenPosition"] & {
+                imageUrl: string | null;
+            })[];
         };
         TraderWindowStats: {
             pnlUsd: number;
@@ -1870,6 +2480,7 @@ export interface components {
             signature: string;
             mint: string;
             symbol: string;
+            imageUrl: string | null;
             /** @enum {string} */
             side: "buy" | "sell";
             tokenAmount: number;
@@ -1902,6 +2513,7 @@ export interface components {
             positions: {
                 mint: string;
                 symbol: string;
+                imageUrl: string | null;
                 quantity: number;
                 avgCostUsd: number;
                 priceUsd: number;
@@ -1925,13 +2537,20 @@ export interface components {
             volumeUsd: number;
             trades: number;
             winRatePct: number;
+            /** @enum {string} */
+            source?: "demo";
             isFollowing?: boolean;
         };
         FeedItem: {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
             id: string;
             mint: string;
-            handle: string;
-            body: string;
+            symbol: string;
+            imageUrl: string | null;
             /** @enum {string} */
             position: "long" | "short" | "none";
             /** @description Unix seconds */
@@ -1939,10 +2558,25 @@ export interface components {
             /** @enum {string} */
             kind: "thesis";
             wallet: string;
+            body: string;
+            /** Format: uuid */
+            thesisId: string;
+            /** Format: uuid */
+            positionId: string;
+            pinned: boolean;
+            likes: number;
+            replyCount: number;
+            likedByMe?: boolean;
         } | {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
             id: string;
             mint: string;
-            handle: string;
+            symbol: string;
+            imageUrl: string | null;
             /** @enum {string} */
             position: "long" | "short" | "none";
             /** @description Unix seconds */
@@ -1955,15 +2589,42 @@ export interface components {
             amountUsd: number;
         };
         Comment: {
+            handle: string;
+            avatarUrl: string | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+            /** Format: uuid */
             id: string;
             mint: string;
-            handle: string;
-            body: string;
+            symbol: string;
+            imageUrl: string | null;
             /** @enum {string} */
             position: "long" | "short" | "none";
-            likes: number;
             /** @description Unix seconds */
             createdAt: number;
+            /** @enum {string} */
+            kind: "thesis" | "comment";
+            wallet: string | null;
+            /** Format: uuid */
+            thesisId: string | null;
+            /** Format: uuid */
+            parentId: string | null;
+            pinned: boolean;
+            body: string;
+            likes: number;
+            replyCount: number;
+            likedByMe?: boolean;
+        };
+        ThesisThread: {
+            comments: components["schemas"]["Comment"][];
+            nextCursor: string | null;
+            /** Format: uuid */
+            id: string;
+            wallet: string;
+            mint: string;
+            /** Format: uuid */
+            positionId: string;
+            pinned: components["schemas"]["Comment"] & (Record<string, never> | null);
         };
     };
     responses: never;

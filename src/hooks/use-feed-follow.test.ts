@@ -34,21 +34,35 @@ function setup(auth = demoAuth) {
 function ok(data: unknown) {
   return { data, response: new Response(null, { status: 200 }) };
 }
-const thesis: FeedItem = {
+const thesis: Extract<FeedItem, { kind: "thesis" }> = {
   id: "1",
+  thesisId: "1",
+  positionId: "pos-1",
+  pinned: false,
   mint: "mint",
+  symbol: "SOL",
+  imageUrl: null,
   wallet: "writer",
   handle: "Writer",
+  avatarUrl: null,
+  source: "demo",
   kind: "thesis",
   body: "My thesis",
   position: "long",
+  likes: 3,
+  replyCount: 1,
+  likedByMe: false,
   createdAt: 100,
 };
-const trade: FeedItem = {
+const trade: Extract<FeedItem, { kind: "trade" }> = {
   id: "2",
   mint: "mint",
+  symbol: "SOL",
+  imageUrl: null,
   wallet: "writer",
   handle: "Writer",
+  avatarUrl: null,
+  source: "demo",
   kind: "trade",
   side: "sell",
   amountUsd: 120,

@@ -26,6 +26,10 @@ export type Candle = components["schemas"]["Candle"];
 export type Trade = components["schemas"]["Trade"];
 export type LeaderboardEntry = components["schemas"]["LeaderboardEntry"];
 export type Comment = components["schemas"]["Comment"];
+export type ThesisThread = components["schemas"]["ThesisThread"];
+export type CommentPage =
+  paths["/v1/tokens/{mint}/comments"]["get"]["responses"][200]["content"]["application/json"];
+export type PostPosition = "long" | "short" | "none";
 export type Me = components["schemas"]["Me"];
 export type FeedItem = components["schemas"]["FeedItem"];
 export type FeedPage = paths["/v1/feed"]["get"]["responses"][200]["content"]["application/json"];
