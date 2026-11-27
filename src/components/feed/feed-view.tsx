@@ -13,7 +13,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
@@ -45,7 +45,12 @@ function FeedThesisComposer() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const mint = selectedMint || tokens[0]?.mint || "";
+  const firstMint = tokens[0]?.mint ?? "";
+  useEffect(() => {
+    if (open && !selectedMint && firstMint) setSelectedMint(firstMint);
+  }, [open, selectedMint, firstMint]);
+
+  const mint = selectedMint;
 
   async function submit() {
     if (!auth.authenticated) {
@@ -73,7 +78,13 @@ function FeedThesisComposer() {
           </span>
           <span>What&apos;s your thesis?</span>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)}>
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!selectedMint && firstMint) setSelectedMint(firstMint);
+            setOpen(true);
+          }}
+        >
           Write thesis
         </Button>
       </div>
@@ -458,12 +469,6 @@ export function FeedView() {
                 <Link href="/leaderboard">Browse leaderboard</Link>
               </Button>
             </div>
-          ) : items.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card px-6 py-12 text-center text-muted-foreground text-sm">
-              {kindFilter === "all"
-                ? "No feed activity yet."
-                : `No ${kindFilter === "trade" ? "trades" : "theses"} in this view yet.`}
-            </div>
           ) : (
             <>
               {feed.isError && !feed.isFetchNextPageError && (
@@ -477,15 +482,23 @@ export function FeedView() {
                   </Button>
                 </div>
               )}
-              {items.map((item) => (
-                <FeedCard
-                  key={item.id}
-                  item={item}
-                  now={now}
-                  onOpenThread={setActiveThread}
-                  onLike={handleLike}
-                />
-              ))}
+              {items.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card px-6 py-12 text-center text-muted-foreground text-sm">
+                  {kindFilter === "all"
+                    ? "No feed activity yet."
+                    : `No ${kindFilter === "trade" ? "trades" : "theses"} in the loaded pages yet.`}
+                </div>
+              ) : (
+                items.map((item) => (
+                  <FeedCard
+                    key={item.id}
+                    item={item}
+                    now={now}
+                    onOpenThread={setActiveThread}
+                    onLike={handleLike}
+                  />
+                ))
+              )}
               {feed.isFetchingNextPage && <FeedPostsSkeleton />}
               {feed.isFetchNextPageError && (
                 <div
