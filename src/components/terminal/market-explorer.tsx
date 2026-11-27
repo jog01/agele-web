@@ -16,9 +16,11 @@ import { ChangeText } from "@/components/common/change-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMintSearch } from "@/hooks/use-mint-search";
 import type { Token } from "@/lib/api/client";
 import { useTrending } from "@/lib/api/queries";
 import { formatCompactUsd, formatPrice } from "@/lib/format";
+import { getSearchMint } from "@/lib/token-search";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 
@@ -39,19 +41,18 @@ export function MarketExplorer({
   useEffect(() => setMounted(true), []);
   // The shell ticker can populate this cache before the streamed terminal hydrates.
   const tokens = mounted ? markets.data : undefined;
-  const isPending = !mounted || markets.isPending;
-  const isError = mounted && markets.isError;
+  const mint = getSearchMint(query);
+  const lookup = useMintSearch(mint, tokens ?? [], mounted);
+  const isPending = mint ? lookup.isPending : !mounted || markets.isPending;
+  const isError = mint ? lookup.isError && !lookup.isNotFound : mounted && markets.isError;
   const rows = useMemo(() => {
+    if (mint) return lookup.token ? [lookup.token] : [];
     const q = query.trim().toLowerCase();
     const filtered = (tokens ?? []).filter(
-      (t) =>
-        !q ||
-        t.symbol.toLowerCase().includes(q) ||
-        t.name.toLowerCase().includes(q) ||
-        t.mint.toLowerCase() === q,
+      (t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q),
     );
     return sort === "holders" ? [...filtered].sort((a, b) => b.holders - a.holders) : filtered;
-  }, [tokens, sort, query]);
+  }, [tokens, sort, query, mint, lookup.token]);
   const watched = mounted ? (tokens ?? []).filter((t) => watchlist.includes(t.mint)) : [];
   const row = (token: Token, compact = false) => {
     const active = token.mint === activeMint;
@@ -143,7 +144,7 @@ export function MarketExplorer({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter tokens"
+              placeholder="Symbol, name or address"
               aria-label="Filter markets"
               autoComplete="off"
               spellCheck={false}
@@ -177,7 +178,7 @@ export function MarketExplorer({
       <div className="min-h-0 overflow-auto overscroll-contain">
         <ul aria-label="Supported markets">
           {isPending &&
-            Array.from({ length: 8 }, (_, i) => (
+            Array.from({ length: mint ? 1 : 8 }, (_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
               <li key={i} className="flex h-11 items-center gap-2 px-3">
                 <Skeleton className="size-7 shrink-0 rounded-full" />
@@ -186,15 +187,23 @@ export function MarketExplorer({
             ))}
           {isError && (
             <li className="px-3 py-4 text-muted-foreground text-xs">
-              Markets unavailable.
-              <Button variant="link" onClick={() => markets.refetch()}>
-                Retry
-              </Button>
+              {mint ? (
+                <span role="status">Token lookup unavailable.</span>
+              ) : (
+                <>
+                  Markets unavailable.
+                  <Button variant="link" onClick={() => markets.refetch()}>
+                    Retry
+                  </Button>
+                </>
+              )}
             </li>
           )}
           {!isPending && !isError && rows.length === 0 && (
             <li className="px-3 py-5 text-muted-foreground text-xs">
-              No matching tokens. Try a symbol or mint.
+              <span role="status">
+                {mint ? "No token found for this address." : "No matching tokens. Try a symbol or mint."}
+              </span>
             </li>
           )}
           {rows.map((t) => row(t))}
