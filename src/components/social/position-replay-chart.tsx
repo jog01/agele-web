@@ -41,11 +41,15 @@ export function PositionReplayChart({
   const [showTheses, setShowTheses] = useState(true);
   const [marketCap, setMarketCap] = useState(true);
   const now = useNow(60_000);
-  const end =
+  const anchor =
     position.closedAt ??
     (now === null ? (position.fills.at(-1)?.time ?? position.openedAt) : Math.floor(now / 1000));
+  const end =
+    position.closedAt === null
+      ? anchor
+      : theses.reduce((latest, thesis) => Math.max(latest, thesis.createdAt), anchor);
   const { days, interval, seconds } = ranges[range];
-  const start = days === null ? position.openedAt : end - days * DAY;
+  const start = days === null ? position.openedAt : anchor - days * DAY;
   const query = useQuery({ ...tokenQueries.candles(position.mint, interval), retry: false });
   const data = useMemo(
     () => replaySeries(position.fills, query.data ?? [], start, end, seconds),
@@ -136,10 +140,8 @@ export function PositionReplayChart({
       const times = (data.candles.length ? data.candles : data.prices).map(({ time }) => time);
       for (const thesis of theses) {
         if (thesis.createdAt < start || thesis.createdAt > end) continue;
-        const point = data.candles.length
-          ? Math.floor(thesis.createdAt / seconds) * seconds
-          : times.findLast((time) => time <= thesis.createdAt);
-        if (point === undefined || !times.includes(point)) continue;
+        const point = times.findLast((time) => time <= thesis.createdAt);
+        if (point === undefined) continue;
         markers.push({
           time: point as UTCTimestamp,
           position: "aboveBar",
@@ -163,7 +165,6 @@ export function PositionReplayChart({
     position.avgEntryUsd,
     query.isPending,
     scale,
-    seconds,
     showFills,
     showTheses,
     start,
