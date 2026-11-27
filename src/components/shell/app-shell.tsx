@@ -29,7 +29,7 @@ export function AppShell({ section, children }: { section?: NavSection; children
       <StatusStrip />
       <nav
         aria-label="Primary"
-        className="grid h-[calc(56px+env(safe-area-inset-bottom))] shrink-0 grid-cols-4 border-t bg-sidebar pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="grid h-[calc(56px+env(safe-area-inset-bottom))] shrink-0 auto-cols-fr grid-flow-col border-t bg-sidebar pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {NAV.map((item) => (
           <Link

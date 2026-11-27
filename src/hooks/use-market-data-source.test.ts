@@ -46,7 +46,7 @@ describe("useMarketDataSource", () => {
     unmount();
   });
 
-  it.each(["mock", "live"] as const)("reads %s from health", async (source) => {
+  it.each(["mock", "live", "indexed"] as const)("reads %s from health", async (source) => {
     health({ marketData: source });
     const { wrapper, qc } = setup();
     const { result, unmount } = renderHook(useMarketDataSource, { wrapper });
@@ -126,6 +126,22 @@ describe("demo labels and trading gates", () => {
     },
     {
       source: "live",
+      configured: true,
+      ready: true,
+      authenticated: true,
+      demoMode: false,
+      tradingDisabled: false,
+    },
+    {
+      source: "indexed",
+      configured: false,
+      ready: true,
+      authenticated: false,
+      demoMode: true,
+      tradingDisabled: true,
+    },
+    {
+      source: "indexed",
       configured: true,
       ready: true,
       authenticated: true,

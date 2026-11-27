@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartNoAxesCombined, LayoutDashboard, List, Radio, Search, Wallet } from "lucide-react";
+import { Activity, ChartNoAxesCombined, LayoutDashboard, List, Radio, Search, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-context";
 import { Brand } from "@/components/common/brand";
@@ -13,10 +13,11 @@ import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { openDeposit } from "@/stores/wallet";
 
-export type NavSection = "trade" | "feed" | "leaderboard" | "portfolio";
+export type NavSection = "trade" | "pulse" | "feed" | "leaderboard" | "portfolio";
 
 export const NAV = [
   { href: "/trade", label: "Trade", section: "trade", icon: ChartNoAxesCombined },
+  { href: "/pulse", label: "Pulse", section: "pulse", icon: Activity },
   { href: "/feed", label: "Feed", section: "feed", icon: Radio },
   { href: "/leaderboard", label: "Leaderboard", section: "leaderboard", icon: List },
   { href: "/portfolio", label: "Portfolio", section: "portfolio", icon: LayoutDashboard },

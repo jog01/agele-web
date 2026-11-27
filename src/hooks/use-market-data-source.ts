@@ -4,10 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useAuth } from "@/components/auth/auth-context";
 import { api, unwrap } from "@/lib/api/client";
+import type { components } from "@/lib/api/schema";
 
-const healthSchema = z.object({ marketData: z.enum(["mock", "live"]) });
+type MarketDataSource = components["schemas"]["Health"]["marketData"];
 
-export function useMarketDataSource(): "mock" | "live" {
+const healthSchema = z.object({ marketData: z.enum(["mock", "live", "indexed"]) });
+
+export function useMarketDataSource(): MarketDataSource {
   const query = useQuery({
     queryKey: ["health", "market-data"],
     queryFn: async ({ signal }) => {
