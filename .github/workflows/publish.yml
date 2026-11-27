@@ -1,0 +1,82 @@
+name: publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    strategy:
+      # One environment's missing config must not cancel the other's publish.
+      fail-fast: false
+      matrix:
+        include:
+          - environment: staging
+            api: https://staging-api.agele.xyz
+            ws: wss://staging-api.agele.xyz/ws
+          - environment: production
+            api: https://api.agele.xyz
+            ws: wss://api.agele.xyz/ws
+    # NEXT_PUBLIC_* is inlined at build time, so each environment gets its own image.
+    # Set the Privy and RPC values as variables on the matching GitHub environment.
+    environment: ${{ matrix.environment }}
+    # Serialize runs for one commit so two runs cannot both see a tag as missing.
+    concurrency:
+      group: publish-${{ matrix.environment }}-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      # Without these the image silently ships signed-out demo auth and the public RPC fallback.
+      - name: Check build config
+        env:
+          PRIVY_APP_ID: ${{ vars.NEXT_PUBLIC_PRIVY_APP_ID }}
+          SOLANA_RPC_URL: ${{ vars.NEXT_PUBLIC_SOLANA_RPC_URL }}
+        run: |
+          missing=0
+          [ -n "$PRIVY_APP_ID" ] || { echo "::error::Set NEXT_PUBLIC_PRIVY_APP_ID on the ${{ matrix.environment }} environment"; missing=1; }
+          [ -n "$SOLANA_RPC_URL" ] || { echo "::error::Set NEXT_PUBLIC_SOLANA_RPC_URL on the ${{ matrix.environment }} environment"; missing=1; }
+          exit $missing
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tag
+        run: echo "sha=${{ matrix.environment }}-sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      # A rerun must not replace an image that is already published under this tag.
+      - id: exists
+        run: |
+          if out=$(docker buildx imagetools inspect "ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.sha }}" 2>&1); then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif grep -qiE "not found|denied|forbidden|unauthorized" <<<"$out"; then  # missing tag, or package not created yet (a real auth failure fails the push too)
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"; exit 1
+          fi
+      # Tags never move; jog01/agele-infra pins image.webTag to <environment>-sha-<commit>.
+      - uses: docker/build-push-action@v6
+        if: steps.exists.outputs.published == 'false'
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ matrix.api }}
+            NEXT_PUBLIC_WS_URL=${{ matrix.ws }}
+            NEXT_PUBLIC_PRIVY_APP_ID=${{ vars.NEXT_PUBLIC_PRIVY_APP_ID }}
+            NEXT_PUBLIC_PRIVY_CLIENT_ID=${{ vars.NEXT_PUBLIC_PRIVY_CLIENT_ID }}
+            NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta
+            NEXT_PUBLIC_SOLANA_RPC_URL=${{ vars.NEXT_PUBLIC_SOLANA_RPC_URL }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.environment }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.environment }}
+          provenance: true
