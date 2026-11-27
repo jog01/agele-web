@@ -38,17 +38,17 @@ export function TraderMostLikedThesis({ wallet, thesis }: { wallet: string; thes
         <span className="tabular mt-2 flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
           <span className="inline-flex items-center gap-1">
             <Heart aria-hidden className="size-3" />
-            <span className="sr-only">Likes</span>
+            <span className="sr-only">{"Likes "}</span>
             {post.likes}
           </span>
           <span className="inline-flex items-center gap-1">
             <MessageSquare aria-hidden className="size-3" />
-            <span className="sr-only">Replies</span>
+            <span className="sr-only">{"Replies "}</span>
             {post.replyCount}
           </span>
           <span className="inline-flex items-center gap-1">
             <Eye aria-hidden className="size-3" />
-            <span className="sr-only">Views</span>
+            <span className="sr-only">{"Views "}</span>
             {post.viewCount ?? "—"}
           </span>
           {newerVersionCount > 0 && <span>{newerVersionCount} newer</span>}
