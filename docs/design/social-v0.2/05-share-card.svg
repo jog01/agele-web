@@ -30,5 +30,5 @@
 <text x="992" y="418" font-size="13" fill="#929BA8" font-weight="400" text-anchor="end">6 fills · fees included</text>
 <path d="M80 541 134 541 169 551 215 529 261 534 310 499 351 507 401 479 450 485 490 458 543 469 590 435 631 452 679 424 727 436 780 409 833 422 888 391 942 403 992 389" transform="translate(0 34)" fill="none" stroke="#B8DCA5" stroke-width="2.5"/>
 <text x="80" y="617" font-size="12" fill="#E6C17B" font-weight="400" text-anchor="start">Simulated performance · not your execution</text>
-<text x="992" y="643" font-size="12" fill="#929BA8" font-weight="400" text-anchor="end" class="mono">agele · position / demo-wif-01</text>
+<text x="992" y="643" font-size="12" fill="#929BA8" font-weight="400" text-anchor="end">agele · View position replay</text>
 </svg>

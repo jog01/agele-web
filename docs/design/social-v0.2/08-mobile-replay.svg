@@ -17,7 +17,7 @@
 <text x="51" y="36" font-size="19" fill="#EBEDF0" font-weight="700" text-anchor="start">agele</text>
 <rect x="232" y="18" width="44" height="20" rx="4" fill="#0E1116" stroke="#29303A"/>
 <text x="254.0" y="32" font-size="10" fill="#E6C17B" font-weight="600" text-anchor="middle">Demo</text>
-<svg x="299" y="22" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18l5 5M20 11a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="299" y="22" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18l5 5M20 11a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
 <circle cx="357.0" cy="29.0" r="13.0" fill="#24343A"/>
 <circle cx="357.0" cy="26.14" r="3.9" fill="#ACCDD1"/>
 <path d="M349.2 36.28Q357.0 24.060000000000002 364.8 36.28Z" fill="#ACCDD1"/>
@@ -44,12 +44,13 @@
 <text x="237" y="295" font-size="9" fill="#FF6177" font-weight="600" text-anchor="middle">S3</text>
 <text x="28" y="410" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">14:00</text>
 <text x="360" y="410" font-size="10" fill="#929BA8" font-weight="400" text-anchor="end" class="mono">15:30 UTC</text>
-<svg x="20" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
-<svg x="71" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 4 13 8-13 8V4Z"/></svg>
-<svg x="122" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
-<rect x="176" y="458" width="126" height="3" rx="0" fill="#29303A"/>
-<rect x="176" y="458" width="50" height="3" rx="0" fill="#B8DCA5"/>
-<circle cx="226" cy="459" r="5" fill="#B8DCA5"/>
+<svg aria-hidden="true" focusable="false" x="20" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="64" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+<svg aria-hidden="true" focusable="false" x="108" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 4 13 8-13 8V4Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="152" y="451" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
+<rect x="194" y="458" width="108" height="3" rx="0" fill="#29303A"/>
+<rect x="194" y="458" width="43" height="3" rx="0" fill="#B8DCA5"/>
+<circle cx="237" cy="459" r="5" fill="#B8DCA5"/>
 <text x="362" y="464" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="end">1×</text>
 <text x="16" y="510" font-size="12" fill="#929BA8" font-weight="400" text-anchor="start">At selected fill</text>
 <text x="16" y="544" font-size="23" fill="#EBEDF0" font-weight="600" text-anchor="start" class="mono">3.84 SOL</text>
@@ -63,7 +64,7 @@
 <rect x="16" y="648" width="358" height="65" rx="4" fill="#171F1C" stroke="#29303A"/>
 <text x="32" y="674" font-size="12" fill="#FF6177" font-weight="600" text-anchor="start">03  Sell · 0.80 SOL</text>
 <text x="32" y="698" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">21 Nov · 14:32:08 UTC</text>
-<svg x="338" y="672" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
+<svg aria-hidden="true" focusable="false" x="338" y="672" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
 <rect x="0" y="738" width="390" height="106" rx="0" fill="#0E1116"/>
 <path d="M0 738H390" stroke="#29303A"/>
 <rect x="16" y="754" width="112" height="44" rx="4" fill="#171B22" stroke="#29303A"/>

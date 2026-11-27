@@ -22,7 +22,7 @@
 <text x="364" y="29" font-size="12" fill="#929BA8" font-weight="600" text-anchor="start">Leaderboard</text>
 <text x="474" y="29" font-size="12" fill="#929BA8" font-weight="600" text-anchor="start">Portfolio</text>
 <rect x="660" y="10" width="284" height="28" rx="4" fill="#080A0D" stroke="#29303A"/>
-<svg x="672" y="17" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18l5 5M20 11a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="672" y="17" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18l5 5M20 11a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
 <text x="694" y="29" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">Search token or contract address</text>
 <text x="927" y="29" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">/</text>
 <rect x="1118" y="14" width="44" height="20" rx="4" fill="#0E1116" stroke="#29303A"/>
@@ -143,12 +143,13 @@
 <text x="595" y="513" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">15:00</text>
 <text x="769" y="513" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">15:30</text>
 <path d="M180 530H868" stroke="#29303A"/>
-<svg x="182" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EBEDF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
-<svg x="222" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 4 13 8-13 8V4Z"/></svg>
-<svg x="263" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EBEDF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
-<rect x="302" y="554" width="334" height="3" rx="1" fill="#29303A"/>
-<rect x="302" y="554" width="134" height="3" rx="1" fill="#B8DCA5"/>
-<circle cx="436" cy="555" r="5" fill="#B8DCA5"/>
+<svg aria-hidden="true" focusable="false" x="182" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EBEDF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="222" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EBEDF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+<svg aria-hidden="true" focusable="false" x="262" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 4 13 8-13 8V4Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="302" y="548" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EBEDF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
+<rect x="346" y="554" width="290" height="3" rx="1" fill="#29303A"/>
+<rect x="346" y="554" width="116" height="3" rx="1" fill="#B8DCA5"/>
+<circle cx="462" cy="555" r="5" fill="#B8DCA5"/>
 <text x="662" y="562" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">3 / 6 fills</text>
 <text x="790" y="562" font-size="11" fill="#EBEDF0" font-weight="400" text-anchor="start">1×</text>
 <text x="845" y="562" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">2×</text>
@@ -184,21 +185,21 @@
 <text x="224" y="721" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start">Fill · transaction details</text>
 <text x="484" y="709" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="start" class="mono">1.20 SOL</text>
 <text x="756" y="709" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">14:03:12</text>
-<svg x="846" y="699" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
+<svg aria-hidden="true" focusable="false" x="846" y="699" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
 <rect x="160" y="743" width="728" height="60" rx="4" fill="#0E1116" stroke="#29303A"/>
 <text x="180" y="767" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">02</text>
 <text x="224" y="767" font-size="12" fill="#2CDB99" font-weight="600" text-anchor="start">Buy</text>
 <text x="224" y="787" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start">Fill · transaction details</text>
 <text x="484" y="775" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="start" class="mono">2.40 SOL</text>
 <text x="756" y="775" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">14:17:04</text>
-<svg x="846" y="765" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
+<svg aria-hidden="true" focusable="false" x="846" y="765" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
 <rect x="160" y="809" width="728" height="60" rx="4" fill="#171F1C" stroke="#29303A"/>
 <text x="180" y="833" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">03</text>
 <text x="224" y="833" font-size="12" fill="#FF6177" font-weight="600" text-anchor="start">Sell</text>
 <text x="224" y="853" font-size="10" fill="#929BA8" font-weight="400" text-anchor="start">Fill · transaction details</text>
 <text x="484" y="841" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="start" class="mono">0.80 SOL</text>
 <text x="756" y="841" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">14:32:08</text>
-<svg x="846" y="831" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
+<svg aria-hidden="true" focusable="false" x="846" y="831" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 7 7-7 7"/></svg>
 <text x="180" y="906" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">3 later fills · select a fill to move the chart</text>
 <rect x="0" y="932" width="1440" height="28" rx="0" fill="#0E1116"/>
 <path d="M0 932H1440" stroke="#29303A"/>

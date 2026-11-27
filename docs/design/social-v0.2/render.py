@@ -78,9 +78,10 @@ class Board:
             "close": 'm5 5 14 14M5 19 19 5',
             "check": 'm4 12 5 5L20 6',
             "chevron": 'm8 5 7 7-7 7',
+            "previous": 'm15 5-7 7 7 7',
             "play": 'm8 4 13 8-13 8V4Z',
         }
-        self.add(f'<svg x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{paths[name]}"/></svg>')
+        self.add(f'<svg aria-hidden="true" focusable="false" x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{paths[name]}"/></svg>')
 
     def btn(self, x, y, w, label, primary=False, h=32):
         self.rect(x, y, w, h, BRAND if primary else FLOAT, None if primary else EDGE, 4)
@@ -378,11 +379,12 @@ def replay():
         b.text(x, 513, label, 10, MUTED, mono=True)
     b.line(180, 530, 868, 530)
     b.icon(182, 548, "replay", FG)
-    b.icon(222, 548, "play", BRAND)
-    b.icon(263, 548, "chevron", FG)
-    b.rect(302, 554, 334, 3, EDGE, r=1)
-    b.rect(302, 554, 134, 3, BRAND, r=1)
-    b.circle(436, 555, 5, BRAND)
+    b.icon(222, 548, "previous", FG)
+    b.icon(262, 548, "play", BRAND)
+    b.icon(302, 548, "chevron", FG)
+    b.rect(346, 554, 290, 3, EDGE, r=1)
+    b.rect(346, 554, 116, 3, BRAND, r=1)
+    b.circle(462, 555, 5, BRAND)
     b.text(662, 562, "3 / 6 fills", 11, MUTED, mono=True)
     b.text(790, 562, "1×", 11, FG)
     b.text(845, 562, "2×", 11, MUTED)
@@ -435,7 +437,7 @@ def share():
     b.text(992, 418, "6 fills · fees included", 13, MUTED, anchor="end")
     b.add(f'<path d="M80 541 134 541 169 551 215 529 261 534 310 499 351 507 401 479 450 485 490 458 543 469 590 435 631 452 679 424 727 436 780 409 833 422 888 391 942 403 992 389" transform="translate(0 34)" fill="none" stroke="{BRAND}" stroke-width="2.5"/>')
     b.text(80, 617, "Simulated performance · not your execution", 12, WARN)
-    b.text(992, 643, "agele · position / demo-wif-01", 12, MUTED, mono=True, anchor="end")
+    b.text(992, 643, "agele · View position replay", 12, MUTED, anchor="end")
     b.save("05-share-card")
 
 
@@ -651,11 +653,12 @@ def mobile_replay():
     b.text(28, 410, "14:00", 10, MUTED, mono=True)
     b.text(360, 410, "15:30 UTC", 10, MUTED, mono=True, anchor="end")
     b.icon(20, 451, "replay", size=18)
-    b.icon(71, 451, "play", BRAND, size=18)
-    b.icon(122, 451, "chevron", size=18)
-    b.rect(176, 458, 126, 3, EDGE)
-    b.rect(176, 458, 50, 3, BRAND)
-    b.circle(226, 459, 5, BRAND)
+    b.icon(64, 451, "previous", size=18)
+    b.icon(108, 451, "play", BRAND, size=18)
+    b.icon(152, 451, "chevron", size=18)
+    b.rect(194, 458, 108, 3, EDGE)
+    b.rect(194, 458, 43, 3, BRAND)
+    b.circle(237, 459, 5, BRAND)
     b.text(362, 464, "1×", 12, anchor="end")
     b.text(16, 510, "At selected fill", 12, MUTED)
     b.text(16, 544, "3.84 SOL", 23, weight=600, mono=True)

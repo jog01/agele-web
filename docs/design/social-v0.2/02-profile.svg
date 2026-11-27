@@ -22,7 +22,7 @@
 <text x="364" y="29" font-size="12" fill="#929BA8" font-weight="600" text-anchor="start">Leaderboard</text>
 <text x="474" y="29" font-size="12" fill="#929BA8" font-weight="600" text-anchor="start">Portfolio</text>
 <rect x="660" y="10" width="284" height="28" rx="4" fill="#080A0D" stroke="#29303A"/>
-<svg x="672" y="17" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18l5 5M20 11a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="672" y="17" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18l5 5M20 11a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
 <text x="694" y="29" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">Search token or contract address</text>
 <text x="927" y="29" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">/</text>
 <rect x="1118" y="14" width="44" height="20" rx="4" fill="#0E1116" stroke="#29303A"/>
@@ -40,7 +40,7 @@
 <path d="M172.8 167.92000000000002Q192.0 137.84 211.2 167.92000000000002Z" fill="#ACCDD1"/>
 <text x="244" y="141" font-size="25" fill="#EBEDF0" font-weight="600" text-anchor="start">solsurfer</text>
 <text x="244" y="165" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start" class="mono">48mi…m54P</text>
-<svg x="348" y="152" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h13v13H8V8ZM16 4H4v12"/></svg>
+<svg aria-hidden="true" focusable="false" x="348" y="152" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#929BA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h13v13H8V8ZM16 4H4v12"/></svg>
 <text x="160" y="212" font-size="14" fill="#EBEDF0" font-weight="400" text-anchor="start">Patient entries. Clear exits. Mostly SOL ecosystem.</text>
 <text x="160" y="241" font-size="12" fill="#EBEDF0" font-weight="600" text-anchor="start" class="mono">1,284</text>
 <text x="210" y="241" font-size="12" fill="#929BA8" font-weight="400" text-anchor="start">followers</text>
@@ -92,7 +92,7 @@
 <text x="465" y="697" font-size="12" fill="#2CDB99" font-weight="600" text-anchor="start">Buy</text>
 <text x="594" y="697" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="start" class="mono">2.40 SOL</text>
 <text x="817" y="697" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">2m ago</text>
-<svg x="1040" y="683" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="1040" y="683" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
 <text x="1064" y="697" font-size="11" fill="#B8DCA5" font-weight="400" text-anchor="start">Replay trade</text>
 <text x="1258" y="697" font-size="11" fill="#929BA8" font-weight="400" text-anchor="end">View token</text>
 <path d="M160 728H1280" stroke="#29303A"/>
@@ -102,7 +102,7 @@
 <text x="465" y="772" font-size="12" fill="#FF6177" font-weight="600" text-anchor="start">Sell</text>
 <text x="594" y="772" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="start" class="mono">1.80 SOL</text>
 <text x="817" y="772" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">28m ago</text>
-<svg x="1040" y="758" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="1040" y="758" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
 <text x="1064" y="772" font-size="11" fill="#B8DCA5" font-weight="400" text-anchor="start">Replay trade</text>
 <text x="1258" y="772" font-size="11" fill="#929BA8" font-weight="400" text-anchor="end">View token</text>
 <path d="M160 803H1280" stroke="#29303A"/>
@@ -112,7 +112,7 @@
 <text x="465" y="847" font-size="12" fill="#2CDB99" font-weight="600" text-anchor="start">Buy</text>
 <text x="594" y="847" font-size="12" fill="#EBEDF0" font-weight="400" text-anchor="start" class="mono">0.75 SOL</text>
 <text x="817" y="847" font-size="11" fill="#929BA8" font-weight="400" text-anchor="start">1h ago</text>
-<svg x="1040" y="833" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
+<svg aria-hidden="true" focusable="false" x="1040" y="833" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8DCA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a8 8 0 1 1-1 9M5 2v5h5M10 9l6 4-6 4V9Z"/></svg>
 <text x="1064" y="847" font-size="11" fill="#B8DCA5" font-weight="400" text-anchor="start">Replay trade</text>
 <text x="1258" y="847" font-size="11" fill="#929BA8" font-weight="400" text-anchor="end">View token</text>
 <path d="M160 878H1280" stroke="#29303A"/>
