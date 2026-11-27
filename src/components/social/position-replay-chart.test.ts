@@ -7,12 +7,15 @@ import type { Candle, Comment } from "@/lib/api/client";
 import type { TraderPosition } from "@/lib/position-replay";
 import { PositionReplayChart } from "./position-replay-chart";
 
-const { createMarkers } = vi.hoisted(() => ({ createMarkers: vi.fn() }));
+const { createMarkers, createPriceLine } = vi.hoisted(() => ({
+  createMarkers: vi.fn(),
+  createPriceLine: vi.fn(),
+}));
 
 vi.mock("lightweight-charts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("lightweight-charts")>()),
   createChart: () => ({
-    addSeries: () => ({ setData: vi.fn(), createPriceLine: vi.fn() }),
+    addSeries: () => ({ setData: vi.fn(), createPriceLine }),
     timeScale: () => ({ fitContent: vi.fn() }),
     remove: vi.fn(),
   }),
@@ -83,6 +86,28 @@ const candle = (time: number): Candle => ({ time, open: 4, high: 5, low: 4, clos
 afterEach(() => {
   cleanup();
   createMarkers.mockClear();
+  createPriceLine.mockClear();
+});
+
+it.each([400, null])("scales the entry line like the series with historical MC %s", (entryMc) => {
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: 0 } } });
+  client.setQueryData(["tokens", "mint", "candles", "1h"], [candle(82_800)]);
+  render(
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(PositionReplayChart, {
+        position: { ...position, avgEntryMarketCapUsd: entryMc },
+        supply: 250,
+        theses: [],
+      }),
+    ),
+  );
+
+  expect(createPriceLine).toHaveBeenLastCalledWith(expect.objectContaining({ price: 1000 }));
+  fireEvent.click(screen.getByRole("button", { name: "MCap" }));
+  expect(createPriceLine).toHaveBeenLastCalledWith(expect.objectContaining({ price: 4 }));
+  client.clear();
 });
 
 it("shows a thesis posted 30 minutes after close in every replay range", () => {
