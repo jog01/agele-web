@@ -13,6 +13,39 @@ function retry(count: number, error: Error) {
   return count < 1 && !(error instanceof ApiError && error.status >= 400 && error.status < 500);
 }
 
+export function traderPositionQuery(wallet: string, mint: string, positionId?: string) {
+  return queryOptions({
+    queryKey: ["trader-position", wallet, mint, positionId],
+    retry,
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await api.GET("/v1/traders/{wallet}/positions/{mint}", {
+          params: { path: { wallet, mint }, query: { positionId } },
+          signal,
+        }),
+      ),
+  });
+}
+
+export function positionTransactionsQuery(
+  wallet: string,
+  mint: string,
+  positionId: string,
+  { page, limit, minSizeUsd }: { page: number; limit: number; minSizeUsd: number },
+) {
+  return queryOptions({
+    queryKey: ["position-transactions", wallet, mint, positionId, page, limit, minSizeUsd],
+    retry,
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await api.GET("/v1/traders/{wallet}/positions/{mint}/transactions", {
+          params: { path: { wallet, mint }, query: { positionId, page, limit, minSizeUsd } },
+          signal,
+        }),
+      ),
+  });
+}
+
 export function traderProfileQuery(wallet: string, auth: TraderAuth) {
   return queryOptions({
     queryKey: ["trader", socialViewer(auth), wallet],

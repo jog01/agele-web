@@ -44,7 +44,13 @@ export function ThesisThreadSheet({
   );
 }
 
-function ThesisThreadBody({ thread }: { thread: ActiveThesisThread }) {
+export function ThesisThreadBody({
+  thread,
+  embedded = false,
+}: {
+  thread: ActiveThesisThread;
+  embedded?: boolean;
+}) {
   const auth = useAuth();
   const now = useNow(30_000);
   const [replyTarget, setReplyTarget] = useState<{ id: string; handle: string } | null>(null);
@@ -231,26 +237,28 @@ function ThesisThreadBody({ thread }: { thread: ActiveThesisThread }) {
 
   return (
     <>
-      <SheetHeader className="border-b px-5 py-4">
-        <div className="flex items-center gap-2.5 pr-8">
-          <AssetAvatar imageUrl={thread.imageUrl} className="size-7" />
-          <div className="min-w-0">
-            <SheetTitle className="truncate text-sm">
-              {thread.symbol ? `${thread.symbol} thesis thread` : "Thesis thread"}
-            </SheetTitle>
-            <SheetDescription className="text-xs">Versions, pinned update, and replies</SheetDescription>
+      {!embedded && (
+        <SheetHeader className="border-b px-5 py-4">
+          <div className="flex items-center gap-2.5 pr-8">
+            <AssetAvatar imageUrl={thread.imageUrl} className="size-7" />
+            <div className="min-w-0">
+              <SheetTitle className="truncate text-sm">
+                {thread.symbol ? `${thread.symbol} thesis thread` : "Thesis thread"}
+              </SheetTitle>
+              <SheetDescription className="text-xs">Versions, pinned update, and replies</SheetDescription>
+            </div>
+            <Link
+              href={`/trade/${thread.mint}`}
+              className="ml-auto inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
+            >
+              Trade
+              <ArrowUpRight className="size-3.5" />
+            </Link>
           </div>
-          <Link
-            href={`/trade/${thread.mint}`}
-            className="ml-auto inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
-          >
-            Trade
-            <ArrowUpRight className="size-3.5" />
-          </Link>
-        </div>
-      </SheetHeader>
+        </SheetHeader>
+      )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      <div className={cn("space-y-3", embedded ? "py-3" : "flex-1 overflow-y-auto px-5 py-4")}>
         {query.isPending ? (
           <TableSkeleton label="Loading thesis thread" columns={3} />
         ) : query.isError ? (
@@ -291,7 +299,7 @@ function ThesisThreadBody({ thread }: { thread: ActiveThesisThread }) {
         )}
       </div>
 
-      <div className="border-t bg-background/80 px-5 py-3.5">
+      <div className={cn("border-t py-3.5", !embedded && "bg-background/80 px-5")}>
         {replyTarget && (
           <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
             <span>Replying to @{replyTarget.handle}</span>

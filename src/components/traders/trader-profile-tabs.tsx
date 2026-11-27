@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
+import { PositionReplayLink } from "@/components/social/position-replay-link";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,7 @@ import type { components } from "@/lib/api/schema";
 import { feedItemContent } from "@/lib/api/social";
 import { type TraderFeedFilter, traderFeedQuery, traderTradesQuery } from "@/lib/api/traders";
 import { changeTone, formatAmount, formatPct, formatUsd, timeAgo, utcTimestamp } from "@/lib/format";
+import type { PositionTarget } from "@/lib/position-replay";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
 import { TraderTableSkeleton } from "./trader-profile-loading";
@@ -26,27 +28,24 @@ const SEGMENT = "h-8 px-3 text-xs";
 const MIN_SIZES = [0, 100, 1_000, 10_000] as const;
 type PositionsView = "open" | "closed" | "top";
 
-export function TokenLink({
-  mint,
+function ReplayToken({
+  target,
   symbol,
   imageUrl,
 }: {
-  mint: string;
+  target: PositionTarget;
   symbol: string;
   imageUrl: string | null;
 }) {
   return (
-    <Link
-      href={`/trade/${encodeURIComponent(mint)}`}
-      className={cn(LINK, "inline-flex items-center gap-1.5")}
-    >
+    <PositionReplayLink target={target} className={cn(LINK, "inline-flex items-center gap-1.5")}>
       {imageUrl ? (
         <AssetAvatar imageUrl={imageUrl} className="size-4" />
       ) : (
-        <TokenAssetAvatar mint={mint} className="size-4" />
+        <TokenAssetAvatar mint={target.mint} className="size-4" />
       )}
       {symbol}
-    </Link>
+    </PositionReplayLink>
   );
 }
 
@@ -162,7 +161,17 @@ function ClosedPositions({ wallet }: { wallet: string }) {
             {rows.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="pl-4 sm:pl-5">
-                  <TokenLink mint={item.mint} symbol={item.symbol} imageUrl={item.imageUrl} />
+                  <ReplayToken
+                    target={{
+                      wallet: item.wallet,
+                      mint: item.mint,
+                      positionId: item.positionId ?? undefined,
+                      fillId: item.positionId ? undefined : item.id,
+                      discussionKey: item.discussionKey ?? undefined,
+                    }}
+                    symbol={item.symbol}
+                    imageUrl={item.imageUrl}
+                  />
                   <div className="text-muted-foreground text-xs">
                     Closed{" "}
                     <time dateTime={utcTimestamp(item.createdAt)}>
@@ -320,14 +329,14 @@ export function TraderPositionsPanel({
           ]}
         />
       </div>
-      {view === "open" && <OpenPositions positions={positions} />}
+      {view === "open" && <OpenPositions wallet={wallet} positions={positions} />}
       {view === "closed" && <ClosedPositions wallet={wallet} />}
-      {view === "top" && <TopTradesTable trades={topTrades} />}
+      {view === "top" && <TopTradesTable wallet={wallet} trades={topTrades} />}
     </section>
   );
 }
 
-function TopTradesTable({ trades }: { trades: TopTrades }) {
+function TopTradesTable({ wallet, trades }: { wallet: string; trades: TopTrades }) {
   if (!trades.length) {
     return <p className="min-h-24 px-4 py-6 text-muted-foreground text-sm sm:px-5">No closed trades yet.</p>;
   }
@@ -345,7 +354,11 @@ function TopTradesTable({ trades }: { trades: TopTrades }) {
             <TableCell className="pl-4 sm:pl-5">
               <div className="flex items-center gap-2">
                 <span className="tabular w-5 text-muted-foreground text-xs">#{index + 1}</span>
-                <TokenLink mint={trade.mint} symbol={trade.symbol} imageUrl={trade.imageUrl} />
+                <ReplayToken
+                  target={{ wallet, mint: trade.mint, positionId: trade.positionId }}
+                  symbol={trade.symbol}
+                  imageUrl={trade.imageUrl}
+                />
               </div>
               <div className="pl-7 text-muted-foreground text-xs">
                 Closed{" "}
@@ -365,7 +378,7 @@ function TopTradesTable({ trades }: { trades: TopTrades }) {
   );
 }
 
-function OpenPositions({ positions }: { positions: Positions }) {
+function OpenPositions({ wallet, positions }: { wallet: string; positions: Positions }) {
   const rows = positions.filter((position) => position !== null);
   return (
     <div>
@@ -382,7 +395,11 @@ function OpenPositions({ positions }: { positions: Positions }) {
             {rows.map((position) => (
               <TableRow key={position.mint}>
                 <TableCell className="pl-4 sm:pl-5">
-                  <TokenLink mint={position.mint} symbol={position.symbol} imageUrl={position.imageUrl} />
+                  <ReplayToken
+                    target={{ wallet, mint: position.mint }}
+                    symbol={position.symbol}
+                    imageUrl={position.imageUrl}
+                  />
                   <div className="tabular text-muted-foreground text-xs">
                     {formatAmount(position.quantity)}
                   </div>
@@ -451,7 +468,11 @@ function TraderTransactions({ wallet }: { wallet: string }) {
                     <span className={trade.side === "buy" ? "text-positive" : "text-negative"}>
                       {trade.side === "buy" ? "Buy" : "Sell"}
                     </span>
-                    <TokenLink mint={trade.mint} symbol={trade.symbol} imageUrl={trade.imageUrl} />
+                    <ReplayToken
+                      target={{ wallet, mint: trade.mint, fillId: trade.id }}
+                      symbol={trade.symbol}
+                      imageUrl={trade.imageUrl}
+                    />
                   </div>
                   <div className="tabular mt-0.5 text-muted-foreground text-xs">
                     {formatAmount(trade.tokenAmount)}

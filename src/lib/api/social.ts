@@ -77,6 +77,22 @@ export function thesisThreadQuery(mint: string, thesisId: string | null, auth?: 
   });
 }
 
+export function positionDiscussionQuery(key: string, auth: SocialAuth) {
+  return infiniteQueryOptions({
+    queryKey: ["position-discussion", key, socialViewer(auth)],
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam, signal }) =>
+      unwrap(
+        await api.GET("/v1/feed/{key}/comments", {
+          params: { path: { key }, query: { cursor: pageParam, limit: 25 } },
+          headers: await socialHeaders(auth),
+          signal,
+        }),
+      ),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}
+
 export function feedItemContent(item: FeedItem) {
   switch (item.kind) {
     case "thesis":

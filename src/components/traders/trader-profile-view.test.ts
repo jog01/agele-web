@@ -219,8 +219,14 @@ it("uses the opaque next cursor, preserves trades after a failed page, and retri
   expect((await screen.findByRole("link", { name: "Solscan" })).getAttribute("href")).toContain(
     trade.signature,
   );
-  expect(screen.getByRole("link", { name: "SOL" }).getAttribute("href")).toBe(`/trade/${mint}`);
-  expect(screen.getByRole("link", { name: "SOL" }).querySelector("img")?.getAttribute("src")).toBe(imageUrl);
+  const replay = screen.getByRole("button", { name: "SOL" });
+  expect(replay.querySelector("img")?.getAttribute("src")).toBe(imageUrl);
+  const url = new URL(window.location.href);
+  fireEvent.click(replay);
+  const selection = new URLSearchParams(window.location.search);
+  window.history.replaceState(null, "", url);
+  expect(selection.get("mint")).toBe(mint);
+  expect(selection.get("fill")).toBe(trade.id);
   fireEvent.click(screen.getByRole("button", { name: "Load more trades" }));
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn’t load more trades.");
   expect(screen.getByText("Buy")).toBeDefined();
@@ -266,7 +272,7 @@ it("renders displayName, bio, and API-provided position imageUrl when present", 
   expect(await screen.findByRole("heading", { name: "Orca Prime" })).toBeDefined();
   expect(screen.getByText("@Orca")).toBeDefined();
   expect(screen.getByText("Momentum trader tracking Solana liquidity.")).toBeDefined();
-  const link = await screen.findByRole("link", { name: "SOL" });
+  const link = await screen.findByRole("button", { name: "SOL" });
   expect(link.querySelector("img")?.getAttribute("src")).toBe(imageUrl);
 });
 
@@ -297,8 +303,13 @@ it("renders indexed positions and skips nullable entries from the API", async ()
   const { client } = renderProfile();
   const imageUrl = "https://example.com/sol.webp";
   client.setQueryData(["tokens", mint], { mint, imageUrl });
-  const link = await screen.findByRole("link", { name: "SOL" });
-  expect(link.getAttribute("href")).toBe(`/trade/${mint}`);
+  const link = await screen.findByRole("button", { name: "SOL" });
+  const url = new URL(window.location.href);
+  fireEvent.click(link);
+  const selection = new URLSearchParams(window.location.search);
+  window.history.replaceState(null, "", url);
+  expect(selection.get("mint")).toBe(mint);
+  expect(selection.has("fill")).toBe(false);
   expect(link.querySelector("img")?.getAttribute("src")).toBe(imageUrl);
   expect(screen.getByRole("table", { name: "Open positions" }).textContent).toContain("-$20.00");
   await openTransactions();
