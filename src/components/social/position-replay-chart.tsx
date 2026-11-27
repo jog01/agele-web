@@ -173,7 +173,7 @@ export function PositionReplayChart({
   ]);
 
   return (
-    <section className="position-replay-panel" aria-label="Replay chart">
+    <section className="position-replay-panel position-replay-chart" aria-label="Replay chart">
       <div className="position-replay-panel-head">
         <h3>Replay chart</h3>
         <div className="position-replay-controls">

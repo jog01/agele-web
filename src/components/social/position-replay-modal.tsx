@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Share2, Star } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import { ApiError, type Comment, type Token } from "@/lib/api/client";
 import { tokenQueries } from "@/lib/api/queries";
 import { positionDiscussionQuery, thesisThreadQuery } from "@/lib/api/social";
@@ -413,7 +414,7 @@ function PositionReplay({ target }: { target: PositionTarget }) {
 
 export function PositionReplayModal() {
   const target = positionTarget(useSearchParams());
-  const opener = useRef<HTMLElement | null>(null);
+  const focusReturn = useDialogFocusReturn();
   return (
     <Dialog
       open={!!target}
@@ -421,19 +422,7 @@ export function PositionReplayModal() {
         if (!open) window.history.replaceState(null, "", positionUrl(new URL(window.location.href), null));
       }}
     >
-      <DialogContent
-        className="position-replay"
-        onOpenAutoFocus={() => {
-          opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        }}
-        onCloseAutoFocus={(event) => {
-          if (opener.current?.isConnected) {
-            event.preventDefault();
-            opener.current.focus();
-          }
-          opener.current = null;
-        }}
-      >
+      <DialogContent {...focusReturn} className="position-replay">
         {target && <PositionReplay key={JSON.stringify(target)} target={target} />}
       </DialogContent>
     </Dialog>

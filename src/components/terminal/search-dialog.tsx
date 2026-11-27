@@ -10,6 +10,7 @@ import { ChangeText } from "@/components/common/change-text";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import { useMintSearch } from "@/hooks/use-mint-search";
 import { tokenQueries } from "@/lib/api/queries";
 import { formatPrice, shortAddress } from "@/lib/format";
@@ -25,6 +26,7 @@ export function SearchDialog({
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const focusReturn = useDialogFocusReturn();
   // Fetch on open only: the dialog hydrates before the terminal boundary, and an early cache fill would mismatch it.
   const { data: tokens = [] } = useQuery({ ...tokenQueries.trending(), enabled: open });
   const [query, setQuery] = useState("");
@@ -47,7 +49,9 @@ export function SearchDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="gap-0 p-0 sm:max-w-lg"
+        onCloseAutoFocus={focusReturn.onCloseAutoFocus}
         onOpenAutoFocus={(e) => {
+          focusReturn.onOpenAutoFocus();
           if (window.matchMedia("(pointer: coarse)").matches) e.preventDefault();
           else {
             e.preventDefault();
