@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
+import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -146,7 +147,11 @@ export function FeedView() {
                   href={`/trade/${p.token.mint}`}
                   className="mt-3 flex min-h-[66px] items-center gap-3 rounded-md border border-border/50 bg-background px-3 py-2.5 transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-foreground"
                 >
-                  <AssetAvatar mint={p.token.mint} symbol={p.token.symbol} />
+                  {"imageUrl" in p.token ? (
+                    <AssetAvatar imageUrl={p.token.imageUrl} />
+                  ) : (
+                    <TokenAssetAvatar mint={p.token.mint} />
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-xs">{p.token.symbol}</span>
                     <span className="block truncate text-[11px] text-muted-foreground">

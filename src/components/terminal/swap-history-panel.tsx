@@ -1,11 +1,27 @@
 "use client";
 
+import { AssetAvatar } from "@/components/common/asset-avatar";
+import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSwapHistory, useSwapHistoryTokens } from "@/hooks/use-swap-history";
+import type { Token } from "@/lib/api/client";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { historySide, swapAmount } from "@/lib/swap-history";
 import { TableSkeleton } from "./panel-skeleton";
+
+function SwapAsset({ amount, mint, token }: { amount: string; mint: string; token?: Token }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {token ? (
+        <AssetAvatar imageUrl={token.imageUrl} className="size-4" />
+      ) : (
+        <TokenAssetAvatar mint={mint} className="size-4" />
+      )}
+      {swapAmount(amount, mint, token)}
+    </span>
+  );
+}
 
 export function SwapHistoryPanel({ mint }: { mint: string }) {
   const history = useSwapHistory();
@@ -54,18 +70,18 @@ export function SwapHistoryPanel({ mint }: { mint: string }) {
                 {historySide(item, mint)}
               </TableCell>
               <TableCell className="tabular">
-                {swapAmount(
-                  item.inAmount,
-                  item.inputMint,
-                  tokens.find((token) => token.mint === item.inputMint),
-                )}
+                <SwapAsset
+                  amount={item.inAmount}
+                  mint={item.inputMint}
+                  token={tokens.find((token) => token.mint === item.inputMint)}
+                />
               </TableCell>
               <TableCell className="tabular">
-                {swapAmount(
-                  item.outAmount,
-                  item.outputMint,
-                  tokens.find((token) => token.mint === item.outputMint),
-                )}
+                <SwapAsset
+                  amount={item.outAmount}
+                  mint={item.outputMint}
+                  token={tokens.find((token) => token.mint === item.outputMint)}
+                />
               </TableCell>
               <TableCell>
                 {item.status}

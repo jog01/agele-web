@@ -1,6 +1,8 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
+import { AssetAvatar } from "@/components/common/asset-avatar";
+import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,6 +43,28 @@ function Line({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function QuoteAsset({
+  asset,
+  value,
+}: {
+  asset: Pick<Token, "mint" | "symbol"> & Partial<Pick<Token, "imageUrl">>;
+  value: string;
+}) {
+  return (
+    <>
+      <span className="inline-flex items-center gap-1.5">
+        {"imageUrl" in asset ? (
+          <AssetAvatar imageUrl={asset.imageUrl} className="size-4" />
+        ) : (
+          <TokenAssetAvatar mint={asset.mint} className="size-4" />
+        )}
+        {value}
+      </span>
+      <span className="block font-mono text-muted-foreground text-xs">{shortAddress(asset.mint)}</span>
+    </>
+  );
+}
+
 /**
  * Explicit review step before wallet signing. The production flow is:
  * POST /v1/swaps/quote → review → Privy signs → POST /v1/swaps/:id/submit → confirmation.
@@ -71,25 +95,10 @@ export function QuoteReviewDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="text-[13px]">
-          <Line
-            label="From"
-            value={
-              <>
-                {amount} {from.symbol}
-                <span className="block font-mono text-muted-foreground text-xs">
-                  {shortAddress(from.mint)}
-                </span>
-              </>
-            }
-          />
+          <Line label="From" value={<QuoteAsset asset={from} value={`${amount} ${from.symbol}`} />} />
           <Line
             label="To (estimated)"
-            value={
-              <>
-                {receive === DASH ? DASH : `${receive} ${to.symbol}`}
-                <span className="block font-mono text-muted-foreground text-xs">{shortAddress(to.mint)}</span>
-              </>
-            }
+            value={<QuoteAsset asset={to} value={receive === DASH ? DASH : `${receive} ${to.symbol}`} />}
           />
           <Line label="Minimum receive" value={minReceive === DASH ? DASH : `${minReceive} ${to.symbol}`} />
           <Separator className="my-2" />

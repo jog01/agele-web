@@ -12,7 +12,7 @@ vi.mock("@/lib/api/client", async (importOriginal) => ({
   api: { GET: get, PUT: vi.fn(), DELETE: vi.fn() },
 }));
 vi.mock("@/lib/api/queries", () => ({
-  useTrending: () => ({ data: [{ mint: "sol", symbol: "SOL" }] }),
+  useTrending: () => ({ data: [{ mint: "sol", symbol: "SOL", imageUrl: "https://example.com/sol.webp" }] }),
   useLeaderboard: () => ({
     data: pendingBoard.value ? undefined : { entries: [], dataSource: "demo" },
     isPending: pendingBoard.value,
@@ -74,6 +74,9 @@ it("shows named post and trader skeletons independently, then replaces only reso
   expect(screen.getByRole("status", { name: "Loading suggested traders" })).toBeDefined();
   await act(async () => request.resolve(ok([post])));
   expect(await screen.findByText(post.body)).toBeDefined();
+  expect(screen.getByRole("link", { name: /SOL/ }).querySelector("img")?.getAttribute("src")).toBe(
+    "https://example.com/sol.webp",
+  );
   expect(screen.queryByRole("status", { name: "Loading feed posts" })).toBeNull();
   expect(screen.getByRole("status", { name: "Loading suggested traders" })).toBeDefined();
 });

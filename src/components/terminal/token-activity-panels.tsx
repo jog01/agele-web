@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/auth/auth-context";
+import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTokenHolders, useTokenPosition, useTokenTraders } from "@/hooks/use-token-activity";
@@ -150,7 +151,8 @@ export function PositionsPanel({ mint }: { mint: string }) {
         <p>No position in this token.</p>
       ) : (
         <>
-          <p className="font-medium">
+          <p className="flex items-center gap-1.5 font-medium">
+            <TokenAssetAvatar mint={position.mint} className="size-4" />
             {position.symbol} · {position.quantity === 0 ? "Closed position" : "Your position"}
           </p>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">

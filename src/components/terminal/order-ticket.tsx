@@ -3,6 +3,7 @@
 import { Settings2, Wallet } from "lucide-react";
 import { useId, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
+import { AssetAvatar } from "@/components/common/asset-avatar";
 import { ChangeText } from "@/components/common/change-text";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +75,11 @@ export function OrderTicket({
     <section aria-label="Order ticket" className="rounded-md bg-card p-2.5">
       <div className="mb-1.5 flex h-6 items-center justify-between">
         <h2 className="font-semibold text-xs tracking-tight">
-          Trade <span className="text-muted-foreground">{symbol}</span>
+          Trade{" "}
+          <span className="inline-flex items-center gap-1.5 align-middle text-muted-foreground">
+            <AssetAvatar imageUrl={token.imageUrl} className="size-4" />
+            {symbol}
+          </span>
           {DEMO_MODE && <span className="ml-1.5 font-normal text-[10px] text-muted-foreground">Demo</span>}
         </h2>
         <Dialog>

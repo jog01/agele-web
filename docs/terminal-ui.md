@@ -4,14 +4,16 @@ The terminal uses the [Sage / Ink brand contract](brand.md) in `src/app/globals.
 
 ## Token identity
 
-`src/lib/token-assets.json` records each supported mint, symbol and Jupiter source URL. Eight WebP assets are bundled locally (about 56 KB total); no arbitrary remote image hosts are allowed. A symbol alone never selects a trusted logo.
+Token avatars use remote HTTPS logos from the token API, in demo and live modes. Rows with only a mint read the token detail and trending query caches, and can fetch token details when needed. The browser loads the logo without a referrer; missing, invalid, or broken URLs show a neutral coin glyph, never initials. The landing illustration is separate.
 
 ```mermaid
 flowchart LR
-  Token[API Token.mint] --> Lookup{Known mint?}
-  Lookup -->|Yes| Local[Local WebP via next/image]
-  Lookup -->|No| Fallback[Initials fallback]
-  Local -->|Load error| Fallback
+  Token[API token with metadata] --> URL{Usable imageUrl?}
+  Mint[Mint-only token row] --> Lookup[Cached detail, trending, or fetched detail]
+  Lookup --> URL
+  URL -->|Yes| Remote[Browser loads remote logo]
+  URL -->|No| Fallback[Neutral coin glyph]
+  Remote -->|Load error| Fallback
 ```
 
 ## Discover and watch

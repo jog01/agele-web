@@ -110,7 +110,7 @@ export function SearchDialog({
                   i === active && "bg-surface-hover",
                 )}
               >
-                <AssetAvatar mint={t.mint} symbol={t.symbol} />
+                <AssetAvatar imageUrl={t.imageUrl} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{t.symbol}</span>
                   <span className="block truncate text-muted-foreground text-xs">
