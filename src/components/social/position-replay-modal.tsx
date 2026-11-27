@@ -361,6 +361,7 @@ function PositionReplay({ target }: { target: PositionTarget }) {
           <Button
             variant="outline"
             size="sm"
+            disabled={Boolean(missingEpisode)}
             onClick={() => shareReplay({ ...target, positionId: position?.id ?? target.positionId })}
           >
             <Share2 className="size-3.5" /> Share
