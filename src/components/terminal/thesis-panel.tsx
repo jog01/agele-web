@@ -73,7 +73,7 @@ function ThesisPanelBody({ mint }: { mint: string }) {
         });
       }
       setDrafts((prev) => ({ ...prev, [mode]: "" }));
-      setReplyTarget(null);
+      if (mode === "comment") setReplyTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not post");
     }
@@ -126,7 +126,6 @@ function ThesisPanelBody({ mint }: { mint: string }) {
                 aria-pressed={mode === value}
                 onClick={() => {
                   setMode(value);
-                  if (value === "thesis") setReplyTarget(null);
                 }}
                 className={cn(
                   "rounded-md border px-2 py-0.5 text-[11px] transition-colors",
@@ -165,7 +164,7 @@ function ThesisPanelBody({ mint }: { mint: string }) {
               ))}
             </fieldset>
           )}
-          {replyTarget && (
+          {mode === "comment" && replyTarget && (
             <span className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
               Replying to @{replyTarget.handle}
               <button
