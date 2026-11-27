@@ -32,6 +32,7 @@ const thesisPost: Extract<FeedItem, { kind: "thesis" }> = {
   positionId: "pos-1",
   pinned: true,
   kind: "thesis",
+  viewCount: 0,
   eventType: "thesis",
   wallet: "trader-wallet",
   handle: "Orca",

@@ -47,6 +47,7 @@ const thesis: Extract<FeedItem, { kind: "thesis" }> = {
   avatarUrl: null,
   source: "demo",
   kind: "thesis",
+  viewCount: 0,
   eventType: "thesis",
   body: "My thesis",
   position: "long",

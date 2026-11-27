@@ -46,3 +46,52 @@ export function traderTradesQuery(wallet: string, auth: TraderAuth) {
     getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
 }
+
+export type TraderHistoryRange = "24h" | "7d" | "30d";
+export type TraderFeedFilter = "all" | "trades" | "theses";
+
+const FEED_TYPES: Record<TraderFeedFilter, string | undefined> = {
+  all: undefined,
+  trades: "bought,sold,closed",
+  theses: "thesis",
+};
+
+export function traderPortfolioHistoryQuery(wallet: string, range: TraderHistoryRange, auth: TraderAuth) {
+  return queryOptions({
+    queryKey: ["trader-portfolio", wallet, range],
+    enabled: auth.ready,
+    retry,
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await api.GET("/v1/traders/{wallet}/portfolio/history", {
+          params: { path: { wallet }, query: { range } },
+          signal,
+        }),
+      ),
+  });
+}
+
+export function traderFeedQuery(
+  wallet: string,
+  { filter, minSizeUsd, types }: { filter?: TraderFeedFilter; minSizeUsd?: number; types?: string },
+  auth: TraderAuth,
+) {
+  const eventTypes = types ?? FEED_TYPES[filter ?? "all"];
+  return infiniteQueryOptions({
+    queryKey: ["trader-feed", wallet, socialViewer(auth), eventTypes ?? "all", minSizeUsd ?? 0],
+    enabled: auth.ready,
+    initialPageParam: undefined as string | undefined,
+    retry,
+    queryFn: async ({ pageParam, signal }) =>
+      unwrap(
+        await api.GET("/v1/feed", {
+          params: {
+            query: { scope: "global", wallet, types: eventTypes, minSizeUsd, cursor: pageParam, limit: 25 },
+          },
+          headers: await socialHeaders(auth),
+          signal,
+        }),
+      ),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}

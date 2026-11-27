@@ -30,6 +30,7 @@ const signedIn: AuthState = {
 const thesisComment: Comment = {
   id: "post-1",
   kind: "thesis",
+  viewCount: 0,
   mint,
   symbol: "SOL",
   imageUrl: "https://example.com/sol.webp",

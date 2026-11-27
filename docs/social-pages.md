@@ -5,7 +5,7 @@ The social pages use the terminal’s green/graphite tokens, existing shadcn ske
 ## Layout
 
 - Feed: 1120px maximum frame, flexible posts, 280px desktop discovery rail; posts precede discovery on mobile and in keyboard order. The title and scope controls stay visible during queries. Cards reserve space for the author, two lines of copy and a token link.
-- Trader profile: the same maximum frame, compact identity and source label, two PnL totals, six window metrics, then positions and history. Tables share a row-shaped loader and sit side by side at wide desktop widths; narrow screens stack them.
+- Trader profile: the same maximum frame, compact identity with a meta row, two PnL totals, the top-trades strip and six window metrics, then portfolio and positions beside the most-liked thesis and activity. Panels sit side by side at wide desktop widths; narrow screens stack them. See [trader-profile.md](./trader-profile.md).
 - Demo labels and simulated-performance explanations stay explicit. Empty, unavailable and sign-in-required states explain what happened rather than displaying an endless loader.
 
 ## Loading behavior
