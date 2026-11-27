@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
+import { useTerminalStore } from "@/stores/terminal";
 import { MarketExplorer } from "./market-explorer";
 import { SearchDialog } from "./search-dialog";
 
@@ -29,6 +30,13 @@ const SOL = {
   priceChange24hPct: 1,
 };
 const MINT = "1".repeat(32);
+const JUP = {
+  ...SOL,
+  mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+  symbol: "JUP",
+  name: "Jupiter",
+  marketCapUsd: 1_000,
+};
 
 function openSearch() {
   const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } });
@@ -46,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  useTerminalStore.setState({ watchlist: [] });
   vi.unstubAllGlobals();
   vi.resetAllMocks();
 });
@@ -111,4 +120,45 @@ it("finds a mint outside trending in the Markets filter", async () => {
 
   expect((await screen.findByRole("link", { name: /JUP/ })).getAttribute("href")).toBe(`/trade/${mint}`);
   expect(fetchDetail).toHaveBeenCalledExactlyOnceWith(mint);
+});
+
+it("keeps a starred non-trending result in the watchlist when the filter is cleared", async () => {
+  fetchDetail.mockResolvedValue(JUP);
+  const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0, staleTime: 10_000 } } });
+  render(
+    createElement(QueryClientProvider, { client }, createElement(MarketExplorer, { activeMint: SOL.mint })),
+  );
+  const input = screen.getByRole("searchbox", { name: "Filter markets" });
+  fireEvent.change(input, { target: { value: JUP.mint } });
+  fireEvent.click(await screen.findByRole("button", { name: "Add JUP to watchlist" }));
+  fireEvent.change(input, { target: { value: "" } });
+  fireEvent.click(screen.getByText("Watchlist"));
+
+  const watchlist = within(screen.getByLabelText("Watchlist"));
+  expect((await watchlist.findByRole("link", { name: /JUP/ })).getAttribute("href")).toBe(
+    `/trade/${JUP.mint}`,
+  );
+  expect(fetchDetail).toHaveBeenCalledExactlyOnceWith(JUP.mint);
+});
+
+it("loads saved non-trending mints, reuses trending data, and skips a 404", async () => {
+  const pending = Promise.withResolvers<typeof JUP>();
+  fetchDetail.mockImplementation((mint: string) =>
+    mint === JUP.mint ? pending.promise : Promise.reject(new ApiError("Token not found", 404)),
+  );
+  useTerminalStore.setState({ watchlist: [SOL.mint, JUP.mint, MINT] });
+  const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } });
+  render(
+    createElement(QueryClientProvider, { client }, createElement(MarketExplorer, { activeMint: SOL.mint })),
+  );
+  fireEvent.click(screen.getByText("Watchlist"));
+  const watchlist = within(screen.getByLabelText("Watchlist"));
+  expect(await watchlist.findByText("Loading watched token…", { selector: "span" })).toBeTruthy();
+  expect(watchlist.getByRole("link", { name: /SOL/ })).toBeTruthy();
+  pending.resolve(JUP);
+
+  expect(await watchlist.findByRole("link", { name: /JUP/ })).toBeTruthy();
+  await waitFor(() => expect(watchlist.queryByRole("status")).toBeNull());
+  expect(watchlist.getAllByRole("link")).toHaveLength(2);
+  expect(fetchDetail.mock.calls).toEqual([[JUP.mint], [MINT]]);
 });
