@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { createElement, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
+import { search } from "@/lib/api/search";
 import { useTerminalStore } from "@/stores/terminal";
 import { MarketExplorer } from "./market-explorer";
 import { SearchDialog } from "./search-dialog";
@@ -24,6 +25,7 @@ vi.mock("@/lib/realtime", () => ({
   },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("@/lib/api/search", () => ({ search: vi.fn() }));
 vi.mock("@/lib/api/queries", () => ({
   useTrending: () => ({ data: [SOL], isPending: false, isError: false }),
   tokenQueries: {
@@ -82,13 +84,104 @@ it("returns focus to a controlled search opener after Escape", async () => {
 beforeEach(() => {
   vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
   fetchTrending.mockResolvedValue([SOL]);
+  vi.mocked(search).mockResolvedValue({ tokens: [], traders: [], tokensUnavailable: false });
 });
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   useTerminalStore.setState({ watchlist: [] });
   vi.unstubAllGlobals();
   vi.resetAllMocks();
+});
+
+const DANI = {
+  wallet: "8WXzZbMabmHH7jddkSPkSkrUbTfkfiWiS9onqwmyUvFM",
+  handle: "solails",
+  displayName: "Dani",
+  avatarUrl: null,
+};
+
+describe("SearchDialog mixed search", () => {
+  it("groups API results and moves keyboard selection from a token to a trader", async () => {
+    const token = {
+      ...SOL,
+      decimals: 9,
+      imageUrl: null,
+      marketCapUsd: 1000,
+      liquidityUsd: 500,
+      volume24hUsd: 25,
+      holders: 4,
+    };
+    vi.mocked(search).mockResolvedValue({ tokens: [token], traders: [DANI], tokensUnavailable: false });
+    const { input } = openSearch();
+    fireEvent.change(input, { target: { value: " SOL " } });
+    expect(screen.getByText("Searching…")).toBeTruthy();
+    expect(vi.mocked(search)).not.toHaveBeenCalled();
+    expect(
+      await within(await screen.findByRole("region", { name: "Tokens" })).findByRole("button", {
+        name: /Wrapped SOL/,
+      }),
+    ).toBeTruthy();
+    const trader = within(screen.getByRole("region", { name: "Traders" })).getByRole("button", {
+      name: /Dani.*@solails.*8WXz/,
+    });
+    expect(vi.mocked(search)).toHaveBeenCalledExactlyOnceWith("SOL", expect.any(AbortSignal));
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input.getAttribute("aria-activedescendant")).toBe(trader.id);
+    fireEvent.submit(input.closest("form")!);
+    expect(push).toHaveBeenCalledWith(`/traders/${DANI.wallet}`);
+  });
+
+  it("shows trader matches alongside partial token availability and lets users filter", async () => {
+    vi.mocked(search).mockResolvedValue({ tokens: [], traders: [DANI], tokensUnavailable: true });
+    fetchDetail.mockRejectedValue(new ApiError("Unknown mint", 404));
+    const { input } = openSearch();
+    fireEvent.change(input, { target: { value: DANI.wallet } });
+    expect(await screen.findByText("Some token results may be unavailable.")).toBeTruthy();
+    expect(screen.queryByText("No matches found.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Traders" }));
+    expect(screen.queryByText("Some token results may be unavailable.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Dani/ }));
+    expect(push).toHaveBeenCalledWith(`/traders/${DANI.wallet}`);
+  });
+
+  it("distinguishes no matches from request failures", async () => {
+    vi.mocked(search).mockResolvedValueOnce({ tokens: [], traders: [], tokensUnavailable: false });
+    vi.mocked(search).mockRejectedValueOnce(new ApiError("Unavailable", 503));
+    const { input } = openSearch();
+    fireEvent.change(input, { target: { value: "nothing" } });
+    expect(await screen.findByText("No matches found.")).toBeTruthy();
+    fireEvent.change(input, { target: { value: "failed" } });
+    expect(await screen.findByText("Search unavailable. Try again.")).toBeTruthy();
+    expect(screen.queryByText("No matches found.")).toBeNull();
+  });
+
+  it("only persists selected token mints and clears them separately from the watchlist", async () => {
+    useTerminalStore.setState({ watchlist: [SOL.mint] });
+    const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } });
+    render(createElement(QueryClientProvider, { client }, createElement(SearchHarness)));
+    fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Wrapped SOL/ }));
+    expect(localStorage.getItem("agele:search:recent-mints")).toBe(JSON.stringify([SOL.mint]));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+    const recents = await screen.findByRole("region", { name: "Recent tokens" });
+    expect(within(recents).getByRole("button", { name: /Wrapped SOL/ })).toBeTruthy();
+    fireEvent.click(within(recents).getByRole("button", { name: "Clear all" }));
+    expect(localStorage.getItem("agele:search:recent-mints")).toBeNull();
+    expect(useTerminalStore.getState().watchlist).toEqual([SOL.mint]);
+  });
+
+  it("keeps manual paste available when the clipboard is denied", async () => {
+    const { input } = openSearch();
+    const readText = vi.fn().mockRejectedValue(new Error("Permission denied"));
+    vi.stubGlobal("navigator", Object.assign(Object.create(window.navigator), { clipboard: { readText } }));
+    fireEvent.click(screen.getByRole("button", { name: "Paste address" }));
+    expect(await screen.findByText(/Paste directly into the search field/)).toBeTruthy();
+    expect(document.activeElement).toBe(input);
+    expect(readText).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("SearchDialog contract address lookup", () => {

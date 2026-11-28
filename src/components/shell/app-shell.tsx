@@ -12,11 +12,11 @@ import { NAV, type NavSection, TopBar } from "./top-bar";
 export function AppShell({ section, children }: { section?: NavSection; children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   useHotkey(
-    (e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k",
+    (e) => !e.isComposing && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k",
     () => setSearchOpen(true),
   );
   useHotkey(
-    (e) => e.key === "/",
+    (e) => !e.isComposing && e.key === "/",
     () => setSearchOpen(true),
     { ignoreInputs: true },
   );
