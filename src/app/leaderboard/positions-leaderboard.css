@@ -1,0 +1,326 @@
+.positions-board-tabs {
+  display: flex;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.positions-board-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.25rem;
+  border-bottom: 2px solid transparent;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.positions-board-tabs a:hover,
+.positions-board-tabs a[aria-current="page"] {
+  color: var(--foreground);
+}
+
+.positions-board-tabs a[aria-current="page"] {
+  border-bottom-color: var(--primary);
+}
+
+.positions-board {
+  width: 100%;
+  min-width: 0;
+  max-width: 52rem;
+  margin-inline: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.positions-board-heading h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.positions-board-heading p {
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.positions-board .positions-board-tabs {
+  margin-top: 0.75rem;
+}
+
+.positions-board-panel {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.positions-board-controls {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.positions-board-controls [aria-label="Invested amount"] {
+  flex-wrap: wrap;
+  width: auto;
+}
+
+.positions-board-chip {
+  border: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+.positions-board-chip[data-state="on"] {
+  border-color: var(--primary);
+  background: var(--accent);
+  color: var(--primary);
+}
+
+.positions-board-hold {
+  position: relative;
+  width: min(100%, 28rem);
+  min-inline-size: 0;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.positions-board-hold legend {
+  color: var(--muted-foreground);
+}
+
+.positions-board-hold-value {
+  position: absolute;
+  right: 0;
+  top: -1rem;
+  font-weight: 600;
+}
+
+.positions-board-slider {
+  display: flex;
+  align-items: center;
+  height: 2.25rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.positions-board-track {
+  position: relative;
+  flex: 1;
+  height: 0.25rem;
+  border-radius: 1rem;
+  background: var(--muted);
+}
+
+.positions-board-range {
+  position: absolute;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.positions-board-thumb {
+  display: block;
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background: var(--foreground);
+}
+
+.positions-board-thumb::before {
+  position: absolute;
+  inset: -0.625rem;
+  content: "";
+}
+
+.positions-board-stops {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+
+.positions-board-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.625rem;
+  border-block: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.positions-board-source {
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.positions-board-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem 0.625rem;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+}
+
+.positions-board-row + .positions-board-row {
+  border-top: 1px solid var(--border);
+}
+
+.positions-board-rank {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.positions-board-trader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.positions-board-profile {
+  position: relative;
+  z-index: 1;
+  padding-block: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.positions-board-thesis,
+.positions-board-trade {
+  grid-column: 2;
+}
+
+.positions-board-thesis {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  color: var(--muted-foreground);
+}
+
+.positions-board-trade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  padding: 0.625rem;
+}
+
+.positions-board-replay {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.positions-board-replay::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.positions-board-replay:focus-visible {
+  outline: none;
+}
+
+.positions-board-replay:focus-visible::after {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.positions-board-row:hover .positions-board-trade,
+.positions-board-row:focus-within .positions-board-trade {
+  border-color: var(--ring);
+}
+
+.positions-board-asset,
+.positions-board-result {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.positions-board-result {
+  margin-left: auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.positions-board-asset > span,
+.positions-board-result > span,
+.positions-board-return,
+.positions-board-chevron {
+  font-size: 0.75rem;
+}
+
+.positions-board-asset > span,
+.positions-board-result > span,
+.positions-board-chevron {
+  color: var(--muted-foreground);
+}
+
+.positions-board-chevron {
+  width: 1rem;
+  flex: none;
+}
+
+.positions-board-state {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.positions-board-state p {
+  color: var(--muted-foreground);
+}
+
+.positions-board-state button {
+  margin-top: 0.5rem;
+}
+
+.positions-board-more {
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 40rem) {
+  .positions-board {
+    padding: 1rem;
+  }
+
+  .positions-board-chip {
+    min-height: 2.75rem;
+  }
+
+  .positions-board-controls,
+  .positions-board-meta,
+  .positions-board-row {
+    padding-inline: 0.75rem;
+  }
+
+  .positions-board-trade {
+    grid-column: 1 / -1;
+  }
+
+  .positions-board-chevron {
+    display: none;
+  }
+}

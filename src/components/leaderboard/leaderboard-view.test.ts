@@ -81,6 +81,14 @@ it("renders loaded values and period-aware profile links without enabling signed
   expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
 });
 
+it("links to Positions without changing the current Traders window", () => {
+  const { getByRole } = renderBoard();
+  expect(getByRole("link", { name: "Traders" }).getAttribute("aria-current")).toBe("page");
+  expect(getByRole("link", { name: "Positions" }).getAttribute("href")).toBe(
+    "/leaderboard?window=7d&tab=positions",
+  );
+});
+
 it("keeps existing rows during background refresh", () => {
   state.query.mockReturnValue({ data: board, isPending: false, isFetching: true });
   const { getByRole, container } = renderBoard();
