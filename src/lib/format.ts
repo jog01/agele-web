@@ -62,6 +62,16 @@ export function timeAgo(unixSeconds: number, now = Date.now()) {
   return `${Math.floor(s / 86_400)}d`;
 }
 
+export function formatHold(seconds: number | null | undefined) {
+  if (seconds == null) return DASH;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${Math.max(1, minutes)}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return minutes % 60 ? `${hours}h ${minutes % 60}m` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return hours % 24 ? `${days}d ${hours % 24}h` : `${days}d`;
+}
+
 export function utcTimestamp(unixSeconds: number) {
   return `${new Date(unixSeconds * 1000).toISOString().replace("T", " ").slice(0, 19)} UTC`;
 }

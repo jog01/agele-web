@@ -233,6 +233,7 @@ describe.each([PositionsPanel, TradersPanel])("panel errors", (Panel) => {
 describe("holders", () => {
   const holders: components["schemas"]["TokenHolders"] = {
     mint: "mint",
+    scope: "all",
     totalHolders: 1000,
     top10Pct: 23.5,
     updatedAt: 1700000000,
@@ -245,6 +246,10 @@ describe("holders", () => {
         valueUsd: 300,
         isPool: true,
         label: "Raydium",
+        trader: null,
+        isFollowed: false,
+        position: null,
+        latestThesis: null,
       },
       {
         rank: 2,
@@ -254,6 +259,10 @@ describe("holders", () => {
         valueUsd: 170,
         isPool: false,
         label: "Raydium",
+        trader: null,
+        isFollowed: false,
+        position: null,
+        latestThesis: null,
       },
     ],
   };
@@ -309,5 +318,126 @@ describe("holders", () => {
     const view = render(createElement(HoldersPanel, { mint: "unknown" }), { wrapper });
     await waitFor(() => expect(view.getByText("Token not found.")).toBeTruthy());
     expect(view.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("sends combined filters to the server without offering Following to signed-out viewers", async () => {
+    get.mockResolvedValue(ok({ ...holders, holders: [] }));
+    const { wrapper } = setup(demoAuth);
+    const view = render(createElement(HoldersPanel, { mint: "mint" }), { wrapper });
+    await view.findByText("No holder data for this token yet.");
+    expect(view.queryByRole("button", { name: "Following only" })).toBeNull();
+    get.mockResolvedValue(ok({ ...holders, scope: "traders", holders: [] }));
+    fireEvent.change(view.getByRole("combobox", { name: "Holder scope" }), { target: { value: "traders" } });
+    await view.findByText("No Agele traders are holding this token.");
+    fireEvent.click(view.getByRole("button", { name: "Thesis only" }));
+    await view.findByText("No holders match these filters.");
+    fireEvent.change(view.getByRole("combobox", { name: "Min size (USD)" }), { target: { value: "1000" } });
+    await waitFor(() =>
+      expect(get).toHaveBeenLastCalledWith("/v1/tokens/{mint}/holders", {
+        params: {
+          path: { mint: "mint" },
+          query: { limit: 20, scope: "traders", thesisOnly: "true", minValueUsd: 1000 },
+        },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(view.getByRole("button", { name: "Thesis only" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("requests Following as the signed-in viewer and does not reuse it for a different viewer", async () => {
+    get.mockResolvedValue(ok({ ...holders, holders: [] }));
+    const { wrapper, setAuth } = setup();
+    const view = render(createElement(HoldersPanel, { mint: "mint" }), { wrapper });
+    await view.findByText("No holder data for this token yet.");
+    fireEvent.click(view.getByRole("button", { name: "Following only" }));
+    await view.findByText("No one you follow is holding");
+    expect(get).toHaveBeenLastCalledWith("/v1/tokens/{mint}/holders", {
+      params: { path: { mint: "mint" }, query: { limit: 20, followingOnly: "true" } },
+      headers: { Authorization: "Bearer test-token" },
+      signal: expect.any(AbortSignal),
+    });
+    setAuth({ ...signedIn, walletAddress: "viewer-b" });
+    view.rerender(createElement(HoldersPanel, { mint: "mint" }));
+    await view.findByText("No holder data for this token yet.");
+    expect(view.getByRole("button", { name: "Following only" }).getAttribute("aria-pressed")).toBe("false");
+    expect(get).toHaveBeenCalledTimes(3);
+    expect(get).toHaveBeenLastCalledWith("/v1/tokens/{mint}/holders", {
+      params: { path: { mint: "mint" }, query: { limit: 20 } },
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it.each([true, false])("opens holder context (same position: %s)", async (samePosition) => {
+    const enriched: (typeof holders.holders)[number] = {
+      rank: 2,
+      wallet: "user-wallet",
+      amount: 85,
+      pctSupply: 8.5,
+      valueUsd: 170,
+      trader: {
+        wallet: "trader-wallet",
+        handle: "alice",
+        displayName: "Alice",
+        avatarUrl: null,
+        avgHoldSeconds: 15120,
+        source: "demo",
+      },
+      position: {
+        positionId: "position-a",
+        avgEntryMarketCapUsd: 45_000,
+        investedUsd: 100,
+        realizedPnlUsd: 0,
+        unrealizedPnlUsd: 70,
+        pnlUsd: 70,
+        pnlPct: 70,
+        firstBoughtAt: 1699996400,
+      },
+      latestThesis: {
+        thesisId: "thesis-a",
+        postId: "post-a",
+        positionId: samePosition ? "position-a" : "position-older",
+        body: "Looking for a range reclaim.",
+        createdAt: 1700000000,
+        likeCount: 1,
+        replyCount: 2,
+        viewCount: 30,
+      },
+      isFollowed: false,
+    };
+    get
+      .mockResolvedValueOnce(ok({ ...holders, holders: [enriched] }))
+      .mockResolvedValueOnce(
+        ok({ id: "thesis-a", comments: [], pinned: null, nextCursor: null, viewCount: 0 }),
+      );
+    const { wrapper } = setup(demoAuth);
+    const view = render(createElement(HoldersPanel, { mint: "mint" }), { wrapper });
+    const link = await view.findByRole("link", { name: "Alice" });
+    expect(link.getAttribute("href")).toBe("/traders/trader-wallet");
+    expect(view.getByText("@alice")).toBeTruthy();
+    expect(view.getByText("4h 12m")).toBeTruthy();
+    expect(view.getByText("$170.00")).toBeTruthy();
+    expect(view.getByText("+$70.00")).toBeTruthy();
+    expect(view.getByText("$45K")).toBeTruthy();
+    expect(view.getByTitle("2023-11-14 21:13:20 UTC")).toBeTruthy();
+    fireEvent.click(view.getByRole("button", { name: "Replay Alice's position" }));
+    const replay = new URLSearchParams(window.location.search);
+    expect(Object.fromEntries(replay)).toEqual({
+      trader: "trader-wallet",
+      mint: "mint",
+      position: "position-a",
+      ...(samePosition && { thesis: "thesis-a" }),
+    });
+    window.history.replaceState(null, "", window.location.pathname);
+    const thesis = view.getByRole("button", { name: /Looking for a range reclaim/ });
+    expect(thesis.textContent).toMatch(/ago.*Looking for a range reclaim.*1 like · 2 replies/);
+    fireEvent.click(thesis);
+    await view.findByRole("dialog");
+    await waitFor(() =>
+      expect(get).toHaveBeenLastCalledWith("/v1/tokens/{mint}/theses/{thesisId}", {
+        params: { path: { mint: "mint", thesisId: "thesis-a" }, query: { cursor: undefined, limit: 25 } },
+        headers: undefined,
+        signal: expect.any(AbortSignal),
+      }),
+    );
   });
 });

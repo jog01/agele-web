@@ -15,7 +15,7 @@ import { ApiError, type LeaderboardWindow } from "@/lib/api/client";
 import { LEADERBOARD_WINDOWS } from "@/lib/api/leaderboard";
 import type { components } from "@/lib/api/schema";
 import { traderProfileQuery } from "@/lib/api/traders";
-import { changeTone, formatPct, formatUsd } from "@/lib/format";
+import { changeTone, formatHold, formatPct, formatUsd } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
 import { TraderMostLikedThesis } from "./trader-most-liked-thesis";
@@ -42,16 +42,6 @@ function ProfileAnnouncement({ handle }: { handle: string }) {
 }
 
 const JOINED = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
-
-export function formatHold(seconds: number | null | undefined) {
-  if (seconds == null) return "—";
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${Math.max(1, minutes)}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return minutes % 60 ? `${hours}h ${minutes % 60}m` : `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return hours % 24 ? `${days}d ${hours % 24}h` : `${days}d`;
-}
 
 function ProfileMeta({ profile }: { profile: components["schemas"]["TraderProfile"] }) {
   const mutuals = profile.mutuals;
