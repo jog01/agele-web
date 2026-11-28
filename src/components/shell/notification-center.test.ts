@@ -140,8 +140,7 @@ it("offers a retry on delivery failure and shows a distinct empty state after re
 it("shows the server unread count and marks the whole inbox read", async () => {
   list.mockResolvedValue({ source: "demo", items: [follow], nextCursor: null });
   setup(signedIn, undefined, 1);
-  fireEvent.click(await screen.findByRole("button", { name: /Notifications/ }));
-  await screen.findByRole("button", { name: "Notifications, 1 unread" });
+  fireEvent.click(await screen.findByRole("button", { name: "Notifications, 1 unread" }));
   await screen.findByText("Unread:");
   markRead.mockImplementationOnce(async () => {
     unreadCount.mockResolvedValue({ unreadCount: 0 });
