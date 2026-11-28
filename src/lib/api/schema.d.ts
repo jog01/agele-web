@@ -2001,6 +2001,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/leaderboard/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Profitable closed positions ranked by realized PnL in USD. */
+        get: {
+            parameters: {
+                query?: {
+                    window?: "24h" | "7d" | "30d" | "all";
+                    invested?: "lt100" | "100-1k" | "1k-10k" | "10k-100k" | "gt100k";
+                    minHoldSeconds?: number | null;
+                    maxHoldSeconds?: number | null;
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Positions leaderboard */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            window: "24h" | "7d" | "30d" | "all";
+                            entries: {
+                                rank: number;
+                                trader: {
+                                    wallet: string;
+                                    handle: string;
+                                    avatarUrl: string | null;
+                                };
+                                token: {
+                                    mint: string;
+                                    symbol: string;
+                                    name: string;
+                                    imageUrl: string | null;
+                                };
+                                /** Format: uuid */
+                                positionId: string;
+                                totalInvestedUsd: number;
+                                realizedPnlUsd: number;
+                                pnlPct: number;
+                                avgEntryMarketCapUsd: number | null;
+                                holdSeconds: number;
+                                thesis: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    body: string;
+                                    createdAt: number;
+                                } | null;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/leaderboard": {
         parameters: {
             query?: never;
