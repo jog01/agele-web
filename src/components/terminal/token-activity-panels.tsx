@@ -253,7 +253,15 @@ function HolderRow({
                 <dd>
                   {trader?.wallet ? (
                     <PositionReplayLink
-                      target={{ wallet: trader.wallet, mint, positionId: position.positionId }}
+                      target={{
+                        wallet: trader.wallet,
+                        mint,
+                        positionId: position.positionId,
+                        thesisId:
+                          latestThesis?.positionId === position.positionId
+                            ? latestThesis.thesisId
+                            : undefined,
+                      }}
                       className="rounded-sm underline decoration-border underline-offset-2 hover:text-primary focus-visible:text-primary"
                       aria-label={`Replay ${traderName}'s position`}
                     >

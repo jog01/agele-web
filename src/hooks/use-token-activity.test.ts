@@ -367,7 +367,7 @@ describe("holders", () => {
     });
   });
 
-  it("links the trader profile and opens the matching thesis thread from the holder row", async () => {
+  it.each([true, false])("opens holder context (same position: %s)", async (samePosition) => {
     const enriched: (typeof holders.holders)[number] = {
       rank: 2,
       wallet: "user-wallet",
@@ -395,7 +395,7 @@ describe("holders", () => {
       latestThesis: {
         thesisId: "thesis-a",
         postId: "post-a",
-        positionId: "position-a",
+        positionId: samePosition ? "position-a" : "position-older",
         body: "Looking for a range reclaim.",
         createdAt: 1700000000,
         likeCount: 1,
@@ -425,6 +425,7 @@ describe("holders", () => {
       trader: "trader-wallet",
       mint: "mint",
       position: "position-a",
+      ...(samePosition && { thesis: "thesis-a" }),
     });
     window.history.replaceState(null, "", window.location.pathname);
     const thesis = view.getByRole("button", { name: /Looking for a range reclaim/ });
