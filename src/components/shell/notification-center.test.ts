@@ -50,9 +50,9 @@ const liked: Notification = {
 const signedIn = { ...demoAuth, configured: true, authenticated: true, userLabel: "viewer" };
 const clients: QueryClient[] = [];
 
-function setup(auth = demoAuth, me: object = { walletAddress: null, wallets: [] }) {
+function setup(auth = demoAuth, me: object = { walletAddress: null, wallets: [] }, unread = 0) {
   viewer.mockResolvedValue(me);
-  unreadCount.mockResolvedValue({ unreadCount: 0 });
+  unreadCount.mockResolvedValue({ unreadCount: unread });
   settings.mockResolvedValue({ traderActivity: true, sound: false });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   clients.push(client);
@@ -139,8 +139,7 @@ it("offers a retry on delivery failure and shows a distinct empty state after re
 
 it("shows the server unread count and marks the whole inbox read", async () => {
   list.mockResolvedValue({ source: "demo", items: [follow], nextCursor: null });
-  setup(signedIn);
-  unreadCount.mockResolvedValue({ unreadCount: 1 });
+  setup(signedIn, undefined, 1);
   fireEvent.click(await screen.findByRole("button", { name: /Notifications/ }));
   await screen.findByRole("button", { name: "Notifications, 1 unread" });
   await screen.findByText("Unread:");
@@ -150,7 +149,7 @@ it("shows the server unread count and marks the whole inbox read", async () => {
     return { unreadCount: 0 };
   });
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
-  expect(markRead).toHaveBeenCalledWith(signedIn, null);
+  await waitFor(() => expect(markRead).toHaveBeenCalledWith(signedIn, null));
   await screen.findByText("You’re all caught up.");
   expect(screen.queryByText("Unread:")).toBeNull();
 });
@@ -164,6 +163,15 @@ it("does not request private notifications for guests on a configured app", asyn
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
   await waitFor(() => expect(login).toHaveBeenCalledOnce());
   expect(list).not.toHaveBeenCalled();
+});
+
+it("explains the sign-in requirement without requesting a keyless demo inbox", async () => {
+  setup();
+  fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+  await screen.findByText("Notifications require sign-in, which isn’t configured here.");
+  expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
+  expect(list).not.toHaveBeenCalled();
+  expect(unreadCount).not.toHaveBeenCalled();
 });
 
 it("authenticates the private socket, refreshes the open inbox, and saves server settings", async () => {

@@ -8,42 +8,42 @@ never places a trade.
 ```mermaid
 flowchart LR
   API["Paginated notification inbox"] --> Timeline["Today / This week / Earlier"]
-  Timeline --> Thesis["Liked thesis version"]
-  Timeline --> Trade["Indexed transaction or guarded demo replay"]
+  Timeline --> Thesis["Liked thesis version or exact reply"]
+  Timeline --> Trade["Position replay when an episode is available"]
   Timeline --> Profile["Follower profile"]
   Timeline --> Leaderboard["Leaderboard window"]
-  Timeline --> Display["Info-only invites and sends"]
+  Timeline --> Read["Mark an opened item or the whole inbox read"]
 ```
 
 ## API and synchronization
 
-- `GET /v1/notifications?limit=30&cursor=…` returns `{source, items, nextCursor}`.
-  The server owns ordering, follow groups, timestamps, and actor counts.
-- Authenticated `GET /v1/notifications/settings` reads `{traderActivity,sound}`; the
-  corresponding `PUT` replaces both values.
+- `GET /v1/me/notifications?limit=25&cursor=…` returns `{source, items, nextCursor}`.
+  The server owns ordering, grouping, timestamps, actor counts, and read status.
+- Under the same prefix, `GET /unread-count`, `PUT /{id}/read`, and `PUT /read-all`
+  return the updated unread count. `GET /settings` returns `{traderActivity,sound}`
+  and `PUT /settings` replaces both values.
 - The private socket authenticates with a fresh Privy access token and subscribes
-  to `user:<account UUID>:alerts`. Inbox and settings events invalidate separate
-  queries. The inbox also polls while open and refreshes on window focus.
-- Authenticated API calls include the bearer. In keyless demo mode, a bearer-free
-  inbox request uses the backend’s seeded data; it cannot change settings or
-  subscribe to private alerts. There are no browser-side demo fixtures.
+  to `user:<wallet>:notifications`. A `{type: "changed"}` event refreshes inbox,
+  unread count, and settings. The inbox also polls while open and refreshes on
+  window focus.
+- All notification routes require a bearer, including in demo mode. The backend
+  copies its seed inbox for each signed-in demo account so read state is private.
+  There are no browser-side demo fixtures.
 - Device audio requires a browser gesture, even when the synced sound preference
-  is already enabled. Only inbox events with `sound: true` trigger a sound.
+  is already enabled. Once armed, sound plays for new trade notifications when
+  the account’s sound setting is on, not for changes to existing items.
 
-Thesis likes use the supplied mint and thesis ID to open the thread and focus the
-supplied post ID. The notification actor is the person who liked it, not the thesis
-owner. Indexed trader activity links to its exact transaction signature. The demo
-replay is guarded by the actual trade ID; when the fill is not in the latest
-position episode, the replay does not present that episode as an exact match.
+Thesis notifications use the supplied mint and thesis ID to open the thread and
+focus the post or reply in `target.commentId`. The actor is not the thesis owner.
+Trade notifications use the supplied wallet, mint, and position episode ID. When
+that ID is absent, the row stays informational instead of opening a different episode.
 
 ## Design gaps in the current backend contract
 
-There are no unread counts, per-item read states or read mutations, so the bell
-does not show an unread badge and the drawer does not simulate dots, all-read or
-mark-all. There are no thesis-comment events. Alert settings do not provide
-minimum trade size or per-trader enable/pause. A trade includes a fill ID but
-not a position episode ID or historical fill-to-episode lookup. Clan and send
-rows are informational until the corresponding product destinations exist.
+Alert settings do not provide minimum trade size or per-trader enable/pause.
+Trader alerts include an episode ID when available, not the alerted fill ID or
+transaction signature. Clan invites and sends are not notification kinds in this
+contract.
 
 ```mermaid
 sequenceDiagram
@@ -52,17 +52,17 @@ sequenceDiagram
   participant API as Agele REST API
   participant WS as Private alerts socket
   Viewer->>Web: Open drawer
-  Web->>API: GET /v1/notifications
-  API-->>Web: source, items, nextCursor
   opt Signed-in account
+    Web->>API: GET /v1/me/notifications
+    API-->>Web: source, items, nextCursor
     Web->>API: GET /v1/me
-    API-->>Web: Account UUID
+    API-->>Web: Account wallet and linked wallets
     Web->>WS: Authenticate with Privy token
     WS-->>Web: authenticated
-    Web->>WS: Subscribe to user:<UUID>:alerts
+    Web->>WS: Subscribe to user:<wallet>:notifications
     Viewer->>Web: Change alert settings
-    Web->>API: PUT /v1/notifications/settings
-    WS-->>Web: settings or inbox invalidation
-    Web->>API: Refresh affected query
+    Web->>API: PUT /v1/me/notifications/settings
+    WS-->>Web: changed
+    Web->>API: Refresh inbox, unread count and settings
   end
 ```

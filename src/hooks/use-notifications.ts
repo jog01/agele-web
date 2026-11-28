@@ -163,7 +163,7 @@ export function useNotifications(open: boolean) {
   const auth = useAuth();
   const client = useQueryClient();
   const account = auth.authenticated ? (auth.walletAddress ?? auth.userLabel) : null;
-  const viewer = account ? `account:${account}` : !auth.configured ? "demo" : null;
+  const viewer = account ? `account:${account}` : null;
   const enabled = auth.ready && viewer !== null;
   const sound = useAlertSound(viewer);
   const settingsKey = ["notifications", viewer, "settings"] as const;

@@ -343,9 +343,11 @@ export function NotificationCenter() {
               <p>
                 {auth.authenticated
                   ? "Notifications are unavailable for this account."
-                  : "Sign in to see your notifications."}
+                  : auth.configured
+                    ? "Sign in to see your notifications."
+                    : "Notifications require sign-in, which isn’t configured here."}
               </p>
-              {!auth.authenticated && (
+              {!auth.authenticated && auth.configured && (
                 <Button
                   onClick={() => {
                     loginOnClose.current = true;
