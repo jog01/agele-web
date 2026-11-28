@@ -168,6 +168,21 @@ it("can mark a trade without a replay read without leaving the inbox", async () 
   expect(screen.queryByRole("button", { name: /Sold SOL/ })).toBeNull();
 });
 
+it.each([
+  ["Ctrl-click", "click", { ctrlKey: true }],
+  ["Cmd-click", "click", { metaKey: true }],
+  ["middle-click", "auxclick", { button: 1 }],
+] as const)("marks links read on %s without closing the inbox", async (_gesture, event, options) => {
+  list.mockResolvedValue({ source: "demo", items: [follow], nextCursor: null });
+  markRead.mockResolvedValue({ unreadCount: 0 });
+  setup(signedIn);
+  fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+  const link = await screen.findByRole("link", { name: /mira/ });
+  fireEvent(link, new MouseEvent(event, { bubbles: true, cancelable: true, ...options }));
+  await waitFor(() => expect(markRead).toHaveBeenCalledWith(signedIn, follow.id));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+});
+
 it("does not request private notifications for guests on a configured app", async () => {
   const login = vi.fn(() => {
     expect(screen.queryByRole("dialog")).toBeNull();

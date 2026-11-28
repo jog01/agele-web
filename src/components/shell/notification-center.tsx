@@ -143,10 +143,11 @@ function NotificationRow({
         <Link
           href={href}
           prefetch={false}
-          onNavigate={() => {
-            markOpened();
-            close();
+          onClick={markOpened}
+          onAuxClick={(event) => {
+            if (event.button === 1) markOpened();
           }}
+          onNavigate={close}
           className={cn(rowClass, actionClass)}
         >
           {content}
