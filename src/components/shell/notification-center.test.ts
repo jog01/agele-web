@@ -48,6 +48,19 @@ const liked: Notification = {
   },
 } satisfies Notification;
 const signedIn = { ...demoAuth, configured: true, authenticated: true, userLabel: "viewer" };
+const trade = {
+  ...liked,
+  kind: "trader_trade",
+  target: {
+    wallet: "trader",
+    positionId: "position",
+    mint: "mint",
+    symbol: "SOL",
+    imageUrl: null,
+    side: "sell",
+    sizeUsd: 42,
+  },
+} satisfies Notification;
 const clients: QueryClient[] = [];
 
 function setup(auth = demoAuth, me: object = { walletAddress: null, wallets: [] }, unread = 0) {
@@ -82,19 +95,6 @@ it("groups entries by calendar day and week in the viewer’s timezone", () => {
 });
 
 it("uses the supplied position, profile and leaderboard destinations", () => {
-  const trade: Notification = {
-    ...liked,
-    kind: "trader_trade",
-    target: {
-      wallet: "trader",
-      positionId: "position",
-      mint: "mint",
-      symbol: "SOL",
-      imageUrl: null,
-      side: "sell",
-      sizeUsd: 42,
-    },
-  };
   expect(notificationHref(trade)).toBe("/feed?trader=trader&mint=mint&position=position");
   expect(notificationHref({ ...trade, target: { ...trade.target, positionId: null } })).toBeNull();
   expect(notificationHref(follow)).toBe("/traders/profile");
@@ -151,6 +151,21 @@ it("shows the server unread count and marks the whole inbox read", async () => {
   await waitFor(() => expect(markRead).toHaveBeenCalledWith(signedIn, null));
   await screen.findByText("You’re all caught up.");
   expect(screen.queryByText("Unread:")).toBeNull();
+});
+
+it("can mark a trade without a replay read without leaving the inbox", async () => {
+  const noReplay = { ...trade, target: { ...trade.target, positionId: null } };
+  list.mockResolvedValue({ source: "demo", items: [noReplay], nextCursor: null });
+  setup(signedIn);
+  fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+  markRead.mockImplementationOnce(async () => {
+    list.mockResolvedValue({ source: "demo", items: [{ ...noReplay, readAt: 1 }], nextCursor: null });
+    return { unreadCount: 0 };
+  });
+  fireEvent.click(await screen.findByRole("button", { name: /Sold SOL.*Mark as read/ }));
+  await waitFor(() => expect(markRead).toHaveBeenCalledWith(signedIn, noReplay.id));
+  await screen.findByText("You’re all caught up.");
+  expect(screen.queryByRole("button", { name: /Sold SOL/ })).toBeNull();
 });
 
 it("does not request private notifications for guests on a configured app", async () => {

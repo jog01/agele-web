@@ -94,6 +94,7 @@ function NotificationRow({
   const actorName =
     actor?.displayName || actor?.handle || (actor?.wallet ? shortAddress(actor.wallet) : "Agele");
   const href = notificationHref(item);
+  const readOnlyAction = !thesis && !href && unread;
   const rowClass =
     "grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-start gap-3 rounded-md px-1.5 py-3.5 text-left";
   const actionClass = "hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring";
@@ -116,6 +117,7 @@ function NotificationRow({
         >
           {timeAgo(item.createdAt, now)} ago
         </time>
+        {readOnlyAction && <span className="text-muted-foreground text-xs">Mark as read</span>}
       </span>
       <span className="flex min-h-8 items-center gap-2">
         {token && <AssetAvatar imageUrl={token.imageUrl} className="size-6" />}
@@ -149,6 +151,10 @@ function NotificationRow({
         >
           {content}
         </Link>
+      ) : readOnlyAction ? (
+        <button type="button" onClick={markOpened} className={cn(rowClass, actionClass)}>
+          {content}
+        </button>
       ) : (
         <div className={rowClass}>{content}</div>
       )}
