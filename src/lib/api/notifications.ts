@@ -37,10 +37,10 @@ export type NotificationUpdate = { kind: "inbox"; sound: boolean } | { kind: "se
 type Json<T> = { content: { "application/json": T } };
 type Responses<T> = { responses: { 200: Json<T> } };
 type NotificationPaths = {
-  "/v1/notifications": {
+  "/v1/me/notifications": {
     get: Responses<NotificationPage> & { parameters: { query?: { cursor?: string; limit?: number } } };
   };
-  "/v1/notifications/settings": {
+  "/v1/me/notifications/settings": {
     get: Responses<AlertSettings>;
     put: Responses<AlertSettings> & { requestBody: Json<AlertSettings> };
   };
@@ -51,8 +51,8 @@ const client = createClient<NotificationPaths>({ baseUrl: env.NEXT_PUBLIC_API_UR
 export const notificationsApi = {
   async list(auth: SocialAuth, cursor?: string, signal?: AbortSignal) {
     return unwrap(
-      await client.GET("/v1/notifications", {
-        params: { query: { limit: 30, cursor } },
+      await client.GET("/v1/me/notifications", {
+        params: { query: { limit: 25, cursor } },
         headers: await socialHeaders(auth),
         signal,
         cache: "no-store",
@@ -64,7 +64,7 @@ export const notificationsApi = {
   },
   async settings(auth: SocialAuth, signal?: AbortSignal) {
     return unwrap(
-      await client.GET("/v1/notifications/settings", {
+      await client.GET("/v1/me/notifications/settings", {
         headers: await socialHeaders(auth),
         signal,
         cache: "no-store",
@@ -73,7 +73,7 @@ export const notificationsApi = {
   },
   async saveSettings(auth: SocialAuth, body: AlertSettings) {
     return unwrap(
-      await client.PUT("/v1/notifications/settings", {
+      await client.PUT("/v1/me/notifications/settings", {
         headers: await socialHeaders(auth),
         body,
       }),
