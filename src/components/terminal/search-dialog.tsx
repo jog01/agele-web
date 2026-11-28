@@ -388,66 +388,64 @@ export function SearchDialog({
             </button>
           ))}
         </fieldset>
-        <fieldset
-          id={resultsId}
-          aria-label="Search results"
-          className="min-h-0 overflow-y-auto overscroll-contain px-4 py-2 max-sm:flex-1 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:min-h-44 sm:px-5"
-        >
-          {showRecents && (
-            <section aria-label="Recent tokens" className="mb-3">
-              <div className="flex h-11 items-center justify-between">
-                <h2 className="font-medium text-muted-foreground text-xs">Recent tokens</h2>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-11 text-xs"
-                  onClick={() => {
-                    updateRecents([]);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  Clear all
-                </Button>
-              </div>
-              {!!recentTokens.length && (
-                <ul>{recentTokens.map((token) => renderResult(tokenResult(token)))}</ul>
-              )}
-            </section>
-          )}
-          {!!tokens.length && (
-            <section aria-label={q ? "Tokens" : "Markets"}>
-              <div className={cn(TOKEN_GRID, "px-2 py-2 text-muted-foreground text-xs")}>
-                <h2 className="font-medium">{q ? "Tokens" : "Markets"}</h2>
-                <span className="whitespace-nowrap text-right">Market cap</span>
-                <span className="text-right">Price</span>
-                <span className="text-right">24h</span>
-              </div>
-              <ul>{tokens.map((token) => renderResult(tokenResult(token)))}</ul>
-            </section>
-          )}
-          {!!traders.length && (
-            <section aria-label="Traders" className={tokens.length ? "mt-2 border-t pt-1" : undefined}>
-              <h2 className="px-2 py-2 font-medium text-muted-foreground text-xs">Traders</h2>
-              <ul>{traders.map(renderResult)}</ul>
-            </section>
-          )}
-          {isPending && !visibleResults.length && (
-            <LoadingRows
-              label={
-                lookup.isPending && filter !== "Traders"
-                  ? "Looking up token…"
-                  : q
-                    ? "Searching…"
-                    : "Loading markets…"
-              }
-            />
-          )}
-          {!isPending && status && (
-            <p role="status" className="px-2 py-3 text-muted-foreground text-xs">
-              {status}
-            </p>
-          )}
-        </fieldset>
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-2 max-sm:flex-1 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-5">
+          <fieldset id={resultsId} aria-label="Search results" className="min-w-0">
+            {showRecents && (
+              <section aria-label="Recent tokens" className="mb-3">
+                <div className="flex h-11 items-center justify-between">
+                  <h2 className="font-medium text-muted-foreground text-xs">Recent tokens</h2>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-11 text-xs"
+                    onClick={() => {
+                      updateRecents([]);
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                </div>
+                {!!recentTokens.length && (
+                  <ul>{recentTokens.map((token) => renderResult(tokenResult(token)))}</ul>
+                )}
+              </section>
+            )}
+            {!!tokens.length && (
+              <section aria-label={q ? "Tokens" : "Markets"}>
+                <div className={cn(TOKEN_GRID, "px-2 py-2 text-muted-foreground text-xs")}>
+                  <h2 className="font-medium">{q ? "Tokens" : "Markets"}</h2>
+                  <span className="whitespace-nowrap text-right">Market cap</span>
+                  <span className="text-right">Price</span>
+                  <span className="text-right">24h</span>
+                </div>
+                <ul>{tokens.map((token) => renderResult(tokenResult(token)))}</ul>
+              </section>
+            )}
+            {!!traders.length && (
+              <section aria-label="Traders" className={tokens.length ? "mt-2 border-t pt-1" : undefined}>
+                <h2 className="px-2 py-2 font-medium text-muted-foreground text-xs">Traders</h2>
+                <ul>{traders.map(renderResult)}</ul>
+              </section>
+            )}
+            {isPending && !visibleResults.length && (
+              <LoadingRows
+                label={
+                  lookup.isPending && filter !== "Traders"
+                    ? "Looking up token…"
+                    : q
+                      ? "Searching…"
+                      : "Loading markets…"
+                }
+              />
+            )}
+            {!isPending && status && (
+              <p role="status" className="px-2 py-3 text-muted-foreground text-xs">
+                {status}
+              </p>
+            )}
+          </fieldset>
+        </div>
         <div className="hidden shrink-0 justify-between border-t px-5 py-3 text-muted-foreground text-xs sm:flex">
           <span>
             <kbd>↑ ↓</kbd> Navigate <span className="mx-2">·</span> <kbd>Enter</kbd> Open{" "}
