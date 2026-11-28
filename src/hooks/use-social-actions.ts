@@ -46,6 +46,7 @@ export function usePostThesis() {
     onSettled: async (_data, _error, { mint }) => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["tokens", mint, "comments"] }),
+        qc.invalidateQueries({ queryKey: ["position-thesis", mint] }),
         qc.invalidateQueries({ queryKey: ["thesis-thread", mint] }),
         qc.invalidateQueries({ queryKey: ["feed"] }),
       ]);

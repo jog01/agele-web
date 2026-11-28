@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import { ApiError, type Comment, type Token } from "@/lib/api/client";
 import { tokenQueries } from "@/lib/api/queries";
-import { positionDiscussionQuery, thesisThreadQuery } from "@/lib/api/social";
+import { positionDiscussionQuery, positionThesisQuery, thesisThreadQuery } from "@/lib/api/social";
 import { positionTransactionsQuery, traderPositionQuery, traderProfileQuery } from "@/lib/api/traders";
 import { tokenSupply } from "@/lib/candles";
 import {
@@ -207,10 +207,19 @@ function PositionDetails({
   const watchlist = useTerminalStore((state) => state.watchlist);
   const toggleWatch = useTerminalStore((state) => state.toggleWatch);
   const isWatched = watchlist.includes(position.mint);
-  const thesis = useInfiniteQuery(thesisThreadQuery(position.mint, target.thesisId ?? null, auth));
+  const lookupThesis = !target.thesisId;
+  const lookup = useQuery({
+    ...positionThesisQuery(position.wallet, position.mint, position.id),
+    enabled: lookupThesis,
+  });
+  const candidateThesisId = target.thesisId ?? lookup.data ?? null;
+  const thesis = useInfiniteQuery(thesisThreadQuery(position.mint, candidateThesisId, auth));
   const firstPage = thesis.data?.pages[0];
   const samePosition = firstPage?.positionId === position.id && firstPage?.wallet === position.wallet;
-  const thesisId = samePosition ? target.thesisId : undefined;
+  const thesisId = samePosition ? candidateThesisId : null;
+  const thesisPending =
+    (lookupThesis && lookup.isPending) || (candidateThesisId !== null && thesis.isPending);
+  const lookupError = lookupThesis && lookup.isError;
   const theses = thesisId
     ? Array.from(
         new Map(
@@ -268,16 +277,20 @@ function PositionDetails({
             <div className="position-replay-panel-head">
               <h3>Thesis thread</h3>
             </div>
-            {target.thesisId && thesis.isPending ? (
+            {thesisPending ? (
               <ReplaySkeleton />
             ) : thesisId ? (
               <div className="position-replay-thread-body">
                 <ThesisThreadBody thread={{ mint: position.mint, thesisId }} embedded />
               </div>
-            ) : target.thesisId && thesis.isError ? (
+            ) : lookupError || thesis.isError ? (
               <p className="position-replay-empty" role="alert">
                 Couldn’t load the thesis.{" "}
-                <Button size="sm" variant="outline" onClick={() => thesis.refetch()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => (lookupError ? lookup.refetch() : thesis.refetch())}
+                >
                   Retry
                 </Button>
               </p>
@@ -285,7 +298,7 @@ function PositionDetails({
               <p className="position-replay-empty">No thesis linked to this replay.</p>
             )}
           </section>
-          {target.discussionKey && !thesisId && <TradeDiscussion discussionKey={target.discussionKey} />}
+          {target.discussionKey && <TradeDiscussion discussionKey={target.discussionKey} />}
         </div>
         <div className="position-replay-side">
           <section className="position-replay-panel" aria-label="Position performance">

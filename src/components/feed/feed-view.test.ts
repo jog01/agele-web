@@ -110,6 +110,7 @@ function renderFeed(auth: AuthState = demoAuth) {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   for (const client of clients) client.clear();
   clients.length = 0;
   get.mockReset();
@@ -119,13 +120,14 @@ afterEach(() => {
 });
 
 function routeGet(handlers: {
-  feed?: () => unknown;
+  feed?: (query: { types: string }) => unknown;
   leaderboard?: () => unknown;
   trending?: () => unknown;
   thread?: () => unknown;
 }) {
-  get.mockImplementation((path: string) => {
-    if (path === "/v1/feed") return handlers.feed ? handlers.feed() : Promise.resolve(feedOk([]));
+  get.mockImplementation((path: string, options: { params: { query: { types: string } } }) => {
+    if (path === "/v1/feed")
+      return handlers.feed ? handlers.feed(options.params.query) : Promise.resolve(feedOk([]));
     if (path === "/v1/leaderboard")
       return handlers.leaderboard
         ? handlers.leaderboard()
@@ -187,13 +189,31 @@ it("keeps activity without a position linked to the token in the Trades filter",
     eventType: "multi-user",
     traderCount: 3,
   };
-  routeGet({ feed: async () => feedOk([thesisPost, activity]) });
+  routeGet({
+    feed: async ({ types }) =>
+      feedOk([thesisPost, activity].filter((item) => types.split(",").includes(item.eventType))),
+  });
   renderFeed();
   await screen.findByText(thesisPost.body);
   fireEvent.click(screen.getByRole("button", { name: "Trades" }));
-  expect(screen.getByText("3 traders bought $2,500.00")).toBeDefined();
+  expect(await screen.findByText("3 traders bought $2,500.00")).toBeDefined();
   expect(screen.getByRole("link", { name: /SOL/ }).getAttribute("href")).toBe("/trade/sol");
+  expect(screen.getByRole("link", { name: "SOL Market cap · $80B" })).toBeDefined();
   expect(screen.queryByRole("button", { name: "Replay SOL position" })).toBeNull();
+});
+
+it("shows only the token symbol on a system chip when market cap is unavailable", async () => {
+  const milestone: Extract<FeedItem, { kind: "milestone" }> = {
+    ...tradePost,
+    kind: "milestone",
+    eventType: "milestone",
+    realizedPnlUsd: 150,
+    marketCapUsd: null,
+  };
+  routeGet({ feed: async () => feedOk([milestone]) });
+  renderFeed();
+  expect(await screen.findByText("+$150.00 realized PnL")).toBeDefined();
+  expect(screen.getByRole("link", { name: "SOL" }).getAttribute("href")).toBe("/trade/sol");
 });
 
 it("keeps loaded posts while a cursor page loads and appends the resolved page", async () => {
@@ -257,12 +277,14 @@ it("shows the signed-out Following gate without a perpetual skeleton or protecte
 it("filters by Trades and Theses and optimistically likes a thesis via the social API", async () => {
   let liked = false;
   routeGet({
-    feed: () =>
+    feed: ({ types }) =>
       Promise.resolve(
-        feedOk([
-          tradePost,
-          { ...thesisPost, likedByMe: liked, likes: liked ? thesisPost.likes + 1 : thesisPost.likes },
-        ]),
+        feedOk(
+          [
+            tradePost,
+            { ...thesisPost, likedByMe: liked, likes: liked ? thesisPost.likes + 1 : thesisPost.likes },
+          ].filter((item) => types.split(",").includes(item.eventType)),
+        ),
       ),
   });
   const likeReq = deferred<{ response: Response }>();
@@ -272,11 +294,11 @@ it("filters by Trades and Theses and optimistically likes a thesis via the socia
   expect(screen.getByText(/Bought \$2,500/)).toBeDefined();
 
   fireEvent.click(screen.getByRole("button", { name: "Trades" }));
+  expect(await screen.findByText(/Bought \$2,500/)).toBeDefined();
   expect(screen.queryByText(thesisPost.body)).toBeNull();
-  expect(screen.getByText(/Bought \$2,500/)).toBeDefined();
 
   fireEvent.click(screen.getByRole("button", { name: "Theses" }));
-  expect(screen.getByText(thesisPost.body)).toBeDefined();
+  expect(await screen.findByText(thesisPost.body)).toBeDefined();
   expect(screen.queryByText(/Bought \$2,500/)).toBeNull();
 
   const likeBtn = screen.getByRole("button", { name: "Like thesis" });
@@ -291,6 +313,60 @@ it("filters by Trades and Theses and optimistically likes a thesis via the socia
     params: { path: { id: thesisPost.id } },
     headers: { Authorization: "Bearer test-token" },
   });
+});
+
+it("validates drafts, saves applied filters per scope, and resets only on Apply", async () => {
+  routeGet({});
+  renderFeed(signedIn);
+  await screen.findByText("No feed activity yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum trade size USD" }), {
+    target: { value: "25" },
+  });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Trader portfolio size USD" }), {
+    target: { value: "300" },
+  });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum USD" }), { target: { value: "1000" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Maximum USD" }), { target: { value: "500" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Theses" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+  expect(screen.getByRole("alert").textContent).toContain("Minimum market cap must not exceed the maximum.");
+  expect(get.mock.calls.filter(([path]) => path === "/v1/feed")).toHaveLength(1);
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Maximum USD" }), { target: { value: "5000" } });
+  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+  await screen.findByText("No activity matches these filters.");
+  expect(screen.getByRole("button", { name: "Filters 4 active" })).toBeDefined();
+  expect(get.mock.calls.filter(([path]) => path === "/v1/feed").at(-1)?.[1].params.query).toEqual({
+    scope: "global",
+    cursor: undefined,
+    limit: 25,
+    minSizeUsd: 25,
+    minPortfolioUsd: 300,
+    minMarketCapUsd: 1000,
+    maxMarketCapUsd: 5000,
+    types: "bought,sold,closed,milestone,multi-user,new-trader",
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: /^following$/i }));
+  await screen.findByText("You aren't following any traders yet");
+  expect(screen.getByRole("button", { name: "Filters" })).toBeDefined();
+  cleanup();
+  renderFeed(signedIn);
+  await screen.findByText("No activity matches these filters.");
+  fireEvent.click(screen.getByRole("button", { name: "Filters 4 active" }));
+  expect((screen.getByRole("spinbutton", { name: "Minimum trade size USD" }) as HTMLInputElement).value).toBe(
+    "25",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  fireEvent.click(screen.getByRole("button", { name: "Filters 4 active" }));
+  expect((screen.getByRole("spinbutton", { name: "Minimum trade size USD" }) as HTMLInputElement).value).toBe(
+    "25",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+  await screen.findByText("No feed activity yet.");
+  expect(screen.getByRole("button", { name: "Filters" })).toBeDefined();
 });
 
 it("publishes a thesis from the feed composer via POST /v1/tokens/{mint}/theses", async () => {

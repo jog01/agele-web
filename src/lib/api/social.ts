@@ -1,5 +1,6 @@
-import { type InfiniteData, infiniteQueryOptions } from "@tanstack/react-query";
+import { type InfiniteData, infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type { AuthState } from "@/components/auth/auth-context";
+import { DEFAULT_FEED_FILTERS, feedFilterParams } from "@/lib/feed-filters";
 import {
   ApiError,
   api,
@@ -25,20 +26,21 @@ export async function socialHeaders(auth?: SocialAuth) {
   return { Authorization: `Bearer ${token}` };
 }
 
-export function feedQuery(scope: FeedScope, auth: SocialAuth) {
+export function feedQuery(scope: FeedScope, auth: SocialAuth, filters = DEFAULT_FEED_FILTERS, ready = true) {
+  const params = feedFilterParams(filters);
   return infiniteQueryOptions({
-    queryKey: ["feed", socialViewer(auth), scope],
+    queryKey: ["feed", socialViewer(auth), scope, params],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam, signal }) =>
       unwrap(
         await api.GET("/v1/feed", {
-          params: { query: { scope, cursor: pageParam, limit: 25 } },
+          params: { query: { scope, cursor: pageParam, limit: 25, ...params } },
           headers: await socialHeaders(auth),
           signal,
         }),
       ),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: scope === "global" || auth.authenticated,
+    enabled: ready && (scope === "global" || auth.authenticated),
   });
 }
 
@@ -74,6 +76,29 @@ export function thesisThreadQuery(mint: string, thesisId: string | null, auth?: 
       );
     },
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}
+
+export function positionThesisQuery(wallet: string, mint: string, positionId: string) {
+  return queryOptions({
+    queryKey: ["position-thesis", mint, wallet, positionId],
+    queryFn: async ({ signal }) => {
+      let cursor: string | undefined;
+      do {
+        const page = unwrap(
+          await api.GET("/v1/feed", {
+            params: { query: { scope: "global", wallet, mint, types: "thesis", cursor, limit: 25 } },
+            signal,
+          }),
+        );
+        const match = page.items.find(
+          (item) => item.kind === "thesis" && item.positionId === positionId && item.wallet === wallet,
+        );
+        if (match?.kind === "thesis") return match.thesisId;
+        cursor = page.nextCursor ?? undefined;
+      } while (cursor);
+      return null;
+    },
   });
 }
 

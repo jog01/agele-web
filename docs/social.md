@@ -11,7 +11,7 @@ sequenceDiagram
   participant RQ as TanStack Query Cache
   participant API as agele Social API
 
-  UI->>RQ: useFeed(scope) / tokenCommentsQuery(mint) / traderProfileQuery(wallet)
+  UI->>RQ: useFeed(scope, filters) / tokenCommentsQuery(mint) / traderProfileQuery(wallet)
   RQ->>API: GET /v1/feed | /v1/tokens/:mint/comments | /v1/traders/:wallet
   API-->>RQ: Cursor page + source / X-Data-Source header
   RQ-->>UI: Render cards, avatars, token logos, counts
@@ -27,6 +27,26 @@ sequenceDiagram
     RQ->>RQ: Rollback snapshot
   end
 ```
+
+## Feed Filters
+
+```mermaid
+flowchart LR
+  Scope["Global / Following"] --> Stored["Load applied filters for this scope from local storage"]
+  Stored --> Draft["Filter sheet: edit or reset draft"]
+  Stored --> Query
+  Draft -->|Apply valid draft| Save["Save applied values for this scope"]
+  Draft -->|Close without applying| Stored
+  Save --> Query["Query key: feed, viewer, scope, filter parameters"]
+  Query --> Api["GET /v1/feed with types, USD bounds and cursor"]
+  Api --> Rows["Render API rows and retain the next cursor"]
+  Rows -->|Load more| Query
+```
+
+All activity sends all supported types explicitly, including closed trades, milestones,
+multi-user trades, and new traders. Trades and Theses are shortcuts for the same
+activity checklist. The API applies the selection and USD bounds before returning
+each page; the browser stores only filter preferences, never demo feed data.
 
 ## Thesis Threads, Versioning & Pinning
 
@@ -46,5 +66,5 @@ flowchart LR
 ## Cache Isolation & Provenance
 
 - **Viewer isolation:** All social queries include `socialViewer(auth)` in their query keys so `isFollowing` and `likedByMe` never leak across sign-out or account switches.
-- **Provenance:** Feed items carry `source: "demo" | "indexed"`; profiles and trades carry `X-Data-Source`. UI surfaces subtle provenance captions (`Demo traders · simulated activity`, `Demo profile`) without blocking seeded demo positions, trades, or theses.
+- **Provenance:** Feed items carry `source: "demo" | "indexed"`; profiles and trades carry `X-Data-Source`. Trade attachments show whether activity is simulated or indexed without a separate feed banner.
 - **Token imagery:** Token chips render API-provided `imageUrl` via `AssetAvatar` (falling back to `TokenAssetAvatar` or the generic `Coins` glyph, never text initials).

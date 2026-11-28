@@ -148,8 +148,18 @@ describe("feed paging and union handling", () => {
     await waitFor(() => expect(result.current.hasNextPage).toBe(false));
     expect(result.current.data?.pages.flatMap((page) => page.items)).toEqual([thesis, trade]);
     expect(get.mock.calls.map((call) => call[1].params.query)).toEqual([
-      { scope: "global", cursor: undefined, limit: 25 },
-      { scope: "global", cursor, limit: 25 },
+      {
+        scope: "global",
+        cursor: undefined,
+        limit: 25,
+        types: "bought,sold,closed,thesis,milestone,multi-user,new-trader",
+      },
+      {
+        scope: "global",
+        cursor,
+        limit: 25,
+        types: "bought,sold,closed,thesis,milestone,multi-user,new-trader",
+      },
     ]);
     expect(get.mock.calls[0][1].headers).toBeUndefined();
     expect(feedItemContent(thesis).body).toBe("My thesis");
