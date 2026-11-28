@@ -8,18 +8,14 @@ import { ApiError, api, type Interval, type LeaderboardWindow, type Me, unwrap }
 import { leaderboardDataSource } from "./leaderboard";
 import { portfolioViewer } from "./portfolio";
 import { type SocialAuth, socialHeaders, socialViewer } from "./social";
+import { fetchTokenHolders, type HolderFilters } from "./token-holders";
 
 export const tokenQueries = {
-  holders: (mint: string) =>
+  holders: (mint: string, filters: HolderFilters = {}, auth?: SocialAuth) =>
     queryOptions({
-      queryKey: ["tokens", mint, "holders"],
-      queryFn: async ({ signal }) =>
-        unwrap(
-          await api.GET("/v1/tokens/{mint}/holders", {
-            params: { path: { mint }, query: { limit: 20 } },
-            signal,
-          }),
-        ),
+      queryKey: ["tokens", mint, "holders", socialViewer(auth), filters],
+      enabled: !filters.followingOnly || Boolean(auth?.authenticated && auth.walletAddress),
+      queryFn: ({ signal }) => fetchTokenHolders(mint, filters, auth, signal),
       retry: false,
       staleTime: 30_000,
     }),
