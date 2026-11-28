@@ -1,10 +1,11 @@
 "use client";
 
-import { BadgeCheck, MessageSquareText } from "lucide-react";
+import { MessageSquareText } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { TokenAssetAvatar } from "@/components/common/token-asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
+import { PositionReplayLink } from "@/components/social/position-replay-link";
 import { type ActiveThesisThread, ThesisThreadSheet } from "@/components/social/thesis-thread-sheet";
 import { TraderAvatar } from "@/components/social/trader-avatar";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useNow } from "@/hooks/use-now";
 import { useTokenHolders, useTokenPosition, useTokenTraders } from "@/hooks/use-token-activity";
 import { ApiError } from "@/lib/api/client";
-import type { TokenHolder } from "@/lib/api/token-holders";
+import type { components } from "@/lib/api/schema";
 import {
   changeTone,
   DASH,
   formatAmount,
   formatCompact,
   formatCompactUsd,
+  formatHold,
   formatPct,
   formatPrice,
   formatUsd,
@@ -35,17 +37,21 @@ const minimumHolderSizes = [
   { value: "10000", label: "$10K" },
 ];
 
+type TokenHolder = components["schemas"]["TokenHolders"]["holders"][number];
+
 export function HoldersPanel({ mint }: { mint: string }) {
   const auth = useAuth();
   const viewer = auth.authenticated ? auth.walletAddress : null;
   const [thesisOnly, setThesisOnly] = useState(false);
   const [followingViewer, setFollowingViewer] = useState<string | null>(null);
   const [minimum, setMinimum] = useState("");
+  const [tradersOnly, setTradersOnly] = useState(false);
   const [thread, setThread] = useState<ActiveThesisThread | null>(null);
   const followingOnly = Boolean(viewer && followingViewer === viewer);
   const query = useTokenHolders(mint, {
-    ...(thesisOnly && { thesisOnly }),
-    ...(followingOnly && { followingOnly }),
+    ...(tradersOnly && { scope: "traders" }),
+    ...(thesisOnly && { thesisOnly: "true" }),
+    ...(followingOnly && { followingOnly: "true" }),
     ...(minimum && { minValueUsd: Number(minimum) }),
   });
   const now = useNow(30_000);
@@ -53,6 +59,15 @@ export function HoldersPanel({ mint }: { mint: string }) {
   return (
     <div className="@container space-y-3 pb-3">
       <div className="flex flex-wrap items-center gap-2 border-border/60 border-b px-3 py-2">
+        <select
+          aria-label="Holder scope"
+          className="h-10 rounded-md border bg-background px-2 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
+          value={tradersOnly ? "traders" : "all"}
+          onChange={(event) => setTradersOnly(event.target.value === "traders")}
+        >
+          <option value="all">All holders</option>
+          <option value="traders">Agele traders</option>
+        </select>
         <Button
           type="button"
           variant="outline"
@@ -95,7 +110,11 @@ export function HoldersPanel({ mint }: { mint: string }) {
           <p role="alert">
             {query.error instanceof ApiError && query.error.status === 404
               ? "Token not found."
-              : "Holder data temporarily unavailable."}
+              : query.error instanceof ApiError && query.error.status === 401
+                ? "Sign in again to view holders you follow."
+                : query.error instanceof ApiError && query.error.status === 503
+                  ? "Sign-in is currently unavailable."
+                  : "Holder data temporarily unavailable."}
           </p>
           <Button variant="secondary" onClick={() => query.refetch()}>
             Retry
@@ -104,24 +123,28 @@ export function HoldersPanel({ mint }: { mint: string }) {
       ) : (
         <>
           <div className="flex flex-wrap gap-x-5 gap-y-1 px-3 text-muted-foreground">
-            <p>
-              Holders{" "}
-              <span className="tabular font-medium text-foreground">
-                {formatCompact(query.data.totalHolders)}
-              </span>
-            </p>
-            <p>
-              Top 10 holders{" "}
-              <span className="tabular font-medium text-foreground">
-                {formatPct(query.data.top10Pct, { signed: false })}
-              </span>
-            </p>
+            {(query.data.scope !== "traders" || query.data.totalHolders > 0) && (
+              <>
+                <p>
+                  Market holders{" "}
+                  <span className="tabular font-medium text-foreground">
+                    {formatCompact(query.data.totalHolders)}
+                  </span>
+                </p>
+                <p>
+                  Top 10 holders{" "}
+                  <span className="tabular font-medium text-foreground">
+                    {formatPct(query.data.top10Pct, { signed: false })}
+                  </span>
+                </p>
+              </>
+            )}
             <p className="w-full">
               Updated{" "}
               <time dateTime={new Date(query.data.updatedAt * 1000).toISOString()}>
                 {utcTimestamp(query.data.updatedAt)}
               </time>{" "}
-              · largest owner wallets
+              · {query.data.scope === "traders" ? "Agele traders by token amount" : "largest owner wallets"}
             </p>
           </div>
           {query.data.holders.length ? (
@@ -129,6 +152,7 @@ export function HoldersPanel({ mint }: { mint: string }) {
               {query.data.holders.map((holder) => (
                 <HolderRow
                   key={holder.wallet}
+                  mint={mint}
                   holder={holder}
                   now={now}
                   onOpenThesis={(thesisId) => setThread({ mint, thesisId })}
@@ -141,7 +165,9 @@ export function HoldersPanel({ mint }: { mint: string }) {
                 ? "No one you follow is holding"
                 : thesisOnly || minimum
                   ? "No holders match these filters."
-                  : "No holder data for this token yet."}
+                  : tradersOnly
+                    ? "No Agele traders are holding this token."
+                    : "No holder data for this token yet."}
             </p>
           )}
         </>
@@ -153,14 +179,17 @@ export function HoldersPanel({ mint }: { mint: string }) {
 
 function HolderRow({
   holder,
+  mint,
   now,
   onOpenThesis,
 }: {
   holder: TokenHolder;
+  mint: string;
   now: number | null;
   onOpenThesis: (thesisId: string) => void;
 }) {
   const { trader, position, latestThesis } = holder;
+  const traderName = trader && (trader.displayName || `@${trader.handle}`);
   return (
     <li className="space-y-2 px-3 py-3">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -175,16 +204,11 @@ function HolderRow({
                 size="sm"
               />
               <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <TraderLink
-                    wallet={trader.wallet}
-                    handle={trader.displayName || `@${trader.handle}`}
-                    className="truncate text-sm"
-                  />
-                  {trader.verified && (
-                    <BadgeCheck aria-label="Verified trader" className="size-3.5 shrink-0 text-primary" />
-                  )}
-                </div>
+                {trader.wallet && traderName ? (
+                  <TraderLink wallet={trader.wallet} handle={traderName} className="block truncate text-sm" />
+                ) : (
+                  <p className="truncate font-medium text-sm">{traderName}</p>
+                )}
                 {trader.displayName && <p className="truncate text-muted-foreground">@{trader.handle}</p>}
               </div>
             </>
@@ -214,40 +238,60 @@ function HolderRow({
           </p>
         </div>
       </div>
-      {position && (
-        <dl className="tabular grid grid-cols-2 gap-x-4 gap-y-2 @lg:grid-cols-4">
-          <div>
-            <dt className="text-muted-foreground">Invested</dt>
-            <dd>{formatCompactUsd(position.investedUsd)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">PnL</dt>
-            <dd>
-              <Pnl value={position.pnlUsd} />
-              {position.pnlPct != null && (
-                <span className={changeTone(position.pnlPct)}> · {formatPct(position.pnlPct)}</span>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Avg. entry MC</dt>
-            <dd>{formatCompactUsd(position.avgEntryMarketCapUsd)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Hold age</dt>
-            <dd>
-              {position.firstBoughtAt != null && now ? (
-                <time
-                  dateTime={new Date(position.firstBoughtAt * 1000).toISOString()}
-                  title={utcTimestamp(position.firstBoughtAt)}
-                >
-                  {timeAgo(position.firstBoughtAt, now)}
-                </time>
-              ) : (
-                DASH
-              )}
-            </dd>
-          </div>
+      {(position || trader?.avgHoldSeconds != null) && (
+        <dl className="tabular grid grid-cols-2 gap-x-4 gap-y-2 @lg:flex @lg:flex-wrap @lg:gap-x-6">
+          {trader?.avgHoldSeconds != null && (
+            <div>
+              <dt className="text-muted-foreground">Avg. hold</dt>
+              <dd>{formatHold(trader.avgHoldSeconds)}</dd>
+            </div>
+          )}
+          {position && (
+            <>
+              <div>
+                <dt className="text-muted-foreground">Invested</dt>
+                <dd>
+                  {trader?.wallet ? (
+                    <PositionReplayLink
+                      target={{ wallet: trader.wallet, mint, positionId: position.positionId }}
+                      className="rounded-sm underline decoration-border underline-offset-2 hover:text-primary focus-visible:text-primary"
+                      aria-label={`Replay ${traderName}'s position`}
+                    >
+                      {formatCompactUsd(position.investedUsd)}
+                    </PositionReplayLink>
+                  ) : (
+                    formatCompactUsd(position.investedUsd)
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">PnL</dt>
+                <dd>
+                  <Pnl value={position.pnlUsd} />
+                  <span className={changeTone(position.pnlPct)}> · {formatPct(position.pnlPct)}</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Avg. entry MC</dt>
+                <dd>{formatCompactUsd(position.avgEntryMarketCapUsd)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Hold age</dt>
+                <dd>
+                  {now ? (
+                    <time
+                      dateTime={new Date(position.firstBoughtAt * 1000).toISOString()}
+                      title={utcTimestamp(position.firstBoughtAt)}
+                    >
+                      {timeAgo(position.firstBoughtAt, now)}
+                    </time>
+                  ) : (
+                    DASH
+                  )}
+                </dd>
+              </div>
+            </>
+          )}
         </dl>
       )}
       {latestThesis && (
@@ -280,10 +324,10 @@ function HolderRow({
   );
 }
 
-function Pnl({ value }: { value: number | null }) {
+function Pnl({ value }: { value: number }) {
   return (
     <span className={changeTone(value)}>
-      {value != null && value > 0 ? "+" : ""}
+      {value > 0 ? "+" : ""}
       {formatUsd(value)}
     </span>
   );

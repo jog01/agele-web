@@ -143,10 +143,19 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description scope=all: largest owner wallets from market data, enriched when a wallet belongs to an Agele trader. scope=traders: Agele traders with an open indexed position, by amount (first 200). thesisOnly, followingOnly and minValueUsd run before limit. Bearer token optional; required for followingOnly. X-Data-Source: indexed for scope=traders. */
         get: {
             parameters: {
                 query?: {
                     limit?: number;
+                    /** @description all: largest owner wallets; traders: Agele traders holding the token */
+                    scope?: "all" | "traders";
+                    /** @description Only holders with a thesis on this token */
+                    thesisOnly?: string;
+                    /** @description Only holders the viewer follows; requires a bearer token */
+                    followingOnly?: string;
+                    /** @description Inclusive minimum holding value */
+                    minValueUsd?: number | null;
                 };
                 header?: never;
                 path: {
@@ -156,13 +165,22 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Largest token accounts merged by owner wallet */
+                /** @description Holders with trader, open position and latest thesis */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["TokenHolders"];
+                    };
+                };
+                /** @description followingOnly without a viewer, or invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
                     };
                 };
                 /** @description Unknown token */
@@ -176,6 +194,15 @@ export interface paths {
                 };
                 /** @description Market data upstream unavailable */
                 502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3367,9 +3394,12 @@ export interface components {
         };
         TokenHolders: {
             mint: string;
+            /** @enum {string} */
+            scope: "all" | "traders";
             totalHolders: number;
             top10Pct: number;
             holders: {
+                /** @description Rank within the unfiltered list for this scope */
                 rank: number;
                 wallet: string;
                 amount: number;
@@ -3377,10 +3407,49 @@ export interface components {
                 valueUsd: number;
                 isPool?: boolean;
                 label?: string;
+                trader: components["schemas"]["HolderTrader"];
+                /** @description False for anonymous viewers */
+                isFollowed: boolean;
+                position: components["schemas"]["HolderPosition"];
+                latestThesis: components["schemas"]["HolderThesis"];
             }[];
             /** @description Snapshot time, Unix seconds */
             updatedAt: number;
         };
+        HolderTrader: {
+            wallet: string | null;
+            handle: string;
+            displayName: string | null;
+            avatarUrl: string | null;
+            /** @description Average hold across closed positions */
+            avgHoldSeconds: number | null;
+            /** @enum {string} */
+            source: "demo" | "indexed";
+        } | null;
+        HolderPosition: {
+            /** @description Opening fill ID of the open position, for replay */
+            positionId: string;
+            /** @description Unix seconds */
+            firstBoughtAt: number;
+            investedUsd: number;
+            avgEntryMarketCapUsd: number | null;
+            realizedPnlUsd: number;
+            unrealizedPnlUsd: number;
+            pnlUsd: number;
+            pnlPct: number;
+        } | null;
+        HolderThesis: {
+            thesisId: string;
+            /** @description Newest thesis version */
+            postId: string;
+            positionId: string;
+            body: string;
+            /** @description Unix seconds */
+            createdAt: number;
+            likeCount: number;
+            replyCount: number;
+            viewCount: number;
+        } | null;
         Token: {
             mint: string;
             symbol: string;

@@ -7,15 +7,27 @@ import { useLivePrices } from "@/hooks/use-live-prices";
 import { ApiError, api, type Interval, type LeaderboardWindow, type Me, unwrap } from "./client";
 import { leaderboardDataSource } from "./leaderboard";
 import { portfolioViewer } from "./portfolio";
+import type { paths } from "./schema";
 import { type SocialAuth, socialHeaders, socialViewer } from "./social";
-import { fetchTokenHolders, type HolderFilters } from "./token-holders";
+
+export type HolderFilters = Omit<
+  NonNullable<paths["/v1/tokens/{mint}/holders"]["get"]["parameters"]["query"]>,
+  "limit"
+>;
 
 export const tokenQueries = {
   holders: (mint: string, filters: HolderFilters = {}, auth?: SocialAuth) =>
     queryOptions({
       queryKey: ["tokens", mint, "holders", socialViewer(auth), filters],
-      enabled: !filters.followingOnly || Boolean(auth?.authenticated && auth.walletAddress),
-      queryFn: ({ signal }) => fetchTokenHolders(mint, filters, auth, signal),
+      enabled: filters.followingOnly !== "true" || Boolean(auth?.authenticated && auth.walletAddress),
+      queryFn: async ({ signal }) =>
+        unwrap(
+          await api.GET("/v1/tokens/{mint}/holders", {
+            params: { path: { mint }, query: { limit: 20, ...filters } },
+            ...(filters.followingOnly === "true" && { headers: await socialHeaders(auth) }),
+            signal,
+          }),
+        ),
       retry: false,
       staleTime: 30_000,
     }),
