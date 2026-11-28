@@ -58,7 +58,13 @@ function HoldFilter({ onCommit }: { onCommit: (range: HoldRange) => void }) {
   const minLabel = HOLD_STOPS[min].label;
   const maxLabel = HOLD_STOPS[max].label;
   const label =
-    min === 0 && max === LAST_STOP ? "Any" : max === LAST_STOP ? `${minLabel}+` : `${minLabel} – ${maxLabel}`;
+    min === 0 && max === LAST_STOP
+      ? "Any"
+      : min === max
+        ? minLabel
+        : max === LAST_STOP
+          ? `${minLabel}+`
+          : `${minLabel} – ${maxLabel}`;
   return (
     <fieldset className="positions-board-hold">
       <legend>Hold time</legend>
@@ -67,7 +73,7 @@ function HoldFilter({ onCommit }: { onCommit: (range: HoldRange) => void }) {
         className="positions-board-slider"
         defaultValue={ANY_HOLD}
         max={LAST_STOP}
-        minStepsBetweenThumbs={1}
+        preserveThumbOrder
         onValueChange={([low, high]) => setRange([low, high])}
         onValueCommit={([low, high]) => onCommit([low, high])}
       >

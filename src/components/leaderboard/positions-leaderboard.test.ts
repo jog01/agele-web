@@ -132,3 +132,24 @@ it("fetches fresh server results when the window, invested bucket and hold range
     }),
   );
 });
+
+it("allows the minimum hold time to reach 3m+ without setting a maximum", async () => {
+  const get = vi.spyOn(api, "GET").mockResolvedValue(page([]));
+  const view = renderBoard();
+  await view.findByText("No positions match these filters");
+
+  const min = view.getByRole("slider", { name: "Minimum hold time" });
+  fireEvent.focus(min);
+  fireEvent.keyDown(min, { key: "ArrowRight", shiftKey: true });
+
+  expect(min.getAttribute("aria-valuetext")).toBe("3m+");
+  expect(view.getByRole("slider", { name: "Maximum hold time" }).getAttribute("aria-valuetext")).toBe(
+    "No maximum",
+  );
+  await waitFor(() =>
+    expect(get).toHaveBeenLastCalledWith("/v1/leaderboard/positions", {
+      params: { query: expect.objectContaining({ minHoldSeconds: 7_776_000, maxHoldSeconds: undefined }) },
+      signal: expect.any(AbortSignal),
+    }),
+  );
+});
