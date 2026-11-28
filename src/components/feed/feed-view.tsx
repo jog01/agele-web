@@ -150,7 +150,7 @@ function FeedThesisComposer() {
         placeholder="Share your conviction, entry context, and invalidation..."
         aria-label="Thesis"
         rows={3}
-        className="w-full resize-none rounded-lg border border-border bg-background/60 p-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+        className="w-full resize-none rounded-lg border border-border bg-background/60 p-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60 pointer-coarse:text-base"
       />
       {error && (
         <p role="alert" className="text-negative text-xs">

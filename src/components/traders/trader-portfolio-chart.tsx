@@ -42,7 +42,12 @@ function PortfolioArea({ points }: { points: { time: number; valueUsd: number }[
       grid: { vertLines: { visible: false }, horzLines: { color: colors.grid } },
       crosshair: { vertLine: { color: colors.crosshair }, horzLine: { color: colors.crosshair } },
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.15, bottom: 0.05 } },
-      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
+      timeScale: {
+        borderVisible: false,
+        timeVisible: true,
+        secondsVisible: false,
+        lockVisibleTimeRangeOnResize: true,
+      },
       handleScroll: false,
       handleScale: false,
     });
@@ -70,7 +75,12 @@ function PortfolioArea({ points }: { points: { time: number; valueUsd: number }[
     chartRef.current?.timeScale().fitContent();
   }, [points, rising]);
 
-  return <div ref={container} className="h-44 w-full sm:h-52" aria-hidden />;
+  // Canvas/table intrinsic widths must not participate in the profile grid's minimum sizing.
+  return (
+    <div className="relative h-44 min-w-0 sm:h-52" aria-hidden>
+      <div ref={container} className="absolute inset-0 overflow-hidden" />
+    </div>
+  );
 }
 
 export function TraderPortfolioChart({ wallet }: { wallet: string }) {
@@ -83,7 +93,10 @@ export function TraderPortfolioChart({ wallet }: { wallet: string }) {
   const value = points.at(-1)?.valueUsd;
 
   return (
-    <section aria-labelledby="portfolio-heading" className="rounded-md border bg-card p-4 sm:p-5">
+    <section
+      aria-labelledby="portfolio-heading"
+      className="min-w-0 overflow-hidden rounded-md bg-card p-4 ring-1 ring-foreground/10 sm:p-5"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id="portfolio-heading" className="text-[11px] text-muted-foreground">

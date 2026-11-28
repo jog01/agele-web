@@ -152,6 +152,8 @@ it("shows named post and trader skeletons independently, then replaces only reso
   expect(screen.getByRole("status", { name: "Loading traders to watch" })).toBeDefined();
   await act(async () => feedReq.resolve(feedOk([thesisPost])));
   expect(await screen.findByText(thesisPost.body)).toBeDefined();
+  expect(screen.getByText("Position thesis")).toBeDefined();
+  expect(screen.queryByText(/no trade attached/)).toBeNull();
   expect(
     screen.getByRole("button", { name: "Replay SOL position" }).querySelector("img")?.getAttribute("src"),
   ).toBe("https://example.com/sol.webp");

@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const PROFILE_FRAME =
-  "mx-auto w-full max-w-[1120px] space-y-4 px-4 py-5 sm:px-6 sm:py-6 pointer-coarse:[&_button]:min-h-11";
+  "mx-auto min-w-0 w-full max-w-[1120px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11";
 
 export function TraderTableSkeleton({ label, rows = 3 }: { label: string; rows?: 1 | 3 }) {
   return (
@@ -36,7 +36,7 @@ export function TraderProfileLoading() {
     <div className={PROFILE_FRAME}>
       <div role="status" aria-label="Loading trader profile">
         <span className="sr-only">Loading trader profile…</span>
-        <div aria-hidden className="space-y-4">
+        <div aria-hidden className="flex flex-col gap-5">
           <div className="flex h-10 items-center">
             <Skeleton className="h-3 w-28 motion-reduce:animate-none" />
           </div>
@@ -61,26 +61,35 @@ export function TraderProfileLoading() {
               ))}
             </div>
           </section>
-          <section className="space-y-4 rounded-md border bg-card p-4 sm:p-5">
+          <section className="order-last space-y-3 border-t px-1 pt-5">
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
               <Skeleton className="h-4 w-40 motion-reduce:animate-none" />
               <Skeleton className="h-10 w-40 motion-reduce:animate-none" />
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {["rank", "pnl", "return", "volume", "trades", "win-rate"].map((key) => (
-                <div key={key} className="min-w-0 space-y-3 rounded bg-background px-3 py-2.5">
+                <div key={key} className="min-w-0 space-y-3 py-1">
                   <Skeleton className="h-2.5 w-12 motion-reduce:animate-none" />
                   <Skeleton className="h-4 w-16 motion-reduce:animate-none" />
                 </div>
               ))}
             </div>
           </section>
-          <div className="grid items-start gap-4 xl:grid-cols-2">
-            {["Open positions", "Recent trades"].map((title) => (
+          <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
+            {["Portfolio and positions", "Thesis and feed"].map((title, index) => (
               <section key={title} className="min-w-0 overflow-hidden rounded-md border bg-card">
                 <div className="flex h-14 items-center px-4 sm:px-5">
                   <Skeleton className="h-4 w-28 motion-reduce:animate-none" />
                 </div>
+                {index === 0 ? (
+                  <Skeleton className="mx-4 mb-5 h-44 motion-reduce:animate-none sm:mx-5 sm:h-52" />
+                ) : (
+                  <div className="space-y-3 px-4 pb-5 sm:px-5">
+                    <Skeleton className="h-3 w-full motion-reduce:animate-none" />
+                    <Skeleton className="h-3 w-3/4 motion-reduce:animate-none" />
+                    <Skeleton className="h-3 w-28 motion-reduce:animate-none" />
+                  </div>
+                )}
                 <TraderTableSkeleton label={title} />
               </section>
             ))}

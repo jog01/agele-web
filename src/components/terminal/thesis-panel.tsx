@@ -187,7 +187,7 @@ function ThesisPanelBody({ mint }: { mint: string }) {
           }
           aria-label={mode === "thesis" ? "Thesis" : "Comment"}
           rows={mode === "thesis" ? 3 : 2}
-          className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground pointer-coarse:text-base"
         />
         {error && (
           <p role="alert" className="text-negative text-xs">

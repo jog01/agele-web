@@ -38,7 +38,10 @@ function ReplayToken({
   imageUrl: string | null;
 }) {
   return (
-    <PositionReplayLink target={target} className={cn(LINK, "inline-flex items-center gap-1.5")}>
+    <PositionReplayLink
+      target={target}
+      className={cn(LINK, "inline-flex items-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11")}
+    >
       {imageUrl ? (
         <AssetAvatar imageUrl={imageUrl} className="size-4" />
       ) : (
@@ -206,7 +209,10 @@ function FeedRow({ item, now }: { item: FeedItem; now: number | null }) {
         <div className="flex items-baseline justify-between gap-3">
           <p className="min-w-0 truncate text-sm">
             <span className={cn("font-medium", content.tone)}>{content.label}</span>{" "}
-            <Link href={`/trade/${encodeURIComponent(item.mint)}`} className="font-medium hover:underline">
+            <Link
+              href={`/trade/${encodeURIComponent(item.mint)}`}
+              className="inline-flex items-center px-1 font-medium hover:underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground/50 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+            >
               {item.symbol}
             </Link>
           </p>
@@ -229,11 +235,27 @@ function FeedRow({ item, now }: { item: FeedItem; now: number | null }) {
             <span className="sr-only">Likes</span>
             {item.likeCount}
           </span>
-          <span className="inline-flex items-center gap-1" title="Replies">
-            <MessageSquare aria-hidden className="size-3" />
-            <span className="sr-only">Replies</span>
-            {item.replyCount}
-          </span>
+          {item.kind === "thesis" ? (
+            <PositionReplayLink
+              target={{
+                wallet: item.wallet,
+                mint: item.mint,
+                positionId: item.positionId,
+                thesisId: item.thesisId,
+              }}
+              className="inline-flex min-h-10 items-center gap-1 rounded text-primary focus-visible:outline-2 focus-visible:outline-foreground/50 pointer-coarse:min-h-11"
+              aria-label={`Open ${item.symbol} thesis thread`}
+            >
+              <MessageSquare aria-hidden className="size-3" />
+              {item.replyCount} · Open thread
+            </PositionReplayLink>
+          ) : (
+            <span className="inline-flex items-center gap-1" title="Replies">
+              <MessageSquare aria-hidden className="size-3" />
+              <span className="sr-only">Replies</span>
+              {item.replyCount}
+            </span>
+          )}
         </p>
       </div>
     </li>

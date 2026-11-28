@@ -178,7 +178,10 @@ it("labels demo data, explains empty history, and switches window without anothe
   expect(await screen.findByRole("heading", { name: "Orca" })).toBeDefined();
   expect((await screen.findByText("Trader profile: Orca")).getAttribute("role")).toBe("status");
   expect(screen.getByText("Demo profile")).toBeDefined();
-  expect(screen.getByText("Sign-in isn’t configured, so following is unavailable.")).toBeDefined();
+  expect(screen.getByRole("button", { name: "Follow unavailable: sign-in is unavailable" })).toHaveProperty(
+    "disabled",
+    true,
+  );
   expect(screen.getByText("No open positions.")).toBeDefined();
   await openTransactions();
   expect(await screen.findByText("No trades yet.")).toBeDefined();

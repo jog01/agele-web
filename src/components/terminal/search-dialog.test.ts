@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
 import { useTerminalStore } from "@/stores/terminal";
@@ -56,6 +56,28 @@ function openSearch() {
   );
   return { input: screen.getByRole("searchbox"), onOpenChange };
 }
+
+function SearchHarness() {
+  const [open, setOpen] = useState(false);
+  return createElement(
+    "div",
+    null,
+    createElement("button", { type: "button", onClick: () => setOpen(true) }, "Open search"),
+    createElement(SearchDialog, { open, onOpenChange: setOpen }),
+  );
+}
+
+it("returns focus to a controlled search opener after Escape", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } });
+  render(createElement(QueryClientProvider, { client }, createElement(SearchHarness)));
+  const trigger = screen.getByRole("button", { name: "Open search" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  expect(await screen.findByRole("searchbox")).toBeDefined();
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+});
 
 beforeEach(() => {
   vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));

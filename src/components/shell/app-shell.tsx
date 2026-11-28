@@ -21,9 +21,12 @@ export function AppShell({ section, children }: { section?: NavSection; children
     { ignoreInputs: true },
   );
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div className="fixed inset-0 flex h-dvh min-w-0 flex-col overflow-hidden">
       <TopBar section={section} onSearch={() => setSearchOpen(true)} />
-      <main id="main-content" className="workspace-scrollbars min-h-0 flex-1 overflow-auto">
+      <main
+        id="main-content"
+        className="workspace-scrollbars min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain"
+      >
         {children}
       </main>
       <StatusStrip />

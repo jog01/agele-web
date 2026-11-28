@@ -28,7 +28,7 @@ export function TopBar({ section, onSearch }: { section?: NavSection; onSearch?:
   const balance = useUsdcBalance(auth.authenticated ? auth.wallet.address : null);
   const { demoMode: DEMO_MODE } = useMarketDataMode();
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border/60 bg-sidebar px-3 lg:h-12">
+    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border/60 bg-sidebar px-3 lg:h-12 pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11 pointer-coarse:[&_a]:min-h-11 pointer-coarse:[&_a]:min-w-11">
       <Link
         href="/"
         aria-label="Agele home"

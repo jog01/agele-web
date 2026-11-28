@@ -88,7 +88,7 @@ function ProfileMeta({ profile }: { profile: components["schemas"]["TraderProfil
 
 function Metric({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className="min-w-0 rounded bg-background px-3 py-2.5">
+    <div className="min-w-0 py-1">
       <dt className="text-[11px] text-muted-foreground">{label}</dt>
       <dd className={cn("tabular mt-1 wrap-anywhere font-medium text-[15px]", className)}>{value}</dd>
     </div>
@@ -105,7 +105,7 @@ function TraderStats({
   const [window, setWindow] = useState(initialWindow);
   const { rank, pnlUsd, pnlPct, volumeUsd, trades, winRatePct } = stats[window];
   return (
-    <section className="space-y-4 rounded-md border bg-card p-4 sm:p-5">
+    <section className="space-y-3 border-border/60 border-t px-1 pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-medium text-sm">Leaderboard performance</h2>
         <ToggleGroup
@@ -125,7 +125,7 @@ function TraderStats({
           ))}
         </ToggleGroup>
       </div>
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
         <Metric label="Rank" value={rank == null ? "Unranked" : `#${COUNT.format(rank)}`} />
         <Metric label="Net PnL" value={formatUsd(pnlUsd)} className={changeTone(pnlUsd)} />
         <Metric label="Return" value={formatPct(pnlPct)} className={changeTone(pnlPct)} />
@@ -154,7 +154,9 @@ function FollowTrader({
         Sign in to follow
       </Button>
     ) : (
-      <p className="text-muted-foreground text-sm">Sign-in isn’t configured, so following is unavailable.</p>
+      <Button variant="outline" disabled aria-label="Follow unavailable: sign-in is unavailable">
+        Follow
+      </Button>
     );
   }
   if (auth.walletAddress === wallet || auth.walletAddress === routeWallet) return null;
@@ -292,11 +294,8 @@ export function TraderProfileView({
                   <ProfileMeta profile={data} />
                 </div>
               </div>
-              <div className="max-w-64 text-xs">
+              <div className="shrink-0 text-xs">
                 <FollowTrader wallet={data.wallet} routeWallet={wallet} isFollowing={data.isFollowing} />
-                {data.dataSource === "demo" && (
-                  <p className="mt-2 text-[11px] text-muted-foreground">Simulated history & performance.</p>
-                )}
               </div>
             </div>
             <dl className="grid grid-cols-2 divide-x border-t bg-background/30">
@@ -313,18 +312,20 @@ export function TraderProfileView({
               ))}
             </dl>
           </section>
-          <TraderTopTrades trades={data.topTrades} />
-          <TraderStats stats={data.stats} initialWindow={initialWindow} />
           <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="grid min-w-0 gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-4">
               <TraderPortfolioChart wallet={wallet} />
+              <TraderTopTrades wallet={data.wallet} trades={data.topTrades} />
               <TraderPositionsPanel wallet={wallet} positions={data.positions} topTrades={data.topTrades} />
             </div>
-            <div className="grid min-w-0 gap-4">
-              {data.mostLikedThesis && <TraderMostLikedThesis thesis={data.mostLikedThesis} />}
+            <div className="grid min-w-0 grid-cols-1 gap-4">
+              {data.mostLikedThesis && (
+                <TraderMostLikedThesis wallet={data.wallet} thesis={data.mostLikedThesis} />
+              )}
               <TraderActivityPanel wallet={wallet} />
             </div>
           </div>
+          <TraderStats stats={data.stats} initialWindow={initialWindow} />
         </>
       )}
     </div>

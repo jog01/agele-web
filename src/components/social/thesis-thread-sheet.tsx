@@ -3,7 +3,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CornerDownRight, Heart, Loader2, Pin, Send } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
@@ -11,6 +11,7 @@ import { TableSkeleton } from "@/components/terminal/panel-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import { useNow } from "@/hooks/use-now";
 import { usePinThesisVersion, usePostComment, useReactToPost } from "@/hooks/use-social-actions";
 import type { Comment } from "@/lib/api/client";
@@ -35,9 +36,10 @@ export function ThesisThreadSheet({
   thread: ActiveThesisThread | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const focusReturn = useDialogFocusReturn();
   return (
     <Sheet open={Boolean(thread)} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+      <SheetContent {...focusReturn} side="right" className="flex flex-col gap-0 p-0 sm:max-w-lg">
         {thread ? <ThesisThreadBody key={`${thread.mint}:${thread.thesisId}`} thread={thread} /> : null}
       </SheetContent>
     </Sheet>
@@ -56,6 +58,7 @@ export function ThesisThreadBody({
   const [replyTarget, setReplyTarget] = useState<{ id: string; handle: string } | null>(null);
   const [draft, setDraft] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const replyInput = useRef<HTMLTextAreaElement>(null);
 
   const query = useInfiniteQuery(thesisThreadQuery(thread.mint, thread.thesisId, auth));
   const postComment = usePostComment();
@@ -90,6 +93,7 @@ export function ThesisThreadBody({
   }
 
   async function submitReply() {
+    if (postComment.isPending || (!auth.authenticated && (!auth.configured || !auth.ready))) return;
     if (!auth.authenticated) {
       auth.login();
       return;
@@ -141,18 +145,11 @@ export function ThesisThreadBody({
     }
   }
 
-  function renderPost(post: Comment, opts?: { highlight?: boolean; nested?: boolean }) {
+  function renderPost(post: Comment, opts?: { nested?: boolean }) {
     const canPin =
       post.kind === "thesis" && Boolean(auth.walletAddress && post.wallet === auth.walletAddress);
     return (
-      <div
-        key={post.id}
-        className={cn(
-          "rounded-lg border p-3.5 transition-colors",
-          opts?.highlight ? "border-primary/40 bg-primary/5" : "border-border bg-card/60",
-          opts?.nested && "ml-6 border-border/70 bg-background/60",
-        )}
-      >
+      <div key={post.id} className={cn("py-5", opts?.nested && "ml-4 border-border/60 border-l pl-4 pt-1")}>
         <div className="flex items-start gap-2.5">
           <TraderAvatar handle={post.handle} avatarUrl={post.avatarUrl} size="sm" className="mt-0.5" />
           <div className="min-w-0 flex-1">
@@ -167,25 +164,25 @@ export function ThesisThreadBody({
                 <span className="font-medium text-foreground">@{post.handle}</span>
               )}
               {post.kind === "thesis" && (
-                <Badge variant="outline" className="h-5 border-border/80 text-[10px] text-muted-foreground">
+                <Badge variant="secondary" className="h-5 text-[10px] text-muted-foreground">
                   Thesis
                 </Badge>
               )}
               {post.position !== "none" && (
                 <Badge
-                  variant="outline"
+                  variant="secondary"
                   className={cn(
                     "h-5 text-[10px]",
                     post.position === "long"
-                      ? "border-positive/40 text-positive"
-                      : "border-negative/40 text-negative",
+                      ? "bg-positive/10 text-positive"
+                      : "bg-negative/10 text-negative",
                   )}
                 >
                   {post.position === "long" ? "Holding" : "Exited"}
                 </Badge>
               )}
               {post.pinned && (
-                <Badge variant="outline" className="h-5 border-primary/40 text-[10px] text-primary">
+                <Badge variant="secondary" className="h-5 bg-primary/10 text-[10px] text-primary">
                   <Pin className="mr-0.5 size-2.5" />
                   Pinned
                 </Badge>
@@ -194,15 +191,18 @@ export function ThesisThreadBody({
                 {now ? `${timeAgo(post.createdAt, now)} ago` : ""}
               </span>
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-foreground/95 text-sm leading-6">{post.body}</p>
-            <div className="mt-2.5 flex items-center gap-3 text-muted-foreground text-xs">
+            <p className="mt-2 whitespace-pre-wrap wrap-anywhere text-foreground/95 text-sm leading-6">
+              {post.body}
+            </p>
+            <div className="-ml-2 mt-1 flex items-center gap-1 text-muted-foreground text-xs">
               <button
                 type="button"
                 onClick={() => toggleLike(post)}
                 aria-pressed={Boolean(post.likedByMe)}
                 aria-label={post.likedByMe ? "Unlike post" : "Like post"}
+                disabled={reactToPost.isPending}
                 className={cn(
-                  "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+                  "inline-flex min-h-10 min-w-10 items-center justify-center gap-1 rounded px-2 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground/50 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
                   post.likedByMe && "text-primary",
                 )}
               >
@@ -211,8 +211,11 @@ export function ThesisThreadBody({
               </button>
               <button
                 type="button"
-                onClick={() => setReplyTarget({ id: post.id, handle: post.handle })}
-                className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                onClick={() => {
+                  setReplyTarget({ id: post.id, handle: post.handle });
+                  replyInput.current?.focus();
+                }}
+                className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 rounded px-2 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground/50 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
               >
                 <CornerDownRight className="size-3.5" />
                 Reply
@@ -222,7 +225,7 @@ export function ThesisThreadBody({
                   type="button"
                   onClick={() => togglePin(post)}
                   disabled={pinThesis.isPending}
-                  className="ml-auto inline-flex items-center gap-1 transition-colors hover:text-foreground disabled:opacity-50"
+                  className="ml-auto inline-flex min-h-10 min-w-10 items-center justify-center gap-1 rounded px-2 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground/50 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 >
                   <Pin className="size-3" />
                   {post.pinned ? "Unpin" : "Pin"}
@@ -238,18 +241,18 @@ export function ThesisThreadBody({
   return (
     <>
       {!embedded && (
-        <SheetHeader className="border-b px-5 py-4">
-          <div className="flex items-center gap-2.5 pr-8">
+        <SheetHeader className="shrink-0 border-border/60 border-b px-5 py-4">
+          <div className="flex items-center gap-3 pr-11">
             <AssetAvatar imageUrl={thread.imageUrl} className="size-7" />
             <div className="min-w-0">
               <SheetTitle className="truncate text-sm">
-                {thread.symbol ? `${thread.symbol} thesis thread` : "Thesis thread"}
+                {thread.symbol ? `${thread.symbol} thesis` : "Thesis thread"}
               </SheetTitle>
-              <SheetDescription className="text-xs">Versions, pinned update, and replies</SheetDescription>
+              <SheetDescription className="text-xs">Updates and replies</SheetDescription>
             </div>
             <Link
               href={`/trade/${thread.mint}`}
-              className="ml-auto inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
+              className="ml-auto inline-flex min-h-10 shrink-0 items-center gap-1 text-muted-foreground text-xs hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground/50 pointer-coarse:min-h-11"
             >
               Trade
               <ArrowUpRight className="size-3.5" />
@@ -258,7 +261,11 @@ export function ThesisThreadBody({
         </SheetHeader>
       )}
 
-      <div className={cn("space-y-3", embedded ? "py-3" : "flex-1 overflow-y-auto px-5 py-4")}>
+      <div
+        className={cn(
+          embedded ? "" : "workspace-scrollbars min-h-0 flex-1 overflow-y-auto overscroll-contain px-5",
+        )}
+      >
         {query.isPending ? (
           <TableSkeleton label="Loading thesis thread" columns={3} />
         ) : query.isError ? (
@@ -270,13 +277,13 @@ export function ThesisThreadBody({
           </div>
         ) : (
           <>
-            {pinned ? renderPost(pinned, { highlight: true }) : null}
             {topLevel.length === 0 && !pinned ? (
               <p className="py-8 text-center text-muted-foreground text-sm">No entries in this thread yet.</p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="divide-y divide-border/60">
+                {pinned ? renderPost(pinned) : null}
                 {topLevel.map((post) => (
-                  <div key={post.id} className="space-y-2">
+                  <div key={post.id}>
                     {renderPost(post)}
                     {(byParent.get(post.id) ?? []).map((child) => renderPost(child, { nested: true }))}
                   </div>
@@ -299,11 +306,24 @@ export function ThesisThreadBody({
         )}
       </div>
 
-      <div className={cn("border-t py-3.5", !embedded && "bg-background/80 px-5")}>
+      <form
+        className={cn(
+          "shrink-0 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]",
+          !embedded && "bg-popover px-5",
+        )}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submitReply();
+        }}
+      >
         {replyTarget && (
           <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
             <span>Replying to @{replyTarget.handle}</span>
-            <button type="button" onClick={() => setReplyTarget(null)} className="hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setReplyTarget(null)}
+              className="min-h-10 px-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground/50 pointer-coarse:min-h-11"
+            >
               Cancel
             </button>
           </div>
@@ -313,26 +333,34 @@ export function ThesisThreadBody({
             {actionError}
           </p>
         )}
-        <div className="rounded-lg border bg-card/60 p-2.5 focus-within:ring-2 focus-within:ring-ring/60">
+        <div className="rounded-md border border-border/70 bg-background/40 p-3 focus-within:ring-2 focus-within:ring-ring/60">
           <textarea
+            ref={replyInput}
             value={draft}
             onChange={(e) => setDraft(e.target.value.slice(0, MAX_COMMENT))}
             placeholder={auth.authenticated ? "Add a reply…" : "Sign in to reply to this thesis"}
             aria-label="Thread reply"
             rows={2}
-            className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground pointer-coarse:text-base"
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
           />
           <div className="mt-1.5 flex items-center justify-between">
             <span className="tabular text-muted-foreground text-xs">
               {draft.length}/{MAX_COMMENT}
             </span>
             <Button
+              type="submit"
               size="sm"
+              className="h-10 pointer-coarse:h-11"
               disabled={
                 postComment.isPending ||
-                (auth.authenticated ? !draft.trim() || !activeParentId : !auth.configured)
+                (auth.authenticated ? !draft.trim() || !activeParentId : !auth.configured || !auth.ready)
               }
-              onClick={submitReply}
             >
               {postComment.isPending ? (
                 <Loader2 className="mr-1.5 size-3.5 animate-spin" />
@@ -343,7 +371,7 @@ export function ThesisThreadBody({
             </Button>
           </div>
         </div>
-      </div>
+      </form>
     </>
   );
 }
