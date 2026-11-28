@@ -7,36 +7,53 @@ import { AuthContext, demoAuth } from "@/components/auth/auth-context";
 import type { Notification } from "@/lib/api/notifications";
 import { NotificationCenter, notificationGroups, notificationHref } from "./notification-center";
 
-const { list, viewer, settings, saveSettings } = vi.hoisted(() => ({
+const { list, viewer, settings, saveSettings, unreadCount, markRead } = vi.hoisted(() => ({
   list: vi.fn(),
   viewer: vi.fn(),
   settings: vi.fn(),
   saveSettings: vi.fn(),
+  unreadCount: vi.fn(),
+  markRead: vi.fn(),
 }));
-vi.mock("@/lib/api/notifications", () => ({ notificationsApi: { list, viewer, settings, saveSettings } }));
+vi.mock("@/lib/api/notifications", () => ({
+  notificationsApi: { list, viewer, settings, saveSettings, unreadCount, markRead },
+}));
 vi.mock("@/components/social/thesis-thread-sheet", () => ({
   ThesisThreadBody: ({ thread, focusPostId }: { thread: { thesisId: string }; focusPostId: string }) =>
     createElement("p", null, `${thread.thesisId}/${focusPostId}`),
 }));
 
-const follow: Notification = {
+const follow = {
   id: "first",
   createdAt: 1_700_000_000,
-  count: 4,
+  readAt: null,
+  actorCount: 4,
   actors: [{ wallet: "follower", handle: "mira", displayName: null, avatarUrl: null }],
-  details: { kind: "follow" },
-  token: null,
-};
+  kind: "follow",
+  target: { wallet: "profile" },
+} satisfies Notification;
 const liked: Notification = {
   ...follow,
   id: "second",
-  count: 1,
-  details: { kind: "thesis_like", thesisId: "thesis", postId: "version" },
-  token: { mint: "mint", symbol: "SOL", imageUrl: "https://example.com/token.png" },
-};
+  actorCount: 1,
+  kind: "thesis_like",
+  target: {
+    mint: "mint",
+    symbol: "SOL",
+    imageUrl: "https://example.com/token.png",
+    wallet: "owner",
+    positionId: "position",
+    thesisId: "thesis",
+    commentId: "version",
+  },
+} satisfies Notification;
+const signedIn = { ...demoAuth, configured: true, authenticated: true, userLabel: "viewer" };
 const clients: QueryClient[] = [];
 
-function setup(auth = demoAuth) {
+function setup(auth = demoAuth, me: object = { walletAddress: null, wallets: [] }) {
+  viewer.mockResolvedValue(me);
+  unreadCount.mockResolvedValue({ unreadCount: 0 });
+  settings.mockResolvedValue({ traderActivity: true, sound: false });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   clients.push(client);
   render(
@@ -64,34 +81,46 @@ it("groups entries by calendar day and week in the viewer’s timezone", () => {
   expect(notificationGroups(dates, +new Date(2026, 10, 11, 12))).toEqual(dates.map((date) => [date]));
 });
 
-it("preserves the exact demo fill and indexed signature, and links the stated leaderboard window", () => {
+it("uses the supplied position, profile and leaderboard destinations", () => {
   const trade: Notification = {
     ...liked,
-    details: { kind: "trader_activity", side: "sell", tradeId: "fill", signature: "tx" },
+    kind: "trader_trade",
+    target: {
+      wallet: "trader",
+      positionId: "position",
+      mint: "mint",
+      symbol: "SOL",
+      imageUrl: null,
+      side: "sell",
+      sizeUsd: 42,
+    },
   };
-  expect(notificationHref(trade, "demo")).toBe("/feed?trader=follower&mint=mint&fill=fill");
-  expect(notificationHref(trade, "indexed")).toBe("https://solscan.io/tx/tx");
-  expect(notificationHref(follow, "indexed")).toBe("/traders/follower");
+  expect(notificationHref(trade)).toBe("/feed?trader=trader&mint=mint&position=position");
+  expect(notificationHref({ ...trade, target: { ...trade.target, positionId: null } })).toBeNull();
+  expect(notificationHref(follow)).toBe("/traders/profile");
   expect(
-    notificationHref(
-      { ...follow, details: { kind: "leaderboard", window: "7d", rank: 3, previousRank: null } },
-      "demo",
-    ),
+    notificationHref({
+      ...follow,
+      kind: "leaderboard",
+      target: { window: "7d", rank: 3, previousRank: null },
+    }),
   ).toBe("/leaderboard?window=7d");
 });
 
 it("loads API pages on demand and opens the liked version, not the actor’s thesis", async () => {
   list
     .mockResolvedValueOnce({ source: "demo", items: [follow], nextCursor: "a+b" })
-    .mockResolvedValueOnce({ source: "demo", items: [liked], nextCursor: null });
-  setup();
+    .mockResolvedValue({ source: "demo", items: [liked], nextCursor: null });
+  setup(signedIn);
+  markRead.mockResolvedValue({ unreadCount: 0 });
   expect(list).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
   await screen.findByRole("link", { name: /mira \+ 3/ });
   fireEvent.click(screen.getByRole("button", { name: "Load more" }));
   fireEvent.click(await screen.findByRole("button", { name: /Liked your SOL thesis/ }));
   expect(await screen.findByText("thesis/version")).toBeTruthy();
-  expect(list).toHaveBeenLastCalledWith(demoAuth, "a+b", expect.any(AbortSignal));
+  expect(list).toHaveBeenCalledWith(signedIn, "a+b", expect.any(AbortSignal));
+  expect(markRead).toHaveBeenCalledWith(signedIn, "second");
   fireEvent.click(screen.getByRole("button", { name: "Back to notifications" }));
   expect(screen.getByRole("button", { name: /Liked your SOL thesis/ })).toBeTruthy();
 });
@@ -100,12 +129,30 @@ it("offers a retry on delivery failure and shows a distinct empty state after re
   list
     .mockRejectedValueOnce(new Error("Unavailable"))
     .mockResolvedValueOnce({ source: "demo", items: [], nextCursor: null });
-  setup();
+  setup(signedIn);
   fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
   expect(screen.getByRole("status", { name: "Loading notifications" })).toBeTruthy();
   await screen.findByRole("alert");
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   await screen.findByText("No notifications yet");
+});
+
+it("shows the server unread count and marks the whole inbox read", async () => {
+  list.mockResolvedValue({ source: "demo", items: [follow], nextCursor: null });
+  setup(signedIn);
+  unreadCount.mockResolvedValue({ unreadCount: 1 });
+  fireEvent.click(await screen.findByRole("button", { name: /Notifications/ }));
+  await screen.findByRole("button", { name: "Notifications, 1 unread" });
+  await screen.findByText("Unread:");
+  markRead.mockImplementationOnce(async () => {
+    unreadCount.mockResolvedValue({ unreadCount: 0 });
+    list.mockResolvedValue({ source: "demo", items: [{ ...follow, readAt: 1 }], nextCursor: null });
+    return { unreadCount: 0 };
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+  expect(markRead).toHaveBeenCalledWith(signedIn, null);
+  await screen.findByText("You’re all caught up.");
+  expect(screen.queryByText("Unread:")).toBeNull();
 });
 
 it("does not request private notifications for guests on a configured app", async () => {
@@ -137,8 +184,6 @@ it("authenticates the private socket, refreshes the open inbox, and saves server
   const initial = { traderActivity: true, sound: false };
   const updated = { traderActivity: false, sound: false };
   list.mockResolvedValue({ source: "indexed", items: [follow], nextCursor: null });
-  viewer.mockResolvedValue({ id: "viewer-id" });
-  settings.mockResolvedValue(initial);
   saveSettings.mockImplementation(async () => {
     settings.mockResolvedValue(updated);
     return updated;
@@ -150,7 +195,8 @@ it("authenticates the private socket, refreshes the open inbox, and saves server
     walletAddress: "wallet",
     getAccessToken: async () => "test-token",
   };
-  setup(auth);
+  setup(auth, { id: "viewer-id" });
+  settings.mockResolvedValue(initial);
   fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
   await screen.findByRole("link", { name: /mira/ });
   await waitFor(() => expect(sockets).toHaveLength(1));

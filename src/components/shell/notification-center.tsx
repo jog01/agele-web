@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, ArrowUpRight, Bell } from "lucide-react";
+import { ArrowLeft, Bell } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { ThesisThreadBody } from "@/components/social/thesis-thread-sheet";
 import { TraderAvatar } from "@/components/social/trader-avatar";
@@ -19,10 +20,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useNow } from "@/hooks/use-now";
-import type { Notification, NotificationPage } from "@/lib/api/notifications";
+import type { Notification } from "@/lib/api/notifications";
 import { shortAddress, timeAgo, utcTimestamp } from "@/lib/format";
 import { positionUrl } from "@/lib/position-replay";
-import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
 
 const GROUP_LABELS = ["Today", "This week", "Earlier"] as const;
@@ -40,26 +40,16 @@ export function notificationGroups(items: Notification[], now: number) {
   return groups;
 }
 
-export function notificationHref(
-  { details, token, actors }: Notification,
-  source: NotificationPage["source"],
-) {
-  const wallet = actors[0]?.wallet;
-  switch (details.kind) {
+export function notificationHref(item: Notification) {
+  switch (item.kind) {
     case "follow":
-      return wallet ? `/traders/${encodeURIComponent(wallet)}` : null;
+      return item.target.wallet ? `/traders/${encodeURIComponent(item.target.wallet)}` : null;
     case "leaderboard":
-      return `/leaderboard?window=${details.window}`;
-    case "trader_activity": {
-      if (source === "indexed") {
-        return `https://solscan.io/tx/${encodeURIComponent(details.signature)}${solanaCluster().explorerQuery}`;
-      }
-      if (!wallet || !token) return null;
-      const url = positionUrl(new URL("https://agele.invalid/feed"), {
-        wallet,
-        mint: token.mint,
-        fillId: details.tradeId,
-      });
+      return `/leaderboard?window=${item.target.window}`;
+    case "trader_trade": {
+      const { wallet, mint, positionId } = item.target;
+      if (!positionId) return null;
+      const url = positionUrl(new URL("https://agele.invalid/feed"), { wallet, mint, positionId });
       return url.pathname + url.search;
     }
     default:
@@ -67,20 +57,18 @@ export function notificationHref(
   }
 }
 
-function notificationAction({ details, token }: Notification) {
-  switch (details.kind) {
-    case "trader_activity":
-      return `${details.side === "buy" ? "Bought" : "Sold"} ${token?.symbol ?? "a token"}`;
+function notificationAction(item: Notification) {
+  switch (item.kind) {
+    case "trader_trade":
+      return `${item.target.side === "buy" ? "Bought" : "Sold"} ${item.target.symbol}`;
     case "thesis_like":
-      return token ? `Liked your ${token.symbol} thesis` : "Liked your thesis";
+      return `Liked your ${item.target.symbol} thesis`;
+    case "thesis_comment":
+      return `Commented on your ${item.target.symbol} thesis`;
     case "follow":
       return "Started following you";
     case "leaderboard":
-      return `Your ${details.window} leaderboard rank is #${details.rank}`;
-    case "clan_invite":
-      return `Invited you to ${details.clanName}`;
-    case "send":
-      return `Sent you ${details.amount}${token ? ` ${token.symbol}` : ""}`;
+      return `Your ${item.target.window} leaderboard rank is #${item.target.rank}`;
   }
 }
 
@@ -89,22 +77,23 @@ type Thesis = { mint: string; thesisId: string; postId: string; symbol: string; 
 function NotificationRow({
   item,
   now,
-  source,
   close,
   openThesis,
+  markOpened,
 }: {
   item: Notification;
   now: number;
-  source: NotificationPage["source"];
   close: () => void;
   openThesis: (thesis: Thesis) => void;
+  markOpened: () => void;
 }) {
-  const { token, details } = item;
+  const thesis = item.kind === "thesis_like" || item.kind === "thesis_comment" ? item.target : null;
+  const token = item.kind === "trader_trade" ? item.target : thesis;
+  const unread = item.readAt === null;
   const actor = item.actors[0];
   const actorName =
     actor?.displayName || actor?.handle || (actor?.wallet ? shortAddress(actor.wallet) : "Agele");
-  const href = notificationHref(item, source);
-  const external = href?.startsWith("https://");
+  const href = notificationHref(item);
   const rowClass =
     "grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-start gap-3 rounded-md px-1.5 py-3.5 text-left";
   const actionClass = "hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring";
@@ -114,9 +103,10 @@ function NotificationRow({
         <TraderAvatar handle={actorName} avatarUrl={actor?.avatarUrl} />
       </span>
       <span className="flex min-w-0 flex-col gap-1 text-sm">
+        {unread && <span className="sr-only">Unread:</span>}
         <span className="wrap-anywhere font-semibold">
           {actorName}
-          {item.count > 1 && ` + ${item.count - 1}`}
+          {item.actorCount > 1 && ` + ${item.actorCount - 1}`}
         </span>
         <span className="wrap-anywhere">{notificationAction(item)}</span>
         <time
@@ -129,17 +119,20 @@ function NotificationRow({
       </span>
       <span className="flex min-h-8 items-center gap-2">
         {token && <AssetAvatar imageUrl={token.imageUrl} className="size-6" />}
-        {external && <ArrowUpRight aria-hidden="true" className="size-3.5 text-muted-foreground" />}
+        {unread && <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />}
       </span>
     </>
   );
 
   return (
     <li>
-      {details.kind === "thesis_like" && token ? (
+      {thesis ? (
         <button
           type="button"
-          onClick={() => openThesis({ ...token, thesisId: details.thesisId, postId: details.postId })}
+          onClick={() => {
+            openThesis({ ...thesis, postId: thesis.commentId });
+            markOpened();
+          }}
           className={cn(rowClass, actionClass)}
         >
           {content}
@@ -148,9 +141,10 @@ function NotificationRow({
         <Link
           href={href}
           prefetch={false}
-          onNavigate={close}
-          target={external ? "_blank" : undefined}
-          rel={external ? "noopener noreferrer" : undefined}
+          onNavigate={() => {
+            markOpened();
+            close();
+          }}
           className={cn(rowClass, actionClass)}
         >
           {content}
@@ -253,12 +247,14 @@ export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("inbox");
   const notifications = useNotifications(open);
-  const { auth, enabled, list } = notifications;
+  const { auth, enabled, list, count, markRead } = notifications;
   const now = useNow(30_000);
   const source = list.data?.pages[0]?.source;
   const items = [
     ...new Map(list.data?.pages.flatMap((page) => page.items.map((item) => [item.id, item]))).values(),
   ];
+  const unread = count.data?.unreadCount ?? 0;
+  const hasUnread = unread > 0 || items.some((item) => item.readAt === null);
 
   function changeOpen(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -271,10 +267,18 @@ export function NotificationCenter() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-10 shrink-0 lg:min-h-10 pointer-coarse:size-11"
-          aria-label="Notifications"
+          className="relative size-10 shrink-0 lg:min-h-10 pointer-coarse:size-11"
+          aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
         >
           <Bell className="size-4" aria-hidden="true" />
+          {unread > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute top-0.5 right-0.5 min-w-4 rounded-full bg-primary px-0.5 text-center font-semibold text-[9px] text-primary-foreground leading-4"
+            >
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
         </Button>
       </SheetTrigger>
       <SheetContent className="gap-0 bg-sidebar sm:max-w-[432px]">
@@ -301,6 +305,20 @@ export function NotificationCenter() {
             <Badge variant="outline" className="text-muted-foreground">
               Demo
             </Badge>
+          )}
+          {panel === "inbox" && auth.authenticated && hasUnread && (
+            <Button
+              variant="ghost"
+              className="ml-auto min-h-10 text-xs pointer-coarse:min-h-11"
+              disabled={markRead.isPending}
+              onClick={() =>
+                void markRead
+                  .mutateAsync(null)
+                  .catch(() => toast.error("Couldn’t mark all notifications as read."))
+              }
+            >
+              Mark all as read
+            </Button>
           )}
           <SheetDescription className="sr-only">Activity and updates for your account.</SheetDescription>
         </SheetHeader>
@@ -335,6 +353,9 @@ export function NotificationCenter() {
                   <p className="text-muted-foreground">New activity will appear here.</p>
                 </div>
               )}
+              {items.length > 0 && !hasUnread && (count.data?.unreadCount === 0 || !list.hasNextPage) && (
+                <p className="py-3 text-muted-foreground text-sm">You’re all caught up.</p>
+              )}
               {now !== null &&
                 notificationGroups(items, now).map((group, index) =>
                   group.length > 0 ? (
@@ -346,9 +367,15 @@ export function NotificationCenter() {
                             key={item.id}
                             item={item}
                             now={now}
-                            source={source}
                             close={() => changeOpen(false)}
                             openThesis={setPanel}
+                            markOpened={() => {
+                              if (auth.authenticated && item.readAt === null) {
+                                void markRead
+                                  .mutateAsync(item.id)
+                                  .catch(() => toast.error("Couldn’t mark the notification as read."));
+                              }
+                            }}
                           />
                         ))}
                       </ul>

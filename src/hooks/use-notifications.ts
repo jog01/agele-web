@@ -131,6 +131,8 @@ export function useNotifications(open: boolean) {
   const viewer = account ? `account:${account}` : !auth.configured ? "demo" : null;
   const enabled = auth.ready && viewer !== null;
   const settingsKey = ["notifications", viewer, "settings"] as const;
+  const countKey = ["notifications", viewer, "unread-count"] as const;
+  const listKey = ["notifications", viewer, "list"] as const;
 
   const me = useQuery({
     queryKey: ["notifications", viewer, "viewer"],
@@ -139,13 +141,28 @@ export function useNotifications(open: boolean) {
     staleTime: Infinity,
   });
   const list = useInfiniteQuery({
-    queryKey: ["notifications", viewer, "list"],
+    queryKey: listKey,
     queryFn: ({ pageParam, signal }) => notificationsApi.list(auth, pageParam, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: ({ nextCursor }) => nextCursor ?? undefined,
     enabled: enabled && open,
     refetchInterval: open ? REFRESH_MS : false,
     refetchOnWindowFocus: true,
+  });
+  const count = useQuery({
+    queryKey: countKey,
+    queryFn: ({ signal }) => notificationsApi.unreadCount(auth, signal),
+    enabled: auth.ready && !!account,
+    refetchInterval: REFRESH_MS,
+  });
+  const markRead = useMutation({
+    mutationFn: (id: string | null) => notificationsApi.markRead(auth, id),
+    async onSuccess(value) {
+      await client.cancelQueries({ queryKey: countKey });
+      client.setQueryData(countKey, value);
+      void client.invalidateQueries({ queryKey: countKey });
+      void client.invalidateQueries({ queryKey: listKey });
+    },
   });
   const settings = useQuery({
     queryKey: settingsKey,
@@ -164,5 +181,5 @@ export function useNotifications(open: boolean) {
   const sound = useAlertSound(viewer);
   usePrivateInbox(auth.authenticated ? me.data?.id : undefined, viewer, auth.getAccessToken, sound.audio);
 
-  return { auth, enabled, list, settings, saveSettings, ...sound };
+  return { auth, enabled, list, count, markRead, settings, saveSettings, ...sound };
 }
