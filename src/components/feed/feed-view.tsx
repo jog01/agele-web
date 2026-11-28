@@ -30,12 +30,20 @@ import { usePostThesis, useReactToPost } from "@/hooks/use-social-actions";
 import type { FeedItem, FeedScope, PostPosition } from "@/lib/api/client";
 import { socialQueries, tokenQueries } from "@/lib/api/queries";
 import { feedItemContent } from "@/lib/api/social";
+import {
+  activeFeedFilterCount,
+  DEFAULT_FEED_FILTERS,
+  FEED_PRESETS,
+  type FeedFilters,
+  readFeedFilters,
+  saveFeedFilters,
+} from "@/lib/feed-filters";
 import { formatUsd, timeAgo, utcTimestamp } from "@/lib/format";
 import { type PositionTarget, positionUrl } from "@/lib/position-replay";
 import { cn } from "@/lib/utils";
+import { FeedFilterSheet } from "./feed-filter-sheet";
 import { FeedHeading, FeedPostsSkeleton, FeedTradersSkeleton } from "./feed-loading";
 
-type FeedKindFilter = "all" | "trade" | "thesis";
 const MAX_THESIS = 3000;
 
 function FeedThesisComposer() {
@@ -403,29 +411,39 @@ function FeedCard({
 
 export function FeedView() {
   const [scope, setScope] = useState<FeedScope>("global");
-  const [kindFilter, setKindFilter] = useState<FeedKindFilter>("all");
+  const [preferences, setPreferences] = useState<Record<FeedScope, FeedFilters>>();
   const [activeThread, setActiveThread] = useState<ActiveThesisThread | null>(null);
   const auth = useAuth();
   const now = useNow(30_000);
-  const feed = useFeed(scope);
+  const filters = preferences?.[scope] ?? DEFAULT_FEED_FILTERS;
+  const feed = useFeed(scope, filters, preferences !== undefined);
   const reactToPost = useReactToPost();
   const { data: board, isPending: boardPending } = useQuery(socialQueries.leaderboard("7d", auth));
 
-  const allItems = feed.data?.pages.flatMap((page) => page.items) ?? [];
+  useEffect(() => {
+    setPreferences({ global: readFeedFilters("global"), following: readFeedFilters("following") });
+  }, []);
+
+  function applyFilters(next: FeedFilters) {
+    setPreferences((current) => current && { ...current, [scope]: next });
+    saveFeedFilters(scope, next);
+  }
+
+  const items = feed.data?.pages.flatMap((page) => page.items) ?? [];
   const thesisIds = new Map(
-    allItems.flatMap((item) =>
+    items.flatMap((item) =>
       item.kind === "thesis" ? [[`${item.wallet}:${item.mint}:${item.positionId}`, item.thesisId]] : [],
     ),
   );
-  const items = allItems.filter((item) => {
-    if (kindFilter === "all") return true;
-    if (kindFilter === "thesis") return item.kind === "thesis";
-    return item.kind !== "thesis";
-  });
-  const hasDemoItems = allItems.some((item) => item.source === "demo") || board?.dataSource === "demo";
+  const hasFilters = activeFeedFilterCount(filters) > 0;
   const needsAuth = scope === "following" && !auth.authenticated;
   const emptyFollowing =
-    scope === "following" && auth.authenticated && !feed.isPending && !feed.isError && allItems.length === 0;
+    scope === "following" &&
+    !hasFilters &&
+    auth.authenticated &&
+    !feed.isPending &&
+    !feed.isError &&
+    items.length === 0;
 
   function handleLike(item: Extract<FeedItem, { kind: "thesis" }>) {
     if (!auth.authenticated) {
@@ -469,29 +487,27 @@ export function FeedView() {
             aria-label="Feed filter"
             className="flex items-center gap-1 rounded-lg border border-border bg-card p-1"
           >
-            {(
-              [
-                ["all", "All"],
-                ["trade", "Trades"],
-                ["thesis", "Theses"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={kindFilter === value}
-                onClick={() => setKindFilter(value)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 font-medium text-xs transition-colors",
-                  kindFilter === value
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {label}
-              </button>
-            ))}
+            {FEED_PRESETS.map(({ label, activities }) => {
+              const selected =
+                filters.activities.length === activities.length &&
+                activities.every((type) => filters.activities.includes(type));
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => applyFilters({ ...filters, activities })}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 font-medium text-xs transition-colors",
+                    selected ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </fieldset>
+          <FeedFilterSheet filters={filters} onApply={applyFilters} />
         </div>
       </div>
 
@@ -514,7 +530,7 @@ export function FeedView() {
             </div>
           ) : feed.isPending ? (
             <FeedPostsSkeleton />
-          ) : feed.isError && allItems.length === 0 ? (
+          ) : feed.isError && items.length === 0 ? (
             <div role="alert" className="rounded-xl border border-border bg-card p-6 text-center">
               <p className="text-sm">{feed.error.message}</p>
               <Button size="sm" variant="outline" className="mt-3" onClick={() => feed.refetch()}>
@@ -549,9 +565,7 @@ export function FeedView() {
               )}
               {items.length === 0 ? (
                 <div className="rounded-xl border border-border bg-card px-6 py-12 text-center text-muted-foreground text-sm">
-                  {kindFilter === "all"
-                    ? "No feed activity yet."
-                    : `No ${kindFilter === "trade" ? "trades" : "theses"} in the loaded pages yet.`}
+                  {hasFilters ? "No activity matches these filters." : "No feed activity yet."}
                 </div>
               ) : (
                 items.map((item) => (
@@ -636,9 +650,6 @@ export function FeedView() {
               <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-          {hasDemoItems && (
-            <p className="px-1 text-muted-foreground text-xs">Demo traders · simulated activity</p>
-          )}
         </aside>
       </div>
 
