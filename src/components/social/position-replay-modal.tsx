@@ -298,9 +298,7 @@ function PositionDetails({
               <p className="position-replay-empty">No thesis linked to this replay.</p>
             )}
           </section>
-          {target.discussionKey && !thesisPending && !thesisId && (
-            <TradeDiscussion discussionKey={target.discussionKey} />
-          )}
+          {target.discussionKey && <TradeDiscussion discussionKey={target.discussionKey} />}
         </div>
         <div className="position-replay-side">
           <section className="position-replay-panel" aria-label="Position performance">

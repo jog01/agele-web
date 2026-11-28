@@ -54,11 +54,21 @@ const position: TraderPosition = {
 };
 const originalUrl = window.location.href;
 
-function openTrade(fillId: string, { lookupThesis = false } = {}) {
-  window.history.replaceState(null, "", `?trader=wallet&mint=mint&fill=${fillId}`);
+function openTrade(fillId: string, { lookupThesis = false, discussionKey = "" } = {}) {
+  const params = new URLSearchParams({ trader: "wallet", mint: "mint" });
+  if (discussionKey) {
+    params.set("position", position.id);
+    params.set("discussion", discussionKey);
+  } else {
+    params.set("fill", fillId);
+  }
+  window.history.replaceState(null, "", `?${params}`);
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: 0 } } });
-  client.setQueryData(traderPositionQuery("wallet", "mint").queryKey, position);
+  client.setQueryData(
+    traderPositionQuery("wallet", "mint", params.get("position") ?? undefined).queryKey,
+    discussionKey ? { ...position, closedAt: 200 } : position,
+  );
   if (!lookupThesis) client.setQueryData(positionThesisQuery("wallet", "mint", "latest").queryKey, null);
   client.setQueryData(
     positionTransactionsQuery("wallet", "mint", "latest", { page: 1, limit: 6, minSizeUsd: 0 }).queryKey,
@@ -95,7 +105,7 @@ it("pins a replay link when the selected trade is in the loaded episode", () => 
   expect(url.searchParams.get("fill")).toBe("latest-fill");
 });
 
-it("finds the exact position's thesis for a trade replay with no thesis parameter", async () => {
+it("finds a closed position's exact thesis without hiding the closing trade's replies", async () => {
   const comment = {
     id: "thesis-version",
     thesisId: "linked-thesis",
@@ -110,37 +120,65 @@ it("finds the exact position's thesis for a trade replay with no thesis paramete
   };
   const get = vi
     .spyOn(api, "GET")
-    .mockResolvedValueOnce({
-      response: new Response(),
-      data: { items: [{ ...comment, positionId: "older", thesisId: "other" }], nextCursor: "older-theses" },
-    })
-    .mockResolvedValueOnce({
-      response: new Response(),
-      data: { items: [{ ...comment, positionId: "latest" }], nextCursor: null },
-    })
-    .mockResolvedValueOnce({
-      response: new Response(),
-      data: { wallet: "wallet", positionId: "latest", pinned: null, comments: [comment], nextCursor: null },
+    .mockImplementation(async (path: string, options?: { params?: { query?: { cursor?: string } } }) => {
+      const response = new Response();
+      switch (path) {
+        case "/v1/feed":
+          return {
+            response,
+            data: options?.params?.query?.cursor
+              ? { items: [{ ...comment, positionId: "latest" }], nextCursor: null }
+              : {
+                  items: [{ ...comment, positionId: "older", thesisId: "other" }],
+                  nextCursor: "older-theses",
+                },
+          };
+        case "/v1/tokens/{mint}/theses/{thesisId}":
+          return {
+            response,
+            data: {
+              wallet: "wallet",
+              positionId: "latest",
+              pinned: null,
+              comments: [comment],
+              nextCursor: null,
+            },
+          };
+        case "/v1/feed/{key}/comments":
+          return {
+            response,
+            data: {
+              comments: [{ id: "closing-reply", handle: "trader", body: "Reply to the closing trade." }],
+              nextCursor: null,
+            },
+          };
+        default:
+          throw new Error(`Unexpected request: ${path}`);
+      }
     });
 
-  openTrade("latest-fill", { lookupThesis: true });
+  openTrade("latest-fill", { lookupThesis: true, discussionKey: "trade:closing-fill" });
   expect(await screen.findByText(comment.body)).toBeDefined();
-  for (const [index, cursor] of [
-    [1, undefined],
-    [2, "older-theses"],
-  ] as const) {
-    expect(get).toHaveBeenNthCalledWith(index, "/v1/feed", {
+  expect(await screen.findByText("Reply to the closing trade.")).toBeDefined();
+  expect(get).toHaveBeenCalledTimes(4);
+  for (const cursor of [undefined, "older-theses"]) {
+    expect(get).toHaveBeenCalledWith("/v1/feed", {
       params: {
         query: { scope: "global", wallet: "wallet", mint: "mint", types: "thesis", cursor, limit: 25 },
       },
       signal: expect.any(AbortSignal),
     });
   }
-  expect(get).toHaveBeenNthCalledWith(
-    3,
+  expect(get).toHaveBeenCalledWith(
     "/v1/tokens/{mint}/theses/{thesisId}",
     expect.objectContaining({
       params: { path: { mint: "mint", thesisId: "linked-thesis" }, query: { cursor: undefined, limit: 25 } },
+    }),
+  );
+  expect(get).toHaveBeenCalledWith(
+    "/v1/feed/{key}/comments",
+    expect.objectContaining({
+      params: { path: { key: "trade:closing-fill" }, query: { cursor: undefined, limit: 25 } },
     }),
   );
 });
