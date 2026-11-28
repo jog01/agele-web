@@ -12,6 +12,7 @@ import { useUsdcBalance } from "@/hooks/use-usdc-balance";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { openDeposit } from "@/stores/wallet";
+import { NotificationCenter } from "./notification-center";
 
 export type NavSection = "trade" | "pulse" | "feed" | "leaderboard" | "portfolio";
 
@@ -95,6 +96,7 @@ export function TopBar({ section, onSearch }: { section?: NavSection; onSearch?:
             Deposit
           </Button>
         </div>
+        <NotificationCenter />
         <AccountMenu />
       </div>
     </header>

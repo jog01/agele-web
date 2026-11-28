@@ -272,7 +272,11 @@ function PositionDetails({
               <ReplaySkeleton />
             ) : thesisId ? (
               <div className="position-replay-thread-body">
-                <ThesisThreadBody thread={{ mint: position.mint, thesisId }} embedded />
+                <ThesisThreadBody
+                  thread={{ mint: position.mint, thesisId }}
+                  commentId={target.commentId}
+                  embedded
+                />
               </div>
             ) : target.thesisId && thesis.isError ? (
               <p className="position-replay-empty" role="alert">

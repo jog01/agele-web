@@ -3,7 +3,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CornerDownRight, Heart, Loader2, Pin, Send } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { TraderLink } from "@/components/common/trader-link";
@@ -48,9 +48,11 @@ export function ThesisThreadSheet({
 
 export function ThesisThreadBody({
   thread,
+  commentId,
   embedded = false,
 }: {
   thread: ActiveThesisThread;
+  commentId?: string;
   embedded?: boolean;
 }) {
   const auth = useAuth();
@@ -59,6 +61,7 @@ export function ThesisThreadBody({
   const [draft, setDraft] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const replyInput = useRef<HTMLTextAreaElement>(null);
+  const selectedComment = useRef<HTMLDivElement>(null);
 
   const query = useInfiniteQuery(thesisThreadQuery(thread.mint, thread.thesisId, auth));
   const postComment = usePostComment();
@@ -68,6 +71,20 @@ export function ThesisThreadBody({
   const pages = query.data?.pages ?? [];
   const pinned = pages[0]?.pinned ?? null;
   const comments = pages.flatMap((page) => page.comments);
+  const hasSelectedComment =
+    !!commentId && (pinned?.id === commentId || comments.some((post) => post.id === commentId));
+  const { fetchNextPage, hasNextPage, isFetching, isError, isPending } = query;
+  useEffect(() => {
+    if (!commentId || hasSelectedComment || !hasNextPage || isFetching || isError) return;
+    void fetchNextPage();
+  }, [commentId, fetchNextPage, hasNextPage, hasSelectedComment, isError, isFetching]);
+
+  useEffect(() => {
+    if (!hasSelectedComment) return;
+    selectedComment.current?.focus();
+    selectedComment.current?.scrollIntoView?.({ block: "nearest" });
+  }, [hasSelectedComment]);
+
   const rootPost = pinned ?? comments.find((c) => c.kind === "thesis") ?? comments[0] ?? null;
   const activeParentId = replyTarget?.id ?? rootPost?.id;
 
@@ -148,8 +165,18 @@ export function ThesisThreadBody({
   function renderPost(post: Comment, opts?: { nested?: boolean }) {
     const canPin =
       post.kind === "thesis" && Boolean(auth.walletAddress && post.wallet === auth.walletAddress);
+    const selected = post.id === commentId;
     return (
-      <div key={post.id} className={cn("py-5", opts?.nested && "ml-4 border-border/60 border-l pl-4 pt-1")}>
+      <div
+        key={post.id}
+        ref={selected ? selectedComment : undefined}
+        tabIndex={selected ? -1 : undefined}
+        className={cn(
+          "py-5",
+          opts?.nested && "ml-4 border-border/60 border-l pl-4 pt-1",
+          selected && "rounded bg-primary/10 ring-1 ring-primary/35",
+        )}
+      >
         <div className="flex items-start gap-2.5">
           <TraderAvatar handle={post.handle} avatarUrl={post.avatarUrl} size="sm" className="mt-0.5" />
           <div className="min-w-0 flex-1">
@@ -268,7 +295,7 @@ export function ThesisThreadBody({
       >
         {query.isPending ? (
           <TableSkeleton label="Loading thesis thread" columns={3} />
-        ) : query.isError ? (
+        ) : query.isError && !query.isFetchNextPageError ? (
           <div role="alert" className="rounded-lg border p-4 text-center">
             <p className="text-sm">{query.error.message}</p>
             <Button size="sm" variant="outline" className="mt-3" onClick={() => query.refetch()}>
@@ -277,6 +304,15 @@ export function ThesisThreadBody({
           </div>
         ) : (
           <>
+            {commentId && !hasSelectedComment && !isPending && (
+              <p role="status" className="py-2 text-muted-foreground text-xs">
+                {query.isFetchNextPageError
+                  ? "Couldn’t load the linked comment."
+                  : hasNextPage
+                    ? "Finding the linked comment…"
+                    : "This comment is no longer available."}
+              </p>
+            )}
             {topLevel.length === 0 && !pinned ? (
               <p className="py-8 text-center text-muted-foreground text-sm">No entries in this thread yet.</p>
             ) : (
@@ -298,7 +334,7 @@ export function ThesisThreadBody({
                   disabled={query.isFetchingNextPage}
                   onClick={() => query.fetchNextPage()}
                 >
-                  {query.isFetchingNextPage ? "Loading…" : "Load more"}
+                  {query.isFetchingNextPage ? "Loading…" : query.isFetchNextPageError ? "Retry" : "Load more"}
                 </Button>
               </div>
             )}
