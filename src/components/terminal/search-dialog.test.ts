@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { createElement, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
-import { search } from "@/lib/api/search";
+import { type SearchTrader, search } from "@/lib/api/search";
 import { useTerminalStore } from "@/stores/terminal";
 import { MarketExplorer } from "./market-explorer";
 import { SearchDialog } from "./search-dialog";
@@ -95,11 +95,12 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-const DANI = {
+const DANI: SearchTrader = {
   wallet: "8WXzZbMabmHH7jddkSPkSkrUbTfkfiWiS9onqwmyUvFM",
   handle: "solails",
   displayName: "Dani",
   avatarUrl: null,
+  source: "demo",
 };
 
 describe("SearchDialog mixed search", () => {
