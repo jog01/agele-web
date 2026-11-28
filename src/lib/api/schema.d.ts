@@ -1264,6 +1264,354 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Newest notifications first, including seeded data for the signed-in user in demo mode. */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Inbox page */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationPage"];
+                    };
+                };
+                /** @description Invalid limit or cursor */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Unread inbox item count */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationUnreadCount"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Unread inbox item count */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationUnreadCount"];
+                    };
+                };
+                /** @description Invalid notification ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Notification not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Unread inbox item count */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationUnreadCount"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Alert settings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AlertSettings"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlertSettings"];
+                };
+            };
+            responses: {
+                /** @description Alert settings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AlertSettings"];
+                    };
+                };
+                /** @description Invalid alert settings */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Missing or invalid token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/swaps": {
         parameters: {
             query?: never;
@@ -3421,6 +3769,10 @@ export interface components {
             priceUsd: number;
             time: number;
         };
+        NotificationUpdate: {
+            /** @enum {string} */
+            type: "changed";
+        };
         Health: {
             /** @enum {string} */
             status: "ok";
@@ -3678,6 +4030,144 @@ export interface components {
                 privyWalletId: string | null;
                 isPrimary: boolean;
             }[];
+        };
+        NotificationPage: {
+            items: components["schemas"]["Notification"][];
+            nextCursor: string | null;
+            /** @enum {string} */
+            source: "indexed" | "demo";
+        };
+        Notification: {
+            /** @description Stable notification or group ID */
+            id: string;
+            /** @description Unix seconds; time of the latest event in the group */
+            createdAt: number;
+            /** @description Unix seconds, or null if any event in this item is unread */
+            readAt: number | null;
+            actors: {
+                wallet: string | null;
+                handle: string | null;
+                displayName: string | null;
+                avatarUrl: string | null;
+            }[];
+            actorCount: number;
+            /** @enum {string} */
+            kind: "trader_trade";
+            target: {
+                wallet: string;
+                /** Format: uuid */
+                positionId: string | null;
+                sizeUsd: number;
+                /** @enum {string} */
+                side: "buy" | "sell";
+                mint: string;
+                symbol: string;
+                imageUrl: string | null;
+            };
+        } | {
+            /** @description Stable notification or group ID */
+            id: string;
+            /** @description Unix seconds; time of the latest event in the group */
+            createdAt: number;
+            /** @description Unix seconds, or null if any event in this item is unread */
+            readAt: number | null;
+            actors: {
+                wallet: string | null;
+                handle: string | null;
+                displayName: string | null;
+                avatarUrl: string | null;
+            }[];
+            actorCount: number;
+            /** @enum {string} */
+            kind: "thesis_like";
+            target: {
+                wallet: string;
+                /** Format: uuid */
+                positionId: string;
+                /** Format: uuid */
+                thesisId: string;
+                /** Format: uuid */
+                commentId: string;
+                mint: string;
+                symbol: string;
+                imageUrl: string | null;
+            };
+        } | {
+            /** @description Stable notification or group ID */
+            id: string;
+            /** @description Unix seconds; time of the latest event in the group */
+            createdAt: number;
+            /** @description Unix seconds, or null if any event in this item is unread */
+            readAt: number | null;
+            actors: {
+                wallet: string | null;
+                handle: string | null;
+                displayName: string | null;
+                avatarUrl: string | null;
+            }[];
+            actorCount: number;
+            /** @enum {string} */
+            kind: "thesis_comment";
+            target: {
+                wallet: string;
+                /** Format: uuid */
+                positionId: string;
+                /** Format: uuid */
+                thesisId: string;
+                /** Format: uuid */
+                commentId: string;
+                mint: string;
+                symbol: string;
+                imageUrl: string | null;
+            };
+        } | {
+            /** @description Stable notification or group ID */
+            id: string;
+            /** @description Unix seconds; time of the latest event in the group */
+            createdAt: number;
+            /** @description Unix seconds, or null if any event in this item is unread */
+            readAt: number | null;
+            actors: {
+                wallet: string | null;
+                handle: string | null;
+                displayName: string | null;
+                avatarUrl: string | null;
+            }[];
+            actorCount: number;
+            /** @enum {string} */
+            kind: "follow";
+            target: {
+                wallet: string | null;
+            };
+        } | {
+            /** @description Stable notification or group ID */
+            id: string;
+            /** @description Unix seconds; time of the latest event in the group */
+            createdAt: number;
+            /** @description Unix seconds, or null if any event in this item is unread */
+            readAt: number | null;
+            actors: {
+                wallet: string | null;
+                handle: string | null;
+                displayName: string | null;
+                avatarUrl: string | null;
+            }[];
+            actorCount: number;
+            /** @enum {string} */
+            kind: "leaderboard";
+            target: {
+                /** @enum {string} */
+                window: "24h" | "7d" | "30d";
+                rank: number;
+                previousRank: number | null;
+            };
+        };
+        NotificationUnreadCount: {
+            unreadCount: number;
+        };
+        AlertSettings: {
+            traderActivity: boolean;
+            sound: boolean;
         };
         Portfolio: {
             /** @description Open position value plus linked-wallet USDC, USDT (1 USD each), and native SOL at current USD price */
