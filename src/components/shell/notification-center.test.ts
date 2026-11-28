@@ -156,7 +156,9 @@ it("shows the server unread count and marks the whole inbox read", async () => {
 });
 
 it("does not request private notifications for guests on a configured app", async () => {
-  const login = vi.fn();
+  const login = vi.fn(() => {
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
   setup({ ...demoAuth, configured: true, login });
   fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));

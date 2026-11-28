@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Bell } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { AssetAvatar } from "@/components/common/asset-avatar";
 import { ThesisThreadBody } from "@/components/social/thesis-thread-sheet";
@@ -246,6 +246,7 @@ type Panel = "inbox" | "settings" | Thesis;
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("inbox");
+  const loginOnClose = useRef(false);
   const notifications = useNotifications(open);
   const { auth, enabled, list, count, markRead } = notifications;
   const now = useNow(30_000);
@@ -281,7 +282,15 @@ export function NotificationCenter() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="gap-0 bg-sidebar sm:max-w-[432px]">
+      <SheetContent
+        className="gap-0 bg-sidebar sm:max-w-[432px]"
+        onCloseAutoFocus={(event) => {
+          if (!loginOnClose.current) return;
+          loginOnClose.current = false;
+          event.preventDefault();
+          auth.login();
+        }}
+      >
         <SheetHeader className="flex-row items-center gap-3 border-border/60 border-b py-4 pr-16 pl-4 sm:pl-6">
           {panel !== "inbox" && (
             <Button
@@ -336,7 +345,16 @@ export function NotificationCenter() {
                   ? "Notifications are unavailable for this account."
                   : "Sign in to see your notifications."}
               </p>
-              {!auth.authenticated && <Button onClick={auth.login}>Sign in</Button>}
+              {!auth.authenticated && (
+                <Button
+                  onClick={() => {
+                    loginOnClose.current = true;
+                    changeOpen(false);
+                  }}
+                >
+                  Sign in
+                </Button>
+              )}
             </div>
           ) : !list.data || !source ? (
             <div role="alert" className="space-y-3 py-8 text-center text-muted-foreground text-sm">
