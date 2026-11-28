@@ -38,7 +38,7 @@ import {
   readFeedFilters,
   saveFeedFilters,
 } from "@/lib/feed-filters";
-import { formatUsd, timeAgo, utcTimestamp } from "@/lib/format";
+import { formatCompactUsd, formatUsd, timeAgo, utcTimestamp } from "@/lib/format";
 import { type PositionTarget, positionUrl } from "@/lib/position-replay";
 import { cn } from "@/lib/utils";
 import { FeedFilterSheet } from "./feed-filter-sheet";
@@ -233,17 +233,24 @@ function FeedCard({
       : null;
   const attachmentClass =
     "mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-background/60 px-3.5 py-2.5 transition-colors hover:bg-secondary/60";
+  let attachmentDetail: string | null;
+  if (item.kind === "trade") {
+    attachmentDetail = `${content.attachment} · ${item.source === "demo" ? "simulated" : "indexed"}`;
+  } else if (item.kind === "thesis") {
+    attachmentDetail = content.attachment;
+  } else {
+    attachmentDetail =
+      item.marketCapUsd === null ? null : `Market cap · ${formatCompactUsd(item.marketCapUsd)}`;
+  }
   const attachment = (
     <>
       <span className="flex min-w-0 items-center gap-2.5">
         <AssetAvatar imageUrl={item.imageUrl} className="size-7" />
         <span className="min-w-0">
           <span className="block truncate font-medium text-sm">{item.symbol}</span>
-          <span className="tabular block text-muted-foreground text-xs">
-            {item.kind === "trade"
-              ? `${content.attachment} · ${item.source === "demo" ? "simulated" : "indexed"}`
-              : content.attachment}
-          </span>
+          {attachmentDetail && (
+            <span className="tabular block text-muted-foreground text-xs">{attachmentDetail}</span>
+          )}
         </span>
       </span>
       <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
@@ -339,7 +346,11 @@ function FeedCard({
               {attachment}
             </PositionReplayLink>
           ) : (
-            <Link href={`/trade/${item.mint}`} className={attachmentClass}>
+            <Link
+              href={`/trade/${item.mint}`}
+              aria-label={attachmentDetail ? `${item.symbol} ${attachmentDetail}` : item.symbol}
+              className={attachmentClass}
+            >
               {attachment}
             </Link>
           )}

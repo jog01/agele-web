@@ -198,7 +198,22 @@ it("keeps activity without a position linked to the token in the Trades filter",
   fireEvent.click(screen.getByRole("button", { name: "Trades" }));
   expect(await screen.findByText("3 traders bought $2,500.00")).toBeDefined();
   expect(screen.getByRole("link", { name: /SOL/ }).getAttribute("href")).toBe("/trade/sol");
+  expect(screen.getByRole("link", { name: "SOL Market cap · $80B" })).toBeDefined();
   expect(screen.queryByRole("button", { name: "Replay SOL position" })).toBeNull();
+});
+
+it("shows only the token symbol on a system chip when market cap is unavailable", async () => {
+  const milestone: Extract<FeedItem, { kind: "milestone" }> = {
+    ...tradePost,
+    kind: "milestone",
+    eventType: "milestone",
+    realizedPnlUsd: 150,
+    marketCapUsd: null,
+  };
+  routeGet({ feed: async () => feedOk([milestone]) });
+  renderFeed();
+  expect(await screen.findByText("+$150.00 realized PnL")).toBeDefined();
+  expect(screen.getByRole("link", { name: "SOL" }).getAttribute("href")).toBe("/trade/sol");
 });
 
 it("keeps loaded posts while a cursor page loads and appends the resolved page", async () => {
