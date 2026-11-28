@@ -213,6 +213,17 @@ export function SearchDialog({
     if (activeId) document.getElementById(activeId)?.scrollIntoView?.({ block: "nearest" });
   }, [activeId]);
 
+  useEffect(() => {
+    if (!open) return;
+    function syncRecents(event: StorageEvent) {
+      if ((event.key === RECENTS_KEY || event.key === null) && event.storageArea === window.localStorage) {
+        setRecentMints(readRecents());
+      }
+    }
+    window.addEventListener("storage", syncRecents);
+    return () => window.removeEventListener("storage", syncRecents);
+  }, [open]);
+
   function updateRecents(mints: string[]) {
     setRecentMints(mints);
     try {
@@ -237,7 +248,7 @@ export function SearchDialog({
   function select(result: Result) {
     if (result.kind === "token") {
       const address = result.token.mint;
-      updateRecents([address, ...recentMints.filter((item) => item !== address)].slice(0, RECENTS_LIMIT));
+      updateRecents([address, ...readRecents().filter((item) => item !== address)].slice(0, RECENTS_LIMIT));
       close();
       router.push(`/trade/${encodeURIComponent(address)}`);
     } else {

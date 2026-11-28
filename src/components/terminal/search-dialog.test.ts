@@ -194,6 +194,31 @@ describe("SearchDialog mixed search", () => {
     expect(localStorage.getItem("agele:search:recent-mints")).toBeNull();
     expect(screen.queryByRole("region", { name: "Recent tokens" })).toBeNull();
   });
+
+  it("merges the latest stored mints even before a storage event is delivered", async () => {
+    localStorage.setItem("agele:search:recent-mints", JSON.stringify([MINT]));
+    fetchDetail.mockRejectedValue(new ApiError("Unknown mint", 404));
+    openSearch();
+    const token = await screen.findByRole("button", { name: /Wrapped SOL/ });
+    localStorage.setItem("agele:search:recent-mints", JSON.stringify([JUP.mint]));
+    fireEvent.click(token);
+    expect(localStorage.getItem("agele:search:recent-mints")).toBe(JSON.stringify([SOL.mint, JUP.mint]));
+  });
+
+  it("refreshes visible recents after another tab changes local storage", async () => {
+    const key = "agele:search:recent-mints";
+    const newValue = JSON.stringify([SOL.mint]);
+    openSearch();
+    await screen.findByRole("button", { name: /Wrapped SOL/ });
+    expect(screen.queryByRole("region", { name: "Recent tokens" })).toBeNull();
+    localStorage.setItem(key, newValue);
+    fireEvent(window, new StorageEvent("storage", { key, newValue, storageArea: localStorage }));
+    const recents = await screen.findByRole("region", { name: "Recent tokens" });
+    expect(await within(recents).findByRole("button", { name: /Wrapped SOL/ })).toBeTruthy();
+    localStorage.clear();
+    fireEvent(window, new StorageEvent("storage", { key: null, storageArea: localStorage }));
+    expect(screen.queryByRole("region", { name: "Recent tokens" })).toBeNull();
+  });
 });
 
 describe("SearchDialog contract address lookup", () => {
