@@ -100,21 +100,36 @@ function HoldFilter({ onCommit }: { onCommit: (range: HoldRange) => void }) {
   );
 }
 
-function PositionRow({ entry, window }: { entry: RankedPosition; window: PositionsWindow }) {
+function PositionRow({
+  entry,
+  window,
+  labelDemo,
+}: {
+  entry: RankedPosition;
+  window: PositionsWindow;
+  labelDemo: boolean;
+}) {
   const { trader, token, thesis } = entry;
+  const traderName = trader.displayName || trader.handle;
   return (
     <li className="positions-board-row">
       <span className="positions-board-rank">#{entry.rank}</span>
       <div className="positions-board-trader">
         <span aria-hidden>
-          <TraderAvatar handle={trader.handle} avatarUrl={trader.avatarUrl} size="sm" />
+          <TraderAvatar
+            handle={trader.handle}
+            displayName={trader.displayName}
+            avatarUrl={trader.avatarUrl}
+            size="sm"
+          />
         </span>
         <TraderLink
           className="positions-board-profile"
           wallet={trader.wallet}
-          handle={trader.handle}
+          handle={traderName}
           window={window === "all" ? undefined : window}
         />
+        {labelDemo && entry.source === "demo" && <span className="positions-board-source text-xs">Demo</span>}
       </div>
       {thesis && <p className="positions-board-thesis">{thesis.body}</p>}
       <div className="positions-board-trade">
@@ -126,7 +141,7 @@ function PositionRow({ entry, window }: { entry: RankedPosition; window: Positio
             positionId: entry.positionId,
             thesisId: thesis?.id,
           }}
-          aria-label={`Open ${trader.handle}'s ${token.symbol} position replay`}
+          aria-label={`Open ${traderName}'s ${token.symbol} position replay`}
         >
           <AssetAvatar imageUrl={token.imageUrl} />
           <span className="positions-board-asset">
@@ -167,7 +182,7 @@ function PositionSkeleton() {
 
 export function PositionsLeaderboard({ tabs }: { tabs: ReactNode }) {
   const requestedWindow = useSearchParams().get("window");
-  const windowFilter = WINDOWS.find((value) => value === requestedWindow) ?? "7d";
+  const windowFilter = WINDOWS.find((value) => value === requestedWindow) ?? "24h";
   const [bucket, setBucket] = useState<(typeof BUCKETS)[number]["value"]>("all");
   const [[minHold, maxHold], setHold] = useState(ANY_HOLD);
   const query = useInfiniteQuery(
@@ -178,10 +193,19 @@ export function PositionsLeaderboard({ tabs }: { tabs: ReactNode }) {
       maxHoldSeconds: maxHold === LAST_STOP ? undefined : HOLD_STOPS[maxHold].seconds,
     }),
   );
-  const entries = query.data?.pages.flatMap((page) => page.entries) ?? [];
-  const dataSource = query.data?.pages[0]?.dataSource;
-  const sourceLabel =
-    dataSource === "demo" ? "Demo fixtures" : dataSource === "indexed" ? "Indexed trades" : undefined;
+  const pages = query.data?.pages ?? [];
+  const entries = pages.flatMap((page) => page.entries);
+  const hasIndexedPage = pages.some((page) => page.dataSource === "indexed");
+  const hasDemo =
+    pages.some((page) => page.dataSource === "demo") || entries.some((entry) => entry.source === "demo");
+  const labelDemoRows = hasIndexedPage && hasDemo;
+  const sourceLabel = labelDemoRows
+    ? "Includes demo fixtures"
+    : hasDemo
+      ? "Demo fixtures"
+      : hasIndexedPage
+        ? "Indexed trades"
+        : undefined;
 
   return (
     <section aria-labelledby="positions-board-title" className="positions-board">
@@ -228,7 +252,7 @@ export function PositionsLeaderboard({ tabs }: { tabs: ReactNode }) {
         </div>
         <div className="positions-board-meta">
           {sourceLabel && <span className="positions-board-source">{sourceLabel}</span>}
-          <p>Profitable closed positions · Ranked by realized PnL (USD)</p>
+          <p>Closed positions · Ranked by realized PnL (USD)</p>
         </div>
         {query.isPending && (
           <p role="status" className="sr-only">
@@ -240,7 +264,12 @@ export function PositionsLeaderboard({ tabs }: { tabs: ReactNode }) {
           {entries.length > 0 && (
             <ol aria-label="Position rankings" className="positions-board-list">
               {entries.map((entry) => (
-                <PositionRow key={entry.positionId} entry={entry} window={windowFilter} />
+                <PositionRow
+                  key={entry.positionId}
+                  entry={entry}
+                  window={windowFilter}
+                  labelDemo={labelDemoRows}
+                />
               ))}
             </ol>
           )}

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "@/lib/api/client";
-import type { RankedPosition } from "@/lib/api/positions-leaderboard";
+import type { PositionsWindow, RankedPosition } from "@/lib/api/positions-leaderboard";
 import { LeaderboardView } from "./leaderboard-view";
 
 vi.mock("next/navigation", () => ({
@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({
 
 const position: RankedPosition = {
   rank: 1,
-  trader: { wallet: "wallet", handle: "orca", avatarUrl: null },
+  trader: { wallet: "wallet", handle: "orca", displayName: "Orca Trader", avatarUrl: null },
   token: { mint: "mint", symbol: "SOL", name: "Solana", imageUrl: null },
   positionId: "first-episode",
   thesis: { id: "thesis-id", body: "Waited for the close.", createdAt: 100 },
@@ -23,12 +23,19 @@ const position: RankedPosition = {
   pnlPct: 50,
   avgEntryMarketCapUsd: 1_000_000,
   holdSeconds: 3_601,
+  openedAt: 1,
+  closedAt: 3_602,
+  source: "demo",
 };
 
-function page(entries: RankedPosition[], nextCursor: string | null = null) {
+function page(
+  entries: RankedPosition[],
+  nextCursor: string | null = null,
+  { window = "all", source = "demo" }: { window?: PositionsWindow; source?: "demo" | "indexed" } = {},
+) {
   return {
-    data: { window: "all", entries, nextCursor },
-    response: new Response(null, { headers: { "X-Data-Source": "demo" } }),
+    data: { window, entries, nextCursor },
+    response: new Response(null, { headers: { "X-Data-Source": source } }),
   };
 }
 
@@ -66,7 +73,7 @@ it("loads server-ranked pages and opens an exact position episode separately fro
           rank: 2,
           positionId: "second-episode",
           thesis: null,
-          trader: { ...position.trader, handle: "ray" },
+          trader: { ...position.trader, handle: "ray", displayName: null },
         },
       ]),
     );
@@ -79,9 +86,9 @@ it("loads server-ranked pages and opens an exact position episode separately fro
   expect(view.getByText("Avg. entry MC $1M")).toBeDefined();
   expect(view.getByText("Invested $500 · Held 1h")).toBeDefined();
   expect(view.getByText("+50.00%")).toBeDefined();
-  expect(view.getByRole("link", { name: "orca" }).getAttribute("href")).toBe("/traders/wallet");
+  expect(view.getByRole("link", { name: "Orca Trader" }).getAttribute("href")).toBe("/traders/wallet");
 
-  fireEvent.click(view.getByRole("button", { name: "Open orca's SOL position replay" }));
+  fireEvent.click(view.getByRole("button", { name: "Open Orca Trader's SOL position replay" }));
   const url = new URLSearchParams(window.location.search);
   expect(Object.fromEntries(url)).toMatchObject({
     tab: "positions",
@@ -94,7 +101,7 @@ it("loads server-ranked pages and opens an exact position episode separately fro
 
   fireEvent.click(view.getByRole("button", { name: "Load more" }));
   expect(await view.findByRole("link", { name: "ray" })).toBeDefined();
-  expect(view.getByRole("link", { name: "orca" })).toBeDefined();
+  expect(view.getByRole("link", { name: "Orca Trader" })).toBeDefined();
   expect(view.queryByRole("button", { name: "Load more" })).toBeNull();
   expect(get).toHaveBeenNthCalledWith(2, "/v1/leaderboard/positions", {
     params: { query: expect.objectContaining({ window: "all", cursor: "next-page" }) },
@@ -152,4 +159,27 @@ it("allows the minimum hold time to reach 3m+ without setting a maximum", async 
       signal: expect.any(AbortSignal),
     }),
   );
+});
+
+it("defaults to 24h, shows closed losses, and labels demo entries in mixed results", async () => {
+  window.history.replaceState(null, "", "/leaderboard?tab=positions");
+  const get = vi.spyOn(api, "GET").mockResolvedValue(
+    page(
+      [
+        { ...position, positionId: "indexed-episode", source: undefined },
+        { ...position, rank: 2, realizedPnlUsd: -250, pnlPct: -50 },
+      ],
+      null,
+      { window: "24h", source: "indexed" },
+    ),
+  );
+  const view = renderBoard();
+  expect(await view.findByText("-50.00%")).toBeDefined();
+  expect(view.getByText("Includes demo fixtures")).toBeDefined();
+  expect(view.getByText("Demo")).toBeDefined();
+  expect(view.getByRole("radio", { name: "24h" }).getAttribute("aria-checked")).toBe("true");
+  expect(get).toHaveBeenLastCalledWith("/v1/leaderboard/positions", {
+    params: { query: expect.objectContaining({ window: "24h", invested: undefined }) },
+    signal: expect.any(AbortSignal),
+  });
 });
