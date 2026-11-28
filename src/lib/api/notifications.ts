@@ -40,7 +40,7 @@ export type NotificationPage = {
 };
 
 export type AlertSettings = { traderActivity: boolean; sound: boolean };
-export type NotificationUpdate = { kind: "inbox"; sound: boolean } | { kind: "settings" };
+export type NotificationUpdate = { type: "changed" };
 
 type Json<T> = { content: { "application/json": T } };
 type Responses<T> = { responses: { 200: Json<T> } };

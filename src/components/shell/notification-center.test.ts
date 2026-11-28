@@ -195,7 +195,13 @@ it("authenticates the private socket, refreshes the open inbox, and saves server
     walletAddress: "wallet",
     getAccessToken: async () => "test-token",
   };
-  setup(auth, { id: "viewer-id" });
+  setup(auth, {
+    walletAddress: null,
+    wallets: [
+      { chainType: "solana", address: "secondary", isPrimary: false },
+      { chainType: "solana", address: "primary", isPrimary: true },
+    ],
+  });
   settings.mockResolvedValue(initial);
   fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
   await screen.findByRole("link", { name: /mira/ });
@@ -206,12 +212,13 @@ it("authenticates the private socket, refreshes the open inbox, and saves server
     expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ op: "authenticate", token: "test-token" })),
   );
   ws.frame({ type: "authenticated" });
-  const topic = "user:viewer-id:alerts";
+  const topic = "user:primary:notifications";
   expect(ws.send).toHaveBeenLastCalledWith(JSON.stringify({ op: "subscribe", topic }));
   ws.frame({ type: "subscribed", topic });
   await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
-  ws.frame({ type: "event", topic, data: { kind: "inbox", sound: false } });
+  ws.frame({ type: "event", topic, data: { type: "changed" } });
   await waitFor(() => expect(list).toHaveBeenCalledTimes(3));
+  expect(unreadCount).toHaveBeenCalledTimes(3);
 
   fireEvent.click(screen.getByRole("button", { name: "Notification settings" }));
   const activity = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Following activity" });

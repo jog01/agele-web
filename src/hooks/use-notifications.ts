@@ -4,7 +4,12 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { env } from "@/env";
-import { type AlertSettings, type NotificationUpdate, notificationsApi } from "@/lib/api/notifications";
+import {
+  type AlertSettings,
+  type NotificationPage,
+  type NotificationUpdate,
+  notificationsApi,
+} from "@/lib/api/notifications";
 import { resolveWsUrl } from "@/lib/realtime";
 
 const REFRESH_MS = 30_000;
@@ -52,18 +57,20 @@ function useAlertSound(viewer: string | null) {
 }
 
 function usePrivateInbox(
-  id: string | undefined,
+  wallet: string | undefined,
   viewer: string | null,
   getAccessToken: () => Promise<string | null>,
-  audio: ReturnType<typeof useAlertSound>["audio"],
 ) {
   const client = useQueryClient();
 
   useEffect(() => {
-    if (!id || !viewer) return;
-    const topic = `user:${id}:alerts`;
-    const invalidate = (key: "list" | "settings") =>
-      void client.invalidateQueries({ queryKey: ["notifications", viewer, key] });
+    if (!wallet || !viewer) return;
+    const topic = `user:${wallet}:notifications`;
+    function refreshInbox() {
+      for (const key of ["list", "unread-count", "settings"]) {
+        void client.invalidateQueries({ queryKey: ["notifications", viewer, key] });
+      }
+    }
     let active = true;
     let socket: WebSocket;
     let retry: ReturnType<typeof setTimeout> | undefined;
@@ -95,14 +102,14 @@ function usePrivateInbox(
           } else if (frame.type === "subscribed" && frame.topic === topic) {
             subscribed = true;
             attempt = 0;
-            invalidate("list");
-            invalidate("settings");
-          } else if (subscribed && frame.type === "event" && frame.topic === topic) {
-            if (frame.data?.kind === "settings") invalidate("settings");
-            else if (frame.data?.kind === "inbox") {
-              invalidate("list");
-              if (frame.data.sound === true) playAlert(audio.current);
-            }
+            refreshInbox();
+          } else if (
+            subscribed &&
+            frame.type === "event" &&
+            frame.topic === topic &&
+            frame.data?.type === "changed"
+          ) {
+            refreshInbox();
           } else if (!subscribed && frame.type === "error") {
             ws.close();
           }
@@ -121,7 +128,35 @@ function usePrivateInbox(
       clearTimeout(retry);
       socket.close();
     };
-  }, [id, viewer, getAccessToken, client, audio]);
+  }, [wallet, viewer, getAccessToken, client]);
+}
+
+function useNewTradeSound(
+  viewer: string | null,
+  page: NotificationPage | undefined,
+  enabled: boolean,
+  sound: ReturnType<typeof useAlertSound>,
+) {
+  const previous = useRef<{ viewer: string; page: NotificationPage } | null>(null);
+  const { audio, soundArmed } = sound;
+  useEffect(() => {
+    if (!viewer || !soundArmed || !page) {
+      previous.current = null;
+      return;
+    }
+    const baseline = previous.current;
+    previous.current = { viewer, page };
+    if (!enabled || baseline?.viewer !== viewer) return;
+    const latest = baseline.page.items[0]?.createdAt ?? 0;
+    const seen = new Set(baseline.page.items.map((item) => item.id));
+    if (
+      page.items.some(
+        (item) => item.kind === "trader_trade" && item.createdAt >= latest && !seen.has(item.id),
+      )
+    ) {
+      playAlert(audio.current);
+    }
+  }, [viewer, page, enabled, audio, soundArmed]);
 }
 
 export function useNotifications(open: boolean) {
@@ -130,6 +165,7 @@ export function useNotifications(open: boolean) {
   const account = auth.authenticated ? (auth.walletAddress ?? auth.userLabel) : null;
   const viewer = account ? `account:${account}` : !auth.configured ? "demo" : null;
   const enabled = auth.ready && viewer !== null;
+  const sound = useAlertSound(viewer);
   const settingsKey = ["notifications", viewer, "settings"] as const;
   const countKey = ["notifications", viewer, "unread-count"] as const;
   const listKey = ["notifications", viewer, "list"] as const;
@@ -145,8 +181,8 @@ export function useNotifications(open: boolean) {
     queryFn: ({ pageParam, signal }) => notificationsApi.list(auth, pageParam, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: ({ nextCursor }) => nextCursor ?? undefined,
-    enabled: enabled && open,
-    refetchInterval: open ? REFRESH_MS : false,
+    enabled: enabled && (open || sound.soundArmed),
+    refetchInterval: open || sound.soundArmed ? REFRESH_MS : false,
     refetchOnWindowFocus: true,
   });
   const count = useQuery({
@@ -167,7 +203,7 @@ export function useNotifications(open: boolean) {
   const settings = useQuery({
     queryKey: settingsKey,
     queryFn: ({ signal }) => notificationsApi.settings(auth, signal),
-    enabled: auth.ready && !!account && open,
+    enabled: auth.ready && !!account && (open || sound.soundArmed),
     refetchOnWindowFocus: true,
   });
   const saveSettings = useMutation({
@@ -178,8 +214,17 @@ export function useNotifications(open: boolean) {
       void client.invalidateQueries({ queryKey: settingsKey });
     },
   });
-  const sound = useAlertSound(viewer);
-  usePrivateInbox(auth.authenticated ? me.data?.id : undefined, viewer, auth.getAccessToken, sound.audio);
+  const wallet =
+    me.data?.walletAddress ??
+    me.data?.wallets
+      .filter((wallet) => wallet.chainType === "solana")
+      .sort(
+        (a, b) =>
+          Number(b.isPrimary) - Number(a.isPrimary) ||
+          (a.address < b.address ? -1 : Number(a.address > b.address)),
+      )[0]?.address;
+  usePrivateInbox(wallet, viewer, auth.getAccessToken);
+  useNewTradeSound(viewer, list.data?.pages[0], settings.data?.sound === true, sound);
 
   return { auth, enabled, list, count, markRead, settings, saveSettings, ...sound };
 }
