@@ -48,11 +48,11 @@ export function ThesisThreadSheet({
 
 export function ThesisThreadBody({
   thread,
-  commentId,
+  focusPostId,
   embedded = false,
 }: {
   thread: ActiveThesisThread;
-  commentId?: string;
+  focusPostId?: string;
   embedded?: boolean;
 }) {
   const auth = useAuth();
@@ -61,7 +61,7 @@ export function ThesisThreadBody({
   const [draft, setDraft] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const replyInput = useRef<HTMLTextAreaElement>(null);
-  const selectedComment = useRef<HTMLDivElement>(null);
+  const selectedPost = useRef<HTMLDivElement>(null);
 
   const query = useInfiniteQuery(thesisThreadQuery(thread.mint, thread.thesisId, auth));
   const postComment = usePostComment();
@@ -71,19 +71,19 @@ export function ThesisThreadBody({
   const pages = query.data?.pages ?? [];
   const pinned = pages[0]?.pinned ?? null;
   const comments = pages.flatMap((page) => page.comments);
-  const hasSelectedComment =
-    !!commentId && (pinned?.id === commentId || comments.some((post) => post.id === commentId));
-  const { fetchNextPage, hasNextPage, isFetching, isError, isPending } = query;
+  const hasSelectedPost =
+    !!focusPostId && (pinned?.id === focusPostId || comments.some((post) => post.id === focusPostId));
+  const { fetchNextPage, hasNextPage, isFetching, isError } = query;
   useEffect(() => {
-    if (!commentId || hasSelectedComment || !hasNextPage || isFetching || isError) return;
+    if (!focusPostId || hasSelectedPost || !hasNextPage || isFetching || isError) return;
     void fetchNextPage();
-  }, [commentId, fetchNextPage, hasNextPage, hasSelectedComment, isError, isFetching]);
+  }, [focusPostId, fetchNextPage, hasNextPage, hasSelectedPost, isError, isFetching]);
 
   useEffect(() => {
-    if (!hasSelectedComment) return;
-    selectedComment.current?.focus();
-    selectedComment.current?.scrollIntoView?.({ block: "nearest" });
-  }, [hasSelectedComment]);
+    if (!hasSelectedPost) return;
+    selectedPost.current?.focus();
+    selectedPost.current?.scrollIntoView?.({ block: "nearest" });
+  }, [hasSelectedPost]);
 
   const rootPost = pinned ?? comments.find((c) => c.kind === "thesis") ?? comments[0] ?? null;
   const activeParentId = replyTarget?.id ?? rootPost?.id;
@@ -165,11 +165,11 @@ export function ThesisThreadBody({
   function renderPost(post: Comment, opts?: { nested?: boolean }) {
     const canPin =
       post.kind === "thesis" && Boolean(auth.walletAddress && post.wallet === auth.walletAddress);
-    const selected = post.id === commentId;
+    const selected = post.id === focusPostId;
     return (
       <div
         key={post.id}
-        ref={selected ? selectedComment : undefined}
+        ref={selected ? selectedPost : undefined}
         tabIndex={selected ? -1 : undefined}
         className={cn(
           "py-5",
@@ -304,13 +304,13 @@ export function ThesisThreadBody({
           </div>
         ) : (
           <>
-            {commentId && !hasSelectedComment && !isPending && (
+            {focusPostId && !hasSelectedPost && (
               <p role="status" className="py-2 text-muted-foreground text-xs">
                 {query.isFetchNextPageError
-                  ? "Couldn’t load the linked comment."
+                  ? "Couldn’t load the linked post."
                   : hasNextPage
-                    ? "Finding the linked comment…"
-                    : "This comment is no longer available."}
+                    ? "Finding the linked post…"
+                    : "This post is no longer available."}
               </p>
             )}
             {topLevel.length === 0 && !pinned ? (

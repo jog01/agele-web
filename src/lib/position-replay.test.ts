@@ -103,7 +103,6 @@ it("keeps the background URL and round-trips the replay selection", () => {
     discussionKey: "trade:a",
     fillId: "a",
     thesisId: undefined,
-    commentId: "comment",
   };
   const opened = positionUrl(url, target);
   expect(positionTarget(opened.searchParams)).toEqual(target);

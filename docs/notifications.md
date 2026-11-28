@@ -1,65 +1,68 @@
 # Notification center
 
-The header bell opens a right-hand drawer (432px on desktop, full width on small screens).
-The timeline keeps server order and groups results into Today, This week (starting Monday), and
-Earlier in the viewer’s local time. Opening the drawer alone does not change read state.
-Opening a row navigates to its context and marks it read; the explicit **Mark all as read**
-action covers the whole inbox, not just the pages loaded in the browser. Opening a trade
-notification never starts an order.
+The header bell opens a right-hand drawer (432px on desktop, full width on small
+screens). The timeline keeps server order and groups items into Today, This week
+(starting Monday), and Earlier in the viewer’s local time. Opening a notification
+never places a trade.
 
 ```mermaid
 flowchart LR
-  API["Notifications API"] --> Count["Header unread badge"]
-  API --> Timeline["Cursor-paginated timeline"]
-  Timeline --> Groups["Today / This week / Earlier"]
-  Groups --> Replay["Exact position or thesis replay"]
-  Groups --> Comment["Linked reply in thesis thread"]
-  Groups --> Profile["Trader profile"]
-  Groups --> Leaderboard["Leaderboard"]
+  API["Paginated notification inbox"] --> Timeline["Today / This week / Earlier"]
+  Timeline --> Thesis["Liked thesis version"]
+  Timeline --> Trade["Indexed transaction or guarded demo replay"]
+  Timeline --> Profile["Follower profile"]
+  Timeline --> Leaderboard["Leaderboard window"]
+  Timeline --> Display["Info-only invites and sends"]
 ```
 
-## Data and synchronization
+## API and synchronization
 
-`src/lib/api/notifications.ts` isolates the proposed API contract until agele publishes it in
-OpenAPI. This adapter is the replacement point for generated types. The endpoints under
-`/v1/me/notifications` are:
+- `GET /v1/notifications?limit=30&cursor=…` returns `{source, items, nextCursor}`.
+  The server owns ordering, follow groups, timestamps, and actor counts.
+- Authenticated `GET /v1/notifications/settings` reads `{traderActivity,sound}`; the
+  corresponding `PUT` replaces both values.
+- The private socket authenticates with a fresh Privy access token and subscribes
+  to `user:<account UUID>:alerts`. Inbox and settings events invalidate separate
+  queries. The inbox also polls while open and refreshes on window focus.
+- Authenticated API calls include the bearer. In keyless demo mode, a bearer-free
+  inbox request uses the backend’s seeded data; it cannot change settings or
+  subscribe to private alerts. There are no browser-side demo fixtures.
+- Device audio requires a browser gesture, even when the synced sound preference
+  is already enabled. Only inbox events with `sound: true` trigger a sound.
 
-- `GET ?limit=25&cursor=…` returns `{ source, items, nextCursor }`. The server owns grouping,
-  actor counts, stable IDs and the order of rows. Timestamps are Unix seconds.
-- `GET /unread-count` returns `{ unreadCount }`. The header refreshes it every 30 seconds while
-  the app is active and on focus. No private events are sent over the public WebSocket.
-- `PUT /{id}/read` and `PUT /read-all` return `{ unreadCount }`. Successful writes refresh
-  account-scoped caches. While open, the timeline also refreshes periodically.
+Thesis likes use the supplied mint and thesis ID to open the thread and focus the
+supplied post ID. The notification actor is the person who liked it, not the thesis
+owner. Indexed trader activity links to its exact transaction signature. The demo
+replay is guarded by the actual trade ID; when the fill is not in the latest
+position episode, the replay does not present that episode as an exact match.
 
-Authenticated requests carry the viewer’s bearer token. With no Privy configuration the
-frontend can request a demo inbox without a token, but only the backend decides whether to
-serve its seeded data. No runtime fixtures or browser-side notifications are used.
+## Design gaps in the current backend contract
 
-Thesis notification destinations include the thesis owner wallet, mint, position ID and
-thesis ID. Replies also carry a comment ID; the thread loads pages until that comment is
-found or the cursor is exhausted. Trade notifications currently open the identified position
-episode; an individual fill link would need a fill ID from the API. Preferences and sound are
-not part of the proposed API; the drawer does not present non-functional controls.
+There are no unread counts, per-item read states or read mutations, so the bell
+does not show an unread badge and the drawer does not simulate dots, all-read or
+mark-all. There are no thesis-comment events. Alert settings do not provide
+minimum trade size or per-trader enable/pause. A trade includes a fill ID but
+not a position episode ID or historical fill-to-episode lookup. Clan and send
+rows are informational until the corresponding product destinations exist.
 
 ```mermaid
 sequenceDiagram
   actor Viewer
-  participant Bell as Bell and drawer
+  participant Web as Notification center
   participant API as Agele REST API
-  participant Target as Destination
-  Bell->>API: GET /unread-count
-  API-->>Bell: unreadCount
-  Viewer->>Bell: Open drawer
-  Bell->>API: GET notifications (cursor, limit)
-  API-->>Bell: items, nextCursor
-  alt Open unread item
-    Viewer->>Bell: Open notification
-    Bell->>Target: Navigate to context
-    Bell->>API: PUT /{id}/read
-  else Mark all as read
-    Viewer->>Bell: Mark all as read
-    Bell->>API: PUT /read-all
+  participant WS as Private alerts socket
+  Viewer->>Web: Open drawer
+  Web->>API: GET /v1/notifications
+  API-->>Web: source, items, nextCursor
+  opt Signed-in account
+    Web->>API: GET /v1/me
+    API-->>Web: Account UUID
+    Web->>WS: Authenticate with Privy token
+    WS-->>Web: authenticated
+    Web->>WS: Subscribe to user:<UUID>:alerts
+    Viewer->>Web: Change alert settings
+    Web->>API: PUT /v1/notifications/settings
+    WS-->>Web: settings or inbox invalidation
+    Web->>API: Refresh affected query
   end
-  API-->>Bell: unreadCount
-  Bell->>API: Refresh timeline and count
 ```

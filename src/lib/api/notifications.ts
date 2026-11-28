@@ -1,78 +1,82 @@
-import { z } from "zod";
+import createClient from "openapi-fetch";
 import { env } from "@/env";
-import { ApiError, unwrap } from "./client";
+import { api, unwrap } from "./client";
+import { type SocialAuth, socialHeaders } from "./social";
 
-const notification = z.object({
-  id: z.string().min(1),
-  kind: z.enum(["trader_trade", "thesis_like", "thesis_comment", "follow", "leaderboard"]),
-  createdAt: z.number().int().nonnegative(),
-  readAt: z.number().int().nonnegative().nullable(),
-  actors: z.array(
-    z.object({
-      wallet: z.string(),
-      handle: z.string().nullish(),
-      displayName: z.string().nullish(),
-      avatarUrl: z.string().nullish(),
-    }),
-  ),
-  actorCount: z.number().int().nonnegative(),
-  target: z.object({
-    wallet: z.string().nullish(),
-    mint: z.string().nullish(),
-    symbol: z.string().nullish(),
-    imageUrl: z.string().nullish(),
-    positionId: z.string().nullish(),
-    thesisId: z.string().nullish(),
-    commentId: z.string().nullish(),
-    sizeUsd: z.number().nullish(),
-    side: z.enum(["buy", "sell"]).nullish(),
-  }),
-});
+type NotificationDetails =
+  | { kind: "thesis_like"; thesisId: string; postId: string }
+  | { kind: "follow" }
+  | { kind: "clan_invite"; clanId: string; clanName: string }
+  | { kind: "send"; signature: string; amount: string }
+  | { kind: "leaderboard"; window: "24h" | "7d" | "30d"; rank: number; previousRank: number | null }
+  | { kind: "trader_activity"; tradeId: string; signature: string; side: "buy" | "sell" };
 
-const page = z.object({
-  source: z.enum(["demo", "indexed"]),
-  items: z.array(notification),
-  nextCursor: z.string().nullable(),
-});
+export type Notification = {
+  id: string;
+  createdAt: number;
+  actors: {
+    wallet: string | null;
+    handle: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  }[];
+  count: number;
+  token: { mint: string; symbol: string; imageUrl: string | null } | null;
+  details: NotificationDetails;
+};
 
-const unread = z.object({ unreadCount: z.number().int().nonnegative() });
+export type NotificationPage = {
+  items: Notification[];
+  nextCursor: string | null;
+  source: "indexed" | "demo";
+};
 
-export type Notification = z.infer<typeof notification>;
+export type AlertSettings = { traderActivity: boolean; sound: boolean };
+export type NotificationUpdate = { kind: "inbox"; sound: boolean } | { kind: "settings" };
 
-type Access = { getAccessToken: () => Promise<string | null> } | null;
+type Json<T> = { content: { "application/json": T } };
+type Responses<T> = { responses: { 200: Json<T> } };
+type NotificationPaths = {
+  "/v1/notifications": {
+    get: Responses<NotificationPage> & { parameters: { query?: { cursor?: string; limit?: number } } };
+  };
+  "/v1/notifications/settings": {
+    get: Responses<AlertSettings>;
+    put: Responses<AlertSettings> & { requestBody: Json<AlertSettings> };
+  };
+};
 
-async function request<T>(
-  path: string,
-  schema: z.ZodType<T>,
-  access: Access,
-  method: "GET" | "PUT",
-  signal?: AbortSignal,
-) {
-  const token = await access?.getAccessToken();
-  if (access && !token) throw new ApiError("Sign in again to continue", 401);
-  const response = await fetch(`${env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/v1/me/notifications${path}`, {
-    method,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    signal,
-    cache: "no-store",
-  });
-  const body: unknown = await response.json().catch(() => undefined);
-  if (!response.ok) return unwrap<T>({ error: body, response });
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) throw new ApiError("Unexpected notification response", response.status);
-  return parsed.data;
-}
+const client = createClient<NotificationPaths>({ baseUrl: env.NEXT_PUBLIC_API_URL });
 
 export const notificationsApi = {
-  list(access: Access, cursor?: string, signal?: AbortSignal) {
-    const params = new URLSearchParams({ limit: "25" });
-    if (cursor) params.set("cursor", cursor);
-    return request(`?${params}`, page, access, "GET", signal);
+  async list(auth: SocialAuth, cursor?: string, signal?: AbortSignal) {
+    return unwrap(
+      await client.GET("/v1/notifications", {
+        params: { query: { limit: 30, cursor } },
+        headers: await socialHeaders(auth),
+        signal,
+        cache: "no-store",
+      }),
+    );
   },
-  unreadCount(access: Access, signal?: AbortSignal) {
-    return request("/unread-count", unread, access, "GET", signal);
+  async viewer(auth: SocialAuth, signal?: AbortSignal) {
+    return unwrap(await api.GET("/v1/me", { headers: await socialHeaders(auth), signal }));
   },
-  markRead(access: Access, id: string | null) {
-    return request(id === null ? "/read-all" : `/${encodeURIComponent(id)}/read`, unread, access, "PUT");
+  async settings(auth: SocialAuth, signal?: AbortSignal) {
+    return unwrap(
+      await client.GET("/v1/notifications/settings", {
+        headers: await socialHeaders(auth),
+        signal,
+        cache: "no-store",
+      }),
+    );
+  },
+  async saveSettings(auth: SocialAuth, body: AlertSettings) {
+    return unwrap(
+      await client.PUT("/v1/notifications/settings", {
+        headers: await socialHeaders(auth),
+        body,
+      }),
+    );
   },
 };

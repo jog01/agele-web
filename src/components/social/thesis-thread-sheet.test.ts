@@ -11,7 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it("pages to and focuses the reply linked by a notification", async () => {
+it("pages to and focuses the thesis version linked by a notification", async () => {
   const thesis: Comment = {
     id: "root",
     kind: "thesis",
@@ -33,13 +33,7 @@ it("pages to and focuses the reply linked by a notification", async () => {
     likes: 0,
     replyCount: 1,
   };
-  const reply: Comment = {
-    ...thesis,
-    kind: "comment",
-    id: "reply",
-    parentId: thesis.id,
-    body: "Linked reply",
-  };
+  const version: Comment = { ...thesis, id: "version", body: "Linked version" };
   const firstPage = {
     id: "thesis",
     wallet: "author",
@@ -54,7 +48,7 @@ it("pages to and focuses the reply linked by a notification", async () => {
     .spyOn(api, "GET")
     .mockResolvedValueOnce({ data: firstPage, response: new Response() })
     .mockResolvedValueOnce({
-      data: { ...firstPage, comments: [reply], nextCursor: null },
+      data: { ...firstPage, comments: [version], nextCursor: null },
       response: new Response(),
     });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
@@ -64,12 +58,12 @@ it("pages to and focuses the reply linked by a notification", async () => {
       { client },
       createElement(ThesisThreadBody, {
         thread: { mint: "mint", thesisId: "thesis" },
-        commentId: "reply",
+        focusPostId: "version",
         embedded: true,
       }),
     ),
   );
-  const node = await screen.findByText("Linked reply");
+  const node = await screen.findByText("Linked version");
   await waitFor(() => expect(document.activeElement).toBe(node.closest("[tabindex]")));
   expect(get).toHaveBeenNthCalledWith(
     2,

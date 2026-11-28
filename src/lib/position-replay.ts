@@ -8,12 +8,11 @@ export interface PositionTarget {
   mint: string;
   positionId?: string;
   thesisId?: string;
-  commentId?: string;
   discussionKey?: string;
   fillId?: string;
 }
 
-const POSITION_PARAMS = ["trader", "mint", "position", "thesis", "comment", "discussion", "fill"] as const;
+const POSITION_PARAMS = ["trader", "mint", "position", "thesis", "discussion", "fill"] as const;
 
 export function positionTarget(params: Pick<URLSearchParams, "get">): PositionTarget | null {
   const wallet = params.get("trader");
@@ -24,7 +23,6 @@ export function positionTarget(params: Pick<URLSearchParams, "get">): PositionTa
     mint,
     positionId: params.get("position") || undefined,
     thesisId: params.get("thesis") || undefined,
-    commentId: params.get("comment") || undefined,
     discussionKey: params.get("discussion") || undefined,
     fillId: params.get("fill") || undefined,
   };
@@ -34,12 +32,11 @@ export function positionUrl(url: URL, target: PositionTarget | null) {
   const next = new URL(url);
   for (const key of POSITION_PARAMS) next.searchParams.delete(key);
   if (target) {
-    const { wallet, mint, positionId, thesisId, commentId, discussionKey, fillId } = target;
+    const { wallet, mint, positionId, thesisId, discussionKey, fillId } = target;
     next.searchParams.set("trader", wallet);
     next.searchParams.set("mint", mint);
     if (positionId) next.searchParams.set("position", positionId);
     if (thesisId) next.searchParams.set("thesis", thesisId);
-    if (commentId) next.searchParams.set("comment", commentId);
     if (discussionKey) next.searchParams.set("discussion", discussionKey);
     if (fillId) next.searchParams.set("fill", fillId);
   }
