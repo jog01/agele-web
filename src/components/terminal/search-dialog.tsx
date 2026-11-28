@@ -147,21 +147,21 @@ export function SearchDialog({
   const trending = discovery.data ?? [];
   const lookup = useMintSearch(mint, trending, open);
   const search = useSearch(q, open);
+  const showRecents = !q && filter !== "Traders" && recentMints.length > 0;
   const recentDetails = useQueries({
-    queries: (open && !q && filter !== "Traders" ? recentMints : []).map((address) => ({
+    queries: (open && showRecents ? recentMints : []).map((address) => ({
       ...tokenQueries.detail(address),
       enabled: !trending.some((token) => token.mint === address),
       refetchInterval: false,
       retry: false,
     })),
   });
-  const recentTokens =
-    !q && filter !== "Traders"
-      ? recentMints.flatMap((address, i) => {
-          const token = trending.find((item) => item.mint === address) ?? recentDetails[i]?.data;
-          return token ? [token] : [];
-        })
-      : [];
+  const recentTokens = showRecents
+    ? recentMints.flatMap((address, i) => {
+        const token = trending.find((item) => item.mint === address) ?? recentDetails[i]?.data;
+        return token ? [token] : [];
+      })
+    : [];
   const exactToken = lookup.token ?? search.data?.tokens.find((token) => token.mint === mint);
   const tokenMatches = mint
     ? exactToken
@@ -393,7 +393,7 @@ export function SearchDialog({
           aria-label="Search results"
           className="min-h-0 overflow-y-auto overscroll-contain px-4 py-2 max-sm:flex-1 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:min-h-44 sm:px-5"
         >
-          {!!recentTokens.length && (
+          {showRecents && (
             <section aria-label="Recent tokens" className="mb-3">
               <div className="flex h-11 items-center justify-between">
                 <h2 className="font-medium text-muted-foreground text-xs">Recent tokens</h2>
@@ -409,7 +409,9 @@ export function SearchDialog({
                   Clear all
                 </Button>
               </div>
-              <ul>{recentTokens.map((token) => renderResult(tokenResult(token)))}</ul>
+              {!!recentTokens.length && (
+                <ul>{recentTokens.map((token) => renderResult(tokenResult(token)))}</ul>
+              )}
             </section>
           )}
           {!!tokens.length && (

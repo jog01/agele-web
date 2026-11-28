@@ -182,6 +182,18 @@ describe("SearchDialog mixed search", () => {
     expect(document.activeElement).toBe(input);
     expect(readText).toHaveBeenCalledTimes(1);
   });
+
+  it("can clear recent mints even if none resolves to a market", async () => {
+    localStorage.setItem("agele:search:recent-mints", JSON.stringify([MINT]));
+    fetchDetail.mockRejectedValue(new ApiError("Unknown mint", 404));
+    openSearch();
+    await waitFor(() => expect(fetchDetail).toHaveBeenCalledExactlyOnceWith(MINT));
+    const recents = screen.getByRole("region", { name: "Recent tokens" });
+    expect(within(recents).queryByRole("list")).toBeNull();
+    fireEvent.click(within(recents).getByRole("button", { name: "Clear all" }));
+    expect(localStorage.getItem("agele:search:recent-mints")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Recent tokens" })).toBeNull();
+  });
 });
 
 describe("SearchDialog contract address lookup", () => {
