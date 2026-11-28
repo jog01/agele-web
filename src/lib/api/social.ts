@@ -1,4 +1,4 @@
-import { type InfiniteData, infiniteQueryOptions } from "@tanstack/react-query";
+import { type InfiniteData, infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type { AuthState } from "@/components/auth/auth-context";
 import { DEFAULT_FEED_FILTERS, feedFilterParams } from "@/lib/feed-filters";
 import {
@@ -76,6 +76,29 @@ export function thesisThreadQuery(mint: string, thesisId: string | null, auth?: 
       );
     },
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}
+
+export function positionThesisQuery(wallet: string, mint: string, positionId: string) {
+  return queryOptions({
+    queryKey: ["position-thesis", mint, wallet, positionId],
+    queryFn: async ({ signal }) => {
+      let cursor: string | undefined;
+      do {
+        const page = unwrap(
+          await api.GET("/v1/feed", {
+            params: { query: { scope: "global", wallet, mint, types: "thesis", cursor, limit: 25 } },
+            signal,
+          }),
+        );
+        const match = page.items.find(
+          (item) => item.kind === "thesis" && item.positionId === positionId && item.wallet === wallet,
+        );
+        if (match?.kind === "thesis") return match.thesisId;
+        cursor = page.nextCursor ?? undefined;
+      } while (cursor);
+      return null;
+    },
   });
 }
 
