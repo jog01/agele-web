@@ -296,6 +296,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Search tokens by exact mint or symbol/name prefix, and public traders by exact Solana wallet (including linked wallets) or case-insensitive handle/display name prefix. A leading @ is optional for trader names. Up to 30 traders are returned, with exact wallet matches first. */
         get: {
             parameters: {
                 query: {
@@ -317,12 +318,7 @@ export interface paths {
                             tokens: components["schemas"]["Token"][];
                             /** @description Token provider unavailable; indexed token matches may still be returned. */
                             tokensUnavailable: boolean;
-                            traders: {
-                                wallet: string;
-                                handle: string;
-                                displayName: string | null;
-                                avatarUrl: string | null;
-                            }[];
+                            traders: components["schemas"]["TraderSearchResult"][];
                         };
                     };
                 };
@@ -2061,6 +2057,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/leaderboard/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Closed positions (first buy until holdings return to zero) ranked by realized USD PnL. Window keeps positions closed in it; invested buckets total bought USD (lower bound inclusive); hold time runs from first buy to close. Filters apply before ranking and rank counts matching positions. Optional auth adds isFollowing. Rankings are cached for up to 30 seconds. X-Data-Source is demo for an entirely seeded page, indexed otherwise. */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Positions closed in the window; all includes every closed position */
+                    window?: "24h" | "7d" | "30d" | "all";
+                    /** @description Total bought USD bucket, lower bound inclusive (100-1k is $100 to <$1K); omit for all sizes */
+                    invested?: "lt100" | "100-1k" | "1k-10k" | "10k-100k" | "gt100k";
+                    /** @description Inclusive minimum hold time from first buy to close */
+                    minHoldSeconds?: number | null;
+                    /** @description Inclusive maximum hold time; omit for Any */
+                    maxHoldSeconds?: number | null;
+                    /** @description nextCursor from the previous page */
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Ranked closed positions with trader, token, latest thesis, average entry market cap and PnL */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PositionsLeaderboard"];
+                    };
+                };
+                /** @description Invalid window, bucket, hold-time range or cursor */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Invalid bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Authentication is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/feed": {
         parameters: {
             query?: never;
@@ -3394,6 +3465,17 @@ export interface components {
             volume24hUsd: number;
             holders: number;
         };
+        TraderSearchResult: {
+            wallet: string;
+            handle: string;
+            displayName: string | null;
+            avatarUrl: string | null;
+            /**
+             * @description Whether the result is a seeded demo trader.
+             * @enum {string}
+             */
+            source: "demo" | "indexed";
+        };
         Pulse: {
             /** @enum {string} */
             source: "demo" | "indexed";
@@ -3625,6 +3707,53 @@ export interface components {
             volumeUsd: number;
             trades: number;
             winRatePct: number;
+            /** @enum {string} */
+            source?: "demo";
+            isFollowing?: boolean;
+        };
+        PositionsLeaderboard: {
+            /** @enum {string} */
+            window: "24h" | "7d" | "30d" | "all";
+            entries: components["schemas"]["PositionsLeaderboardEntry"][];
+            nextCursor: string | null;
+        };
+        PositionsLeaderboardEntry: {
+            /** @description Rank among positions matching the filters */
+            rank: number;
+            /**
+             * Format: uuid
+             * @description Opening fill ID; pass as positionId to position replay
+             */
+            positionId: string;
+            trader: {
+                wallet: string;
+                handle: string;
+                displayName: string | null;
+                avatarUrl: string | null;
+            };
+            token: {
+                mint: string;
+                symbol: string;
+                name: string;
+                imageUrl: string | null;
+            };
+            /** @description Sum of the position's buys in USD */
+            totalInvestedUsd: number;
+            realizedPnlUsd: number;
+            /** @description realizedPnlUsd / totalInvestedUsd x 100 */
+            pnlPct: number;
+            avgEntryMarketCapUsd: number | null;
+            holdSeconds: number;
+            openedAt: number;
+            closedAt: number;
+            /** @description Latest version of the position's thesis */
+            thesis: {
+                /** Format: uuid */
+                id: string;
+                body: string;
+                /** @description Unix seconds of the latest version */
+                createdAt: number;
+            } | null;
             /** @enum {string} */
             source?: "demo";
             isFollowing?: boolean;

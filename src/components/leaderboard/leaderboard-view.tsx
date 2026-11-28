@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { TraderLink } from "@/components/common/trader-link";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import { useLeaderboard } from "@/lib/api/queries";
 import { formatCompactUsd, formatPct, formatUsd, shortAddress } from "@/lib/format";
 import { solanaCluster } from "@/lib/solana/cluster";
 import { cn } from "@/lib/utils";
+import { PositionsLeaderboard } from "./positions-leaderboard";
 
 const STICKY_RANK = "max-lg:sticky max-lg:left-0 max-lg:z-10 max-lg:w-12 max-lg:min-w-12 max-lg:bg-card";
 const STICKY_TRADER = "max-lg:sticky max-lg:left-12 max-lg:z-10 max-lg:bg-card";
@@ -89,6 +92,36 @@ export function LeaderboardLoading() {
 }
 
 export function LeaderboardView() {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const positions = params.get("tab") === "positions";
+  const traderParams = new URLSearchParams(params.toString());
+  traderParams.delete("tab");
+  if (traderParams.get("window") === "all") traderParams.delete("window");
+  const positionsParams = new URLSearchParams(params.toString());
+  positionsParams.set("tab", "positions");
+  const tabs = (
+    <nav aria-label="Leaderboard views" className="positions-board-tabs">
+      <Link
+        href={traderParams.size ? `${pathname}?${traderParams}` : pathname}
+        aria-current={positions ? undefined : "page"}
+        scroll={false}
+      >
+        Traders
+      </Link>
+      <Link
+        href={`${pathname}?${positionsParams}`}
+        aria-current={positions ? "page" : undefined}
+        scroll={false}
+      >
+        Positions
+      </Link>
+    </nav>
+  );
+  return positions ? <PositionsLeaderboard tabs={tabs} /> : <TradersLeaderboard tabs={tabs} />;
+}
+
+function TradersLeaderboard({ tabs }: { tabs: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const window = parseLeaderboardWindow(useSearchParams().get("window"));
@@ -131,6 +164,7 @@ export function LeaderboardView() {
           ))}
         </ToggleGroup>
       </div>
+      {tabs}
       <div className="overflow-hidden rounded-md border bg-card">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-3 py-2 text-xs">
           <span className="rounded border bg-secondary px-1.5 py-0.5 font-medium text-primary">
